@@ -38,7 +38,7 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | `ReminderState`, `TakeReminder`, `snooze()`, and `ReminderPlanner`'s constants. `ReminderStateTest`: 14 tests. |
-| T2 | To do | |
+| T2 | Done | `ReminderPlanner.plan()`, `ReminderPlan`, `Reminder`, `removals`, and the clock check of §4.3.8. `ReminderPlannerTest`: 31 tests, each also checking the one-plan properties of §4.3.10 (`ReminderChecks.kt`: `assertPlanProperties`, `instant()`, `dueTakes()`), including a plan again at now, halfway to the next wake-up and 1 ms before it. Two deliberate mutations of the planner (no pull-back; a repeat 1 minute early) each failed tests, then were reverted. |
 | T3 | To do | |
 | T4 | To do | |
 
