@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.2 |
+| **Status** | Ready, v0.3 |
 | **Phase** | P2, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P1 |
 | **Branch** | `phase/p2-domain` |
@@ -315,6 +315,8 @@ class MedicineTakes(medicine: Medicine, treatmentEndedAt: LocalDateTime?, answer
     val first: LocalDateTime?       // null: no takes at all (ended before its first take)
     val last: LocalDateTime?        // null: no end
     val answeredCount: Int          // Taken and Skipped (HM-3)
+    val answers: Map<LocalDateTime, Answer>   // only those of takes that exist
+    operator fun contains(plannedAt: LocalDateTime): Boolean                 // `plannedAt in takes`
     fun take(plannedAt: LocalDateTime, now: ZonedDateTime): Take?           // null: no such take
     fun takes(from: LocalDateTime, until: LocalDateTime, now: ZonedDateTime): Sequence<Take>  // planned in [from, until)
     fun nextTake(now: ZonedDateTime): Take?             // §4.3.4; null: none left
@@ -326,8 +328,8 @@ fun PillsData.takesOf(medicineId: MedicineId): MedicineTakes?
 fun PillsData.take(key: TakeKey, now: ZonedDateTime): Take?
 
 enum class TreatmentStatus { UPCOMING, ACTIVE, FINISHED }
-fun PillsData.status(treatmentId: TreatmentId, now: ZonedDateTime): TreatmentStatus
-fun PillsData.firstTake(treatmentId: TreatmentId): LocalDateTime?          // HM-4
+fun PillsData.status(treatmentId: TreatmentId, now: ZonedDateTime): TreatmentStatus?   // null: no such treatment (Q6)
+fun PillsData.firstTake(treatmentId: TreatmentId): LocalDateTime?          // HM-4; null: no takes, or no such treatment
 ```
 
 **Time** (`core.time`):
@@ -482,6 +484,7 @@ The first take is the earliest first take of its medicines (`HM-4`). A medicine 
     - The old schedule becomes an `EarlierSchedule(old, until = cut-off)`.
     - The draft's schedule becomes the current one. Its takes after the cut-off replace those that weren't kept.
     - If nothing is kept (the medicine hadn't started, and has no answer), no earlier schedule is stored: the new schedule simply replaces the old one.
+    - If takes are kept, but the old schedule holds none of them, it is still stored as an earlier schedule, with no takes. That happens with a second edit made before the first edit's new schedule had started. Its window ends at the cut-off, so the new schedule never adds takes before it. Extending the previous earlier schedule's `until` instead would give that schedule takes it never had.
   - The new schedule counts its duration from its own first take, as always. The editor shows that first take, so the user can keep it or move it.
 - **A stored medicine missing from the draft** is removed, with all its answers (P2-D8).
 - **An ended treatment** can still be saved: names and notes change, and its takes after `endedAt` stay removed.
@@ -499,7 +502,7 @@ Example, from spec §4.4, with the 08:00, 16:00, 00:00 and 08:00 takes of Amoxic
   - Its takes planned after then are removed, except a take already answered early, which keeps its answer, as in an edit.
   - A take Due at that moment becomes Missed at once (`missedAt` = `endedAt`), so its reminder goes.
   - The treatment is Finished. A medicine with no end now has a count and a last take.
-  - It returns `null` if the treatment is already ended.
+  - It returns `null` if the treatment is already ended. A treatment that is Finished without being ended (all its takes past) can still be ended.
 - **`deleteTreatment(id)`** removes the treatment, and every answer of its medicines (`TR-9`).
 - **Nothing else removes a treatment** (`TR-12`).
 
@@ -589,14 +592,14 @@ Every test is a JUnit Jupiter unit test in `:core`, with fixed clocks (`Clock.fi
 
 | Test | Covers |
 |---|---|
-| `ValidationTest`: each rule of §4.3.9; every error reported at once; blank names; zero, negative and missing amounts; minutes only when allowed; no end needs no duration amount; an empty dose is valid; `Int.MAX_VALUE` is valid; names are saved trimmed, and "1/3 tablet" as typed | `TR-2`, `TR-3`, `TR-5`–`TR-8` |
+| `ValidationTest`: each rule of §4.3.9; every error reported at once; blank names; zero, negative and missing amounts; minutes only when allowed; no end needs no duration amount; an empty dose is valid; `Int.MAX_VALUE` is valid; a first take in the past is valid | `TR-2`, `TR-3`, `TR-4`–`TR-8` |
 | `PlannedTakesTest`: §4.4's 21 and 15 takes, last on Mon 30 Nov 00:00 and Sat 28 Nov 00:00; rule 3's rounding (every 5 h for 1 day → 5; every 2 days for 7 days → 4); every 2 days from Mon 08:00 → Wed and Fri at 08:00; weeks, and "for 12 weeks" = 84 days; no end, with a take 10 years ahead worked out directly; the largest amounts don't overflow | `SC-1`, `SC-2`, rules 1–4 and 6 |
 | `ClockTimesTest`: `dueAt` in the gap and the repeated hour; every 8 h across 29 March (the 00:00 → 08:00 interval is 7 real hours) and 25 October (9 real hours); every 1 h through both changes; counts unchanged across them; a change of zone keeps the clock times; `suggestedFirstTake`, with the four examples of §4.3.2; `CurrentZoneClock` follows a change of the default zone (restored afterwards) | `SC-4`, `TR-4`, plan `D-6` |
 | `TakeStatesTest`: Pending, Due, Missed, Taken, Skipped; Missed at 16:00 for the 08:00 take with 8 h, and a week later with a weekly interval; the last take is Missed one interval after it; a take stays Due through the repeated hour; after a change of zone westwards, a Due take is Pending again and answers are unchanged; taking a take late or early doesn't move the later ones; a first take two days in the past: its earlier takes are Missed, and the latest is Due | `TK-1`, `TK-3`, `SC-3`, `SC-4`, `TR-4` |
 | `MedicineTakesTest`: earlier schedules built by hand; `nextTake`, `canMarkEarly` (one take ahead at most, none while one is Due), `lastAnswered`, `answeredCount`, `nextStateChange`; the last take of an earlier schedule becomes Missed when the next take falls due; a no-end medicine | `TK-3`, `TK-4`, `TK-5`, `SC-5` |
 | `TreatmentStatusTest`: Upcoming, Active, Finished, by rule 7; a no-end medicine stays Active until ended; several treatments active at once; a Finished treatment stays in the data | Rule 7, `TR-1`, `TR-12`, `SC-5` |
 | `ExampleWalkTest`: spec §4.4, minute by minute from Sun 22 Nov to Wed 2 Dec, with no answers: each take's state, and the treatment's status, at every minute; the invariants of §4.3.10. Plus the home screen numbers at Mon 10:30 (next 16:00, 1 of 21, 1 of 15) and 16:05 (Amoxicillin Due 1 of 21, Atrovent next Tue 00:00, 2 of 15) | The §4.4 example, `TK-1`, `TK-3`, rule 7 |
-| `SaveTreatmentTest`: a new treatment; an edit before the first take (no earlier schedule); §4.3.6's example halfway through (15 takes, last Sun 29 Nov 20:00, 4 of 15); a take answered early is kept; two edits in a row; an unchanged schedule adds nothing; a removed medicine takes its answers with it; an answer recorded between opening the draft and saving it survives; `previewMedicine` equals the saved result; an invalid draft is refused, without treatment content in the message | `TR-10`, `SC-2`, `SC-5` |
+| `SaveTreatmentTest`: a new treatment, with its names saved trimmed and "1/3 tablet" as typed; an edit before the first take (no earlier schedule); §4.3.6's example halfway through (15 takes, last Sun 29 Nov 20:00, 4 of 15); a take answered early is kept; two edits in a row; an unchanged schedule adds nothing; a removed medicine takes its answers with it; an answer recorded between opening the draft and saving it survives; `previewMedicine` equals the saved result; an invalid draft is refused, without treatment content in the message | `TR-10`, `SC-2`, `SC-5` |
 | `EndTreatmentTest`: §4.4 ended on Wed 25 Nov at 12:00 (7 takes each, the Wed 08:00 take Missed at once, Finished); a take answered early is kept; a no-end medicine gets a count and a last take; ending twice is refused | `TR-11` |
 | `AnswersTest`: each row of the §4.3.8 table, allowed and refused; Taken records now in whole minutes; a corrected time; a corrected time later than now is refused; a Missed take can't be answered; clearing an answer; older takes can't be changed | `TK-2`, `TK-4`, `TK-5` |
 | `DeleteTreatmentTest`: the treatment and all its answers go; other treatments are untouched | `TR-9` (data) |
@@ -633,11 +636,11 @@ Every test is a JUnit Jupiter unit test in `:core`, with fixed clocks (`Clock.fi
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q6.
+None at the moment. New questions are numbered from Q7.
 
 ### Answered
 
-All five draft assumptions were confirmed in the review. Q1–Q4 clarified the specification, now v0.5.
+The review confirmed the five draft assumptions, and Q1–Q4 clarified the specification, now v0.5. Q6 came up during implementation.
 
 | # | Question | Decision |
 |---|---|---|
@@ -646,6 +649,7 @@ All five draft assumptions were confirmed in the review. Q1–Q4 clarified the s
 | Q3 | Ending a treatment while a take is Due, or marked Taken early | The Due take becomes Missed at once, and its reminder goes. A take marked Taken early keeps its answer. (`TR-11`, §4.3.7) |
 | Q4 | A first take in the past | Accepted, with no check. Its takes already past are Missed, except the latest while it is still Due. P6 may warn. (`TR-4`, §4.3.9) |
 | Q5 | A duration in minutes for debug builds | No: only the interval has minutes, as plan `D-15` says. P5 can ask for one later. |
+| Q6 | `status()` of a treatment that doesn't exist. v0.2 gave it a non-null result, which would mean an exception for an unknown ID, and a screen can still hold the ID of a treatment just deleted. | It returns `TreatmentStatus?`, `null` for an unknown ID, as `firstTake()` does (§4.2). |
 
 ## 10. Change log
 
@@ -653,3 +657,4 @@ All five draft assumptions were confirmed in the review. Q1–Q4 clarified the s
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
 | 0.2 | 2026-11-20 | Review: Q1–Q5 answered, confirming the draft assumptions. Q1–Q4 went into specification v0.5 (`TK-3`, `TK-4`, `TR-11`, `TR-4`), which §2 now quotes. A test for a first take in the past added to `TakeStatesTest`. Ready. |
+| 0.3 | 2026-11-20 | During implementation (T4, T5). Q6: `status()` returns `null` for an unknown treatment. §4.2 lists `MedicineTakes.answers` and `contains`. §4.3.6: an old schedule holding no kept take is still stored, with no takes. §4.3.7: a treatment Finished without being ended can still be ended. §6: trimming is tested in `SaveTreatmentTest`. |
