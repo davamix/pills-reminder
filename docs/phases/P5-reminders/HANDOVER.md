@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 |
+| **Status** | In progress |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p5-reminders` |
 | **Last session** | 2026-11-20 |
 
@@ -25,11 +25,11 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 
 ## Current state
 
-Not started. The SPEC is a draft (v0.1), waiting for review of Q1–Q4. P3 and P4 are merged, so P5 builds on the real store and the real planner; no fakes are needed.
+Started: the branch exists, and no code has been written yet. The SPEC is Ready (v0.2), with Q1–Q4 answered. P3 and P4 are merged, so P5 builds on the real store and the real planner; no fakes are needed.
 
 ## Next steps
 
-1. Once SPEC.md is `Ready`: start with T1, the measurements of alarms and broadcasts on the phone (SPEC §4.6, A1–A8), with stock HyperOS settings first.
+1. T1, the measurements of alarms and broadcasts on the phone (SPEC §4.6, A1–A8), with stock HyperOS settings first. Write the throwaway probe in the debug source set, and never commit it.
 
 ## Tasks
 
@@ -79,5 +79,5 @@ Newest first.
 
 ### 2026-11-20
 
-- Done: SPEC.md v0.1 and this handover, from the plan, the specification (v0.6), the code P5 builds on, and P1–P4's handovers.
-- Notes: waiting for the review of SPEC §9 (Q1–Q4).
+- Done: SPEC.md v0.1 and this handover, from the plan, the specification (v0.6), the code P5 builds on, and P1–P4's handovers. The review confirmed Q1–Q4: specification v0.7 (`RM-4`, `RM-5`), plan v0.4 (§2.4, §3), SPEC v0.2, Ready. The phase is in progress, on `phase/p5-reminders`.
+- Notes: P4's SPEC still quotes `RM-4` and `RM-5` as in specification v0.6; P4 is done, so its SPEC stays as the record of what it built.
