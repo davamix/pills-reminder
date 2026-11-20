@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.5, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Status** | v0.6, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
 | **Last updated** | 2026-11-20 |
 | **Platform** | Android phone, single user, personal use |
 
@@ -220,9 +220,9 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 |---|---|---|
 | RM-1 | When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any. | Requested |
 | RM-2 | A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved. | Agreed |
-| RM-3 | A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. | Agreed |
+| RM-3 | A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again. | Agreed |
 | RM-4 | Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. | Agreed |
-| RM-5 | A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). | Agreed |
+| RM-5 | A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. | Agreed |
 | RM-6 | Tapping a reminder opens the app on that take. | Agreed |
 | RM-7 | When a take is answered in the app, or becomes Missed, its reminder is removed from the shade. | Agreed |
 | RM-8 | Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound. | Agreed |
@@ -237,7 +237,7 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | TK-2 | Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20". | Agreed |
 | TK-3 | A take still unanswered one interval after its planned time becomes Missed. With an interval of 8 h, the 08:00 take becomes Missed at 16:00; with an interval of a week, a week later. After an edit (`TR-10`), it becomes Missed as soon as the medicine's next take is due, if that comes sooner, so a medicine never has more than one Due take. | Agreed |
 | TK-4 | A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. The next take is the medicine's Due take, if it has one, or else its first unanswered take still to come. Only one take of a medicine can be marked ahead of its time: the one after it can be marked early once the marked take's planned time has passed. | Agreed |
-| TK-5 | The last answered take of each medicine can be changed later, for example after pressing Taken by mistake: to Taken, to Skipped, or back to unanswered. The Treatment screen shows it. Older takes can't be seen or changed. | Agreed |
+| TK-5 | The last answered take of each medicine can be changed later, for example after pressing Taken by mistake: to Taken, to Skipped, or back to unanswered. The Treatment screen shows it. Older takes can't be seen or changed. A take set back to unanswered that is Due again gets its reminder back, which alerts at once, as when the take fell due. | Agreed |
 
 ### 5.5 Home screen
 
@@ -395,3 +395,4 @@ Not planned for v1; listed so they are not lost.
 | 0.3 | 2026-11-20 | Second review: Q19–Q22 answered. Q19 revises Q2: the interval is a number of hours, days or weeks (`TR-3`, `TR-8`, `SC-1`, §4.3 and the editor sketch). `TK-5` now applies only to each medicine's last answered take. `RM-8` says what Do Not Disturb and silent mode do. `SC-5` agreed. New question Q23. |
 | 0.4 | 2026-11-20 | Q23 answered: a duration is a number of days or weeks, or no end (`TR-3`, `TR-8`, §4.1–§4.3 and the editor sketch). No open questions remain. |
 | 0.5 | 2026-11-20 | From the P2 spec review (P2 Q1–Q4), confirming its draft assumptions. `TK-3`: after an edit, a take becomes Missed as soon as the medicine's next take is due, if that comes sooner. `TK-4`: which take is the next one, and only one take marked early at a time. `TR-11`: a take due when the treatment is ended becomes Missed, and one marked Taken early keeps its answer. `TR-4`: the first take can be in the past. The state diagram in §4.3 shows the end of a treatment. |
+| 0.6 | 2026-11-20 | From the P4 spec review (P4 Q1–Q3), confirming its draft assumptions. `RM-3`: after a snooze, the reminder repeats as in `RM-5`, and can be snoozed again. `RM-5`: each repeat comes 10 minutes after the alert before it, also when the first alert came late. `TK-5`: a take set back to unanswered that is Due again gets its reminder back, which alerts at once. |
