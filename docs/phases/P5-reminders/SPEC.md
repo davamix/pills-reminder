@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P5, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P3, P4 |
 | **Branch** | `phase/p5-reminders` |
@@ -24,15 +24,15 @@ Before relying on the phone's behaviour, P5 measures it, in Doze, after a swipe 
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.6), so this document stands on its own.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.7), so this document stands on its own.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
 | RM-1 | "When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any." | The notification's title is "Amoxicillin: 1 capsule", and its text "Example · with food", or only "Example" without instructions (§4.3.4). The text comes from the data at each reconcile, so an edit updates it. |
 | RM-2 | "A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved." | A high-importance channel with the default sound and vibration off (`D-10`). The exact alarm and the receivers make it alert with the app closed, the screen off, and after a restart, once the phone is unlocked (`D-16`). Checked on the phone (§6). |
 | RM-3 | "A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again." | Three action buttons, each an explicit, immutable `PendingIntent` to a receiver that records the answer or the snooze, then runs the reconcile (§4.3.5). The snooze is stored in P4's reminder state (§4.3.7). |
-| RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade." | One notification per take, identified by its take key, in one group with a summary (§4.3.4). |
-| RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times." | The reconcile posts a reminder with sound when the plan says it alerts, and leaves it in the shade otherwise. A tap doesn't dismiss it. The timing is P4's. |
+| RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound." | One notification per take, identified by its take key, in one group with a summary (§4.3.4). Each is posted with sound; whether Android plays one sound or two is measured in T2 (Q4). |
+| RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. Swiping a reminder away doesn't answer or snooze its take: the reminder comes back with its next repeat, or, once its repeats are over, silently the next time the app updates its reminders, for example when the app is opened." | The reconcile posts a reminder with sound when the plan says it alerts, and leaves it in the shade otherwise. A tap doesn't dismiss it. A reminder swiped away is posted again at the next reconcile (Q2). The timing is P4's. |
 | RM-6 | "Tapping a reminder opens the app on that take." | The notification opens `MainActivity` on the take's `TakeRoute`. Until P6 is merged, that is the Take placeholder (§4.3.8). |
 | RM-7 | "When a take is answered in the app, or becomes Missed, its reminder is removed from the shade." | The reconcile runs after every change of the stored data, so an answer given anywhere in the app removes the reminder (P5-D2). The Missed moment is one of the plan's wake-ups. |
 | RM-8 | "Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound." | The channel doesn't bypass Do Not Disturb, and its sound plays on the notification stream, which follows silent mode. Checked on the phone (§6). |
@@ -93,6 +93,10 @@ From the example (spec §4.4): "At 16:00 two reminders alert, "Amoxicillin: 1 ca
 | D-10 | "**One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, full content on the lock screen, category *reminder*, and no Do Not Disturb bypass. Each take has its own notification, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported." "A channel's sound and vibration are set when it is created, so they are right from the first install." |
 | D-15 | "**Debug builds can schedule in minutes.** They add a "minutes" unit to the interval, and a debug screen that creates a test schedule and shows the next alarm. Release builds have neither." |
 | D-16 | "The data stays in Android's default, credential-encrypted storage. After a restart, reminders start again once the phone has been unlocked for the first time. A reminder that came due in between alerts as soon as the phone is unlocked." |
+
+Plan §2.4, on a stored file that can't be read (plan v0.4, from Q1): "The reminders change nothing: those already in the shade stay, and no new alarm is set (P5)." And: "If a reconcile's write fails, nothing is applied, and an alarm 5 minutes later tries again, for as long as it fails."
+
+Plan §3 (plan v0.4, from Q3): "**Minimal surface.** Only the launcher activity is exported, and, in debug builds only, the debug tools' launcher activity (`D-15`, P5 Q3). The receivers aren't: the system still delivers its own broadcasts to them, and the alarm and the notification actions use explicit, immutable `PendingIntent`s. P5 confirms on the phone that each receiver gets what it needs."
 
 Plan §4, on device runs: "A device run counts only on the phone. The emulator has no HyperOS power management, so a pass there proves nothing about Doze or HyperOS. Each run records the Android and HyperOS versions and whether the power settings were stock."
 
@@ -695,15 +699,22 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None at the moment. New questions are numbered from Q5.
+
+### Answered
+
+The review confirmed the four draft assumptions. Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3), which §2 now quotes.
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | What a reconcile does when it can't run: the stored data can't be read, or the write fails | **Unreadable:** nothing changes on the phone. Reminders already in the shade stay, and their actions do nothing; no new alarm is set. P7's home screen says the data can't be read. **A failed write:** nothing is applied, and an alarm 5 minutes later tries again, for as long as it fails. Removing every reminder instead would hide takes that may be due. |
-| Q2 | What swiping a reminder away does | Nothing to the take: it isn't answered or snoozed, and stays Due. The reminder comes back at the next reconcile: with sound if a repeat is due then, silently otherwise. During a round that is within 10 minutes; after the round, at the next event (opening the app, another reminder, the take's Missed time, when it goes for good). The alternative is a reminder that can't be swiped away (`setOngoing`), but Android 14 and later let the user swipe those too. |
-| Q3 | How to open the debug screen in debug builds | A second launcher icon, "Pills debug", for a `DebugActivity` declared only in the debug manifest, so P6's and P7's screens stay untouched and the release build has nothing of it. It is exported in debug builds, as launcher activities are. If agreed, plan §3's "only the launcher activity is exported" gets "and, in debug builds, the debug tools' one". The alternatives: a debug-only button on P7's Settings screen, or opening it only through adb. |
-| Q4 | Two reminders that alert at the same moment | Both appear, each in the group, and Android may play one sound or two: either is fine, since `RM-4` asks for a reminder each, not a sound each. T2 records what the phone does. |
+| Q1 | What a reconcile does when it can't run: the stored data can't be read, or the write fails | **Unreadable:** nothing changes on the phone. Reminders already in the shade stay, and their actions do nothing; no new alarm is set. P7's home screen says the data can't be read. **A failed write:** nothing is applied, and an alarm 5 minutes later tries again, for as long as it fails. (Plan §2.4, §4.3.1) |
+| Q2 | What swiping a reminder away does | Nothing to the take: it isn't answered or snoozed, and stays Due. The reminder comes back at the next reconcile: with sound if a repeat is due then, silently otherwise. (`RM-5`, §4.3.4) |
+| Q3 | How to open the debug screen in debug builds | A second launcher icon, "Pills debug", for a `DebugActivity` declared only in the debug manifest, and exported there, as launcher activities are. The release build has nothing of it. (Plan §3, §4.3.9) |
+| Q4 | Two reminders that alert at the same moment | Both appear, each in the group, each posted with sound; Android may play one sound or two, and either is fine. T2 records what the phone does. (`RM-4`, §4.3.4) |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
+| 0.2 | 2026-11-20 | Review: Q1–Q4 answered, confirming the draft assumptions. Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3); §2 quotes them. Ready. |
