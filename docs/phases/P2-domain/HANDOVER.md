@@ -52,6 +52,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | Date | Decision | Reason |
 |---|---|---|
 | 2026-11-20 | `PillsData.status(treatmentId, now)` returns `TreatmentStatus?`, `null` for an unknown ID, where SPEC §4.2 has a non-null `TreatmentStatus`. | A screen can still hold the ID of a treatment that was just deleted. `null`, like `firstTake()`, is safer than an exception. |
+| 2026-11-20 | When a medicine has takes up to the cut-off, but its *current* schedule holds none of them (a second edit, before the first edit's new schedule had started), `saveTreatment` still stores that schedule as an `EarlierSchedule` with no takes. SPEC §4.3.6 only covers a medicine with no takes at all. | The empty window ends at the cut-off, so the new schedule can never add takes in the past. Extending the previous earlier schedule's `until` instead would wrongly give it takes it never had. |
+| 2026-11-20 | `endTreatment` also ends a treatment that is already Finished without being ended (all its takes past). It refuses only one already ended. | Harmless, and the Treatment screen needn't hide "End early" for a finished treatment that wasn't ended. |
 | 2026-11-20 | `MedicineTakes` also exposes `contains(plannedAt)` (`plannedAt in takes`) and its filtered `answers`, beyond SPEC §4.2. `nextAfter`, `latestAtOrBefore` and `missedAt` are `internal`. | The actions (T5) and the invariant checks need them. |
 
 ## Known issues
