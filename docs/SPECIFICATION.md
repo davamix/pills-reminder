@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.6, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Status** | v0.7, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
 | **Last updated** | 2026-11-20 |
 | **Platform** | Android phone, single user, personal use |
 
@@ -221,8 +221,8 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | RM-1 | When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any. | Requested |
 | RM-2 | A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved. | Agreed |
 | RM-3 | A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again. | Agreed |
-| RM-4 | Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. | Agreed |
-| RM-5 | A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. | Agreed |
+| RM-4 | Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound. | Agreed |
+| RM-5 | A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. Swiping a reminder away doesn't answer or snooze its take: the reminder comes back with its next repeat, or, once its repeats are over, silently the next time the app updates its reminders, for example when the app is opened. | Agreed |
 | RM-6 | Tapping a reminder opens the app on that take. | Agreed |
 | RM-7 | When a take is answered in the app, or becomes Missed, its reminder is removed from the shade. | Agreed |
 | RM-8 | Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound. | Agreed |
@@ -396,3 +396,4 @@ Not planned for v1; listed so they are not lost.
 | 0.4 | 2026-11-20 | Q23 answered: a duration is a number of days or weeks, or no end (`TR-3`, `TR-8`, §4.1–§4.3 and the editor sketch). No open questions remain. |
 | 0.5 | 2026-11-20 | From the P2 spec review (P2 Q1–Q4), confirming its draft assumptions. `TK-3`: after an edit, a take becomes Missed as soon as the medicine's next take is due, if that comes sooner. `TK-4`: which take is the next one, and only one take marked early at a time. `TR-11`: a take due when the treatment is ended becomes Missed, and one marked Taken early keeps its answer. `TR-4`: the first take can be in the past. The state diagram in §4.3 shows the end of a treatment. |
 | 0.6 | 2026-11-20 | From the P4 spec review (P4 Q1–Q3), confirming its draft assumptions. `RM-3`: after a snooze, the reminder repeats as in `RM-5`, and can be snoozed again. `RM-5`: each repeat comes 10 minutes after the alert before it, also when the first alert came late. `TK-5`: a take set back to unanswered that is Due again gets its reminder back, which alerts at once. |
+| 0.7 | 2026-11-20 | From the P5 spec review (P5 Q2 and Q4), confirming its draft assumptions. `RM-5`: swiping a reminder away doesn't answer or snooze its take, and the reminder comes back with its next repeat, or silently once its repeats are over. `RM-4`: reminders that alert at the same moment may play a single sound. |
