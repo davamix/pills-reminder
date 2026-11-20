@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.4, agreed |
+| **Status** | v0.5, agreed |
 | **Last updated** | 2026-11-20 |
 | **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.7 |
 
@@ -60,7 +60,7 @@ How to read it:
 | D-5 | **Takes are worked out, not stored.** The store keeps the treatments, their medicines and schedules, and the *answers*: Taken (with the time taken) or Skipped, plus snoozes and which alerts have played. Pending, Due and Missed come from the schedule, the answers and the clock. | A medicine with no end has no last take, so its takes can't all be stored. Deriving them also keeps the rules of §4.3 in one place. |
 | D-6 | Planned times are **local date-times** on the phone's clock (`java.time.LocalDateTime`), turned into instants with the phone's current time zone only when needed. A take that falls in the hour skipped by a daylight saving change moves forward by that hour. In the repeated hour, the earlier one counts. Time comes from an injected `java.time.Clock`. | Implements `SC-4`: 08:00 stays 08:00 across daylight saving and time zone changes. Tests use fixed clocks and zones, including Europe/Madrid on the days the clocks change. |
 | D-7 | **One alarm at a time.** The app keeps a single exact alarm, set for the next moment something must happen: a take becomes due, a reminder alerts again, a snooze ends, or a take becomes Missed. When it fires, and after every change, a **reconcile** works out what the notification shade should show now, posts or removes notifications, and sets the next alarm. | One idempotent path handles every trigger: the alarm, a notification action, a restart, an edit, opening the app. Running it twice changes nothing. There are no per-take alarms that could be forgotten or left behind. |
-| D-8 | Exact alarms use `setExactAndAllowWhileIdle()` with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). P5 measures on the phone, in Doze, whether this meets `NF-1`. If it doesn't, the alarm switches to `setAlarmClock()`, which PQ-2 accepted. | `setExactAndAllowWhileIdle()` is the usual way to alert at a precise time in Doze. Whether HyperOS delays it is unknown until measured. `setAlarmClock()` is never delayed, but it shows an alarm icon in the status bar. |
+| D-8 | The alarm is an **alarm clock**, `setAlarmClock()`, with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). It shows an alarm icon in the status bar while a reminder is pending, which PQ-2 accepted. | Measured in P5 (T1): with the screen off, HyperOS held the app's `setExactAndAllowWhileIdle()` alarms until a 5-minute grid, up to 4 min 15 s late, outside Doze too, and also with the app exempt from battery optimisation. `setAlarmClock()` alarms came within 0.1 s with stock settings. `NF-1` needs 1 minute. |
 | D-9 | **Reconcile on every event that can lose an alarm.** Receivers for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED`, and the app's start, all run the reconcile. Receivers do their short work with `goAsync()`. | Implements `NF-2`. Opening the app after a *Force stop* sets the alarm again. Nothing runs between reminders (`NF-5`). |
 | D-10 | **One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, full content on the lock screen, category *reminder*, and no Do Not Disturb bypass. Each take has its own notification, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported. | Implements `RM-1`–`RM-4`, `RM-8` and `RM-11`. A channel's sound and vibration are set when it is created, so they are right from the first install. |
 | D-11 | `minSdk` 33. | The only phone is Android 13. The notification permission and `USE_EXACT_ALARM` exist from API 33, so no older code paths are needed (`NF-6`). The emulator, at API 36, covers later versions. |
@@ -330,8 +330,8 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
     - when an exact alarm fires with the screen off, in Doze, after the app is swiped away, and after a restart;
     - whether repeats ten minutes apart are delayed in Doze;
     - whether `USE_EXACT_ALARM` is granted, and whether HyperOS shows the notifications as heads-up and on the lock screen by default.
-    - The results settle `D-8` (and PQ-2), and give P7 the list of HyperOS settings the reminder check must name (`RM-9`).
-  - **Alarm scheduler:** the single exact alarm (`D-7`, `D-8`).
+    - The results settle `D-8` (and PQ-2), and give P7 the list of HyperOS settings the reminder check must name (`RM-9`). They settled `D-8` in favour of `setAlarmClock()`.
+  - **Alarm scheduler:** the single alarm clock (`D-7`, `D-8`).
   - **Reconcile:** applies the planner's plan (§2.3).
   - **Receivers:** the alarm, the notification actions, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED` (`D-9`).
   - **Notifications:** the channel, and one notification per take with its actions (`D-10`). Tapping it opens the app on the take (`RM-6`): on P6's Take screen if it's merged, or on a placeholder otherwise.
@@ -508,7 +508,7 @@ None at the moment. New questions are numbered from PQ-4.
 | # | Question | Decision |
 |---|---|---|
 | PQ-1 | Reminders before the first unlock after a restart | The phone has a password. Reminders start again after the first unlock, and the data stays in the default, credential-encrypted storage (`D-16`). |
-| PQ-2 | `setAlarmClock()` as the fallback if exact alarms are late in Doze | Accepted, if P5's measurement shows it's needed, despite its alarm icon in the status bar (`D-8`). |
+| PQ-2 | `setAlarmClock()` as the fallback if exact alarms are late in Doze | Accepted, if P5's measurement shows it's needed, despite its alarm icon in the status bar (`D-8`). P5 found it needed, and the user confirmed the switch (plan v0.5). |
 | PQ-3 | Release signing | A new keystore for this app, kept outside the repo. The signed APK is attached to a `v1.0.0` GitHub release, made only with the user's go-ahead (P8). |
 
 ## 9. Change log
@@ -519,3 +519,4 @@ None at the moment. New questions are numbered from PQ-4.
 | 0.2 | 2026-11-20 | Review applied: PQ-1 to PQ-3 answered, confirming the draft assumptions (`D-8`, `D-16`, P8). Added `D-17`: skills are reviewed after each phase (§6.4, §7). Every other decision agreed. |
 | 0.3 | 2026-11-20 | From the P3 spec review (P3 Q1, Q3 and Q5). §2.4: when the stored file can't be read, P7's home screen says so and P6's editors refuse to save, and the app offers no repair. §2.4 and P5: P5 adds P4's reminder state to P3's format. §3: the libraries that the chosen libraries depend on are accepted, such as Okio for DataStore. Now based on specification v0.5. |
 | 0.4 | 2026-11-20 | From the P5 spec review (P5 Q1 and Q3), confirming its draft assumptions. §2.4: with a stored file that can't be read, the reminders already in the shade stay and no new alarm is set; a reconcile whose write fails tries again 5 minutes later. §3: in debug builds only, the debug tools' launcher activity is exported as well. Now based on specification v0.7, which adds P5 Q2 and Q4 to `RM-4` and `RM-5`. |
+| 0.5 | 2026-11-20 | From P5's measurements on the phone (P5 T1, P5 Q5). `D-8`: the alarm is an alarm clock, `setAlarmClock()`, because HyperOS held `setExactAndAllowWhileIdle()` alarms for up to 5 minutes with the screen off, even exempt from battery optimisation; PQ-2's fallback is now used. P5's summary in §5.2 says so. |

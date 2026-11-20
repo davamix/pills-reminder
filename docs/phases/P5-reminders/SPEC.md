@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.2 |
+| **Status** | Ready, v0.3 |
 | **Phase** | P5, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P3, P4 |
 | **Branch** | `phase/p5-reminders` |
@@ -14,7 +14,7 @@ This document holds everything needed to implement the phase. Working on it shou
 
 Real reminders on the phone. P4's planner says what the shade should hold and when to wake next. P5 applies that plan on Android:
 
-- a single exact alarm;
+- a single alarm clock (`setAlarmClock()`, Q5);
 - one notification per Due take, with Taken, Snooze and Skip;
 - receivers that run the reconcile after the alarm, an action, a restart, an update or a change of time;
 - P4's reminder state in P3's store;
@@ -29,7 +29,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
 | RM-1 | "When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any." | The notification's title is "Amoxicillin: 1 capsule", and its text "Example · with food", or only "Example" without instructions (§4.3.4). The text comes from the data at each reconcile, so an edit updates it. |
-| RM-2 | "A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved." | A high-importance channel with the default sound and vibration off (`D-10`). The exact alarm and the receivers make it alert with the app closed, the screen off, and after a restart, once the phone is unlocked (`D-16`). Checked on the phone (§6). |
+| RM-2 | "A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved." | A high-importance channel with the default sound and vibration off (`D-10`). The alarm clock and the receivers make it alert with the app closed, the screen off, and after a restart, once the phone is unlocked (`D-16`). Checked on the phone (§6). |
 | RM-3 | "A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again." | Three action buttons, each an explicit, immutable `PendingIntent` to a receiver that records the answer or the snooze, then runs the reconcile (§4.3.5). The snooze is stored in P4's reminder state (§4.3.7). |
 | RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound." | One notification per take, identified by its take key, in one group with a summary (§4.3.4). Each is posted with sound; whether Android plays one sound or two is measured in T2 (Q4). |
 | RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. Swiping a reminder away doesn't answer or snooze its take: the reminder comes back with its next repeat, or, once its repeats are over, silently the next time the app updates its reminders, for example when the app is opened." | The reconcile posts a reminder with sound when the plan says it alerts, and leaves it in the shade otherwise. A tap doesn't dismiss it. A reminder swiped away is posted again at the next reconcile (Q2). The timing is P4's. |
@@ -42,7 +42,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | TR-9 | "Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment." | The reminder side: the reconcile that follows the delete removes the treatment's reminders. The delete also drops their reminder records in the same write (P5-D8). |
 | TR-11 | "A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer." | The reminder side: the reconcile that follows the end removes the reminder of the take that was due, and no alarm is set for the treatment again. |
 | TK-2 | "Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20"." | Taken from a reminder calls P2's `markTaken`, which records now, in whole minutes. Correcting the time is P6's. |
-| NF-1 | "**On time:** a reminder alerts within 1 minute of its planned time, also when the phone is idle (Doze), the screen is off, the app was swiped away from Recents, or the phone has restarted, as long as the reminder check (`RM-9`) passes. This is checked on the phone, not only on the emulator." | An exact alarm at the plan's next wake-up (`D-8`). Measured first (T1), then checked in the device runs (T8), on the phone. |
+| NF-1 | "**On time:** a reminder alerts within 1 minute of its planned time, also when the phone is idle (Doze), the screen is off, the app was swiped away from Recents, or the phone has restarted, as long as the reminder check (`RM-9`) passes. This is checked on the phone, not only on the emulator." | An alarm clock at the plan's next wake-up (`D-8`): T1 found exact alarms held for up to 5 minutes with the screen off, and alarm clocks on time (Q5). Measured first (T1), then checked in the device runs (T8), on the phone. |
 | NF-2 | "**Reminders survive events:** they are set again after the phone restarts, after an app update, after a change of time or time zone, and after Android ends the app's process. A *Force stop* from Android's settings cancels every alarm, and Android gives the app no chance to undo that until it is opened again; when it is, it sets them again at once." | Receivers for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED` run the reconcile (`D-9`). Alarms survive the process ending. The app's start runs the reconcile, which sets the alarm again after a *Force stop*. |
 | NF-5 | "**Battery:** nothing runs in the background between reminders. The app wakes only to alert." | One alarm, set for the next moment the plan changes. No service, no WorkManager, no periodic work. The observer of the data (P5-D2) only waits, and runs nothing until the data changes. |
 | NF-6 | "**Compatibility:** runs on Android 13 (API 33) on the target phone, and keeps working if the phone is updated to a later Android version. The lowest version supported is set in the implementation plan." | P5's part (plan §5.3): on the emulator, at API 36, check that `USE_EXACT_ALARM` is granted and the alarm, the notifications and the receivers work. |
@@ -88,7 +88,7 @@ From the example (spec §4.4): "At 16:00 two reminders alert, "Amoxicillin: 1 ca
 | ID | Decision (quoted) |
 |---|---|
 | D-7 | "**One alarm at a time.** The app keeps a single exact alarm, set for the next moment something must happen: a take becomes due, a reminder alerts again, a snooze ends, or a take becomes Missed. When it fires, and after every change, a **reconcile** works out what the notification shade should show now, posts or removes notifications, and sets the next alarm." |
-| D-8 | "Exact alarms use `setExactAndAllowWhileIdle()` with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). P5 measures on the phone, in Doze, whether this meets `NF-1`. If it doesn't, the alarm switches to `setAlarmClock()`, which PQ-2 accepted." `setAlarmClock()` "is never delayed, but it shows an alarm icon in the status bar." |
+| D-8 | Plan v0.5, from T1: "The alarm is an **alarm clock**, `setAlarmClock()`, with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). It shows an alarm icon in the status bar while a reminder is pending, which PQ-2 accepted." Its reason: "with the screen off, HyperOS held the app's `setExactAndAllowWhileIdle()` alarms until a 5-minute grid, up to 4 min 15 s late, outside Doze too, and also with the app exempt from battery optimisation. `setAlarmClock()` alarms came within 0.1 s with stock settings." |
 | D-9 | "**Reconcile on every event that can lose an alarm.** Receivers for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED`, and the app's start, all run the reconcile. Receivers do their short work with `goAsync()`." "Opening the app after a *Force stop* sets the alarm again. Nothing runs between reminders (`NF-5`)." |
 | D-10 | "**One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, full content on the lock screen, category *reminder*, and no Do Not Disturb bypass. Each take has its own notification, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported." "A channel's sound and vibration are set when it is created, so they are right from the first install." |
 | D-15 | "**Debug builds can schedule in minutes.** They add a "minutes" unit to the interval, and a debug screen that creates a test schedule and shows the next alarm. Release builds have neither." |
@@ -104,10 +104,10 @@ Plan §4, on device runs: "A device run counts only on the phone. The emulator h
 
 ### In scope
 
-- **Measure first** (T1, T2), on the phone with stock HyperOS settings, then with them relaxed, and on the emulator for Android 16: when exact alarms fire, whether each receiver gets its broadcast, and how HyperOS shows, sounds and groups the notifications (§4.6).
+- **Measure first** (T1, T2), on the phone with stock HyperOS settings, then with them relaxed, and on the emulator for Android 16: when alarms fire, whether each receiver gets its broadcast, and how HyperOS shows, sounds and groups the notifications (§4.6).
 - **Reminder state in the store:** `PillsData.reminders`, in P3's format, with a golden test. The snooze action, and its repository helper (P4's pending wiring).
 - **The reconcile:** one at a time; the plan worked out inside the store's `update`; the alarm, the removals and the posts applied after the write (P4 SPEC §4.3.7). It runs after every change of the data, and from the receivers and the app's start.
-- **The alarm:** the single exact alarm at the plan's next wake-up (`D-7`, `D-8`).
+- **The alarm:** the single alarm clock at the plan's next wake-up (`D-7`, `D-8`).
 - **Notifications:** the channel, one notification per Due take with its content and actions, the group, and opening the take on a tap (`D-10`, `RM-6`).
 - **Receivers:** the alarm, the notification actions, and the system's restart, update, time and time zone broadcasts (`D-9`).
 - **Permissions:** the four reminder permissions of plan §3, in the manifest.
@@ -138,7 +138,7 @@ app/src/main/kotlin/io/github/davamix/pillsreminder/reminders/
 ├── ReminderShade.kt           the shade as the reconcile sees it, and AndroidReminderShade (§4.3.4)
 ├── ReminderChannel.kt         the notification channel (D-10)
 ├── ReminderContent.kt         a reminder's text, from the data (pure)
-├── WakeUpAlarm.kt             the single alarm, and ExactWakeUpAlarm on AlarmManager (§4.3.3)
+├── WakeUpAlarm.kt             the single alarm, and AlarmClockWakeUp on AlarmManager (§4.3.3)
 ├── ReminderIntents.kt         the PendingIntents, and the take key in an intent
 ├── TakeKeyCodec.kt            a take key as text, and back (pure)
 ├── ReminderLog.kt             reminder events, logged in debug builds only (§4.3.10)
@@ -297,7 +297,7 @@ object TakeKeyCodec {
 }
 ```
 
-The Android implementations are `AndroidReminderShade(context, tagPrefix = "take")` and `ExactWakeUpAlarm(context, identifier = "wake-up")`. Instrumented tests build their own with another prefix and identifier (P5-D11).
+The Android implementations are `AndroidReminderShade(context, tagPrefix = "take")` and `AlarmClockWakeUp(context, identifier = "wake-up")`. Instrumented tests build their own with another prefix and identifier (P5-D11).
 
 ### 4.3 Behaviour
 
@@ -361,11 +361,12 @@ sequenceDiagram
 
 #### 4.3.3 The alarm
 
-- **One alarm:** `ExactWakeUpAlarm` holds one `PendingIntent`: explicit, to `AlarmReceiver`, with the action `…action.WAKE_UP`, its identifier (`Intent.setIdentifier`), and `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`. Setting it again replaces it; `cancel()` cancels it.
-- **Exact, in Doze:** `setExactAndAllowWhileIdle(RTC_WAKEUP, at.toEpochMilli(), pendingIntent)` (`D-8`). `RTC_WAKEUP` follows the wall clock, which is what the plan's instants are on; a change of time also reconciles (`TIME_SET`).
-- **The fallback** of `D-8`, `setAlarmClock(AlarmClockInfo(at, openApp), pendingIntent)`, is used only if T1 shows that exact alarms are late in Doze. Switching to it is a SPEC change during implementation (`phase-docs`), already accepted in PQ-2.
-- **Without the exact-alarm permission** (`canScheduleExactAlarms()` false, which `USE_EXACT_ALARM` should never allow): `setAndAllowWhileIdle`, so reminders still come, late, rather than the receiver crashing on a `SecurityException`. Debug builds log it. P7's check shows the permission as missing.
-- **A time in the past** is set as it is: Android fires it at once.
+- **One alarm:** `AlarmClockWakeUp` holds one `PendingIntent`: explicit, to `AlarmReceiver`, with the action `…action.WAKE_UP`, its identifier (`Intent.setIdentifier`), and `FLAG_IMMUTABLE | FLAG_UPDATE_CURRENT`. Setting it again replaces it; `cancel()` cancels it.
+- **An alarm clock** (`D-8`, Q5): `setAlarmClock(AlarmClockInfo(at.toEpochMilli(), openApp), pendingIntent)`. Its time is on the wall clock, which is what the plan's instants are on; a change of time also reconciles (`TIME_SET`). `openApp` is an immutable `PendingIntent` to `MainActivity`, which Android opens when the user taps the next alarm in quick settings.
+- **Why not `setExactAndAllowWhileIdle()`:** with HyperOS's stock settings and the screen off, T1 found it held until a 5-minute grid, up to 4 min 15 s late, outside Doze and also with the app exempt from battery optimisation. Alarm clocks came within 0.1 s (Q5).
+- **The status bar** shows an alarm icon while the alarm is set, so while any take is still to come; quick settings and the lock screen may show its time. PQ-2 accepted it.
+- **Without the exact-alarm permission** (`canScheduleExactAlarms()` false, which `USE_EXACT_ALARM` should never allow; alarm clocks need it too): `setAndAllowWhileIdle`, so reminders still come, late, rather than the receiver crashing on a `SecurityException`. Debug builds log it. P7's check shows the permission as missing.
+- **A time in the past** is set as it is: Android fires it within seconds (about 5 s on the phone, T1).
 - **Restarts** clear every alarm; `BOOT` sets it again. Whether an update keeps it is measured in T1; `PACKAGE_REPLACED` sets it again either way.
 
 #### 4.3.4 Notifications
@@ -579,7 +580,7 @@ The §4.4 example on the phone, Monday 23 November 2026 (P4 SPEC §4.3.9 has the
 | P5-D8 | `deleteTreatment` and `saveTreatment` drop the reminder records of the medicines they remove, in the same write. | `TR-9` deletes everything recorded for the treatment; the answers already go in the same write. The planner would drop them at the next reconcile anyway (P4-D4), but the file then never holds them. |
 | P5-D9 | Debug builds log reminder events, IDs and times only, to logcat and to a file in private storage. | The device runs need each alert's lateness over hours, longer than logcat keeps. Release builds don't log (plan §3). |
 | P5-D10 | `PillsData.reminders` uses P4's `ReminderState`, left in `core.reminders`. | `core.model` then refers to one type of `core.reminders`, as P4-D6 proposed. Moving P4's types would change its merged files for no gain in behaviour. |
-| P5-D11 | `AndroidReminderShade` and `ExactWakeUpAlarm` take a tag prefix and an alarm identifier. Instrumented tests use their own. | The app's own reconcile runs in the test process. With their own prefix and identifier, it never removes a test's notifications, and a test never replaces the app's real alarm. |
+| P5-D11 | `AndroidReminderShade` and `AlarmClockWakeUp` take a tag prefix and an alarm identifier. Instrumented tests use their own. | The app's own reconcile runs in the test process. With their own prefix and identifier, it never removes a test's notifications, and a test never replaces the app's real alarm. |
 
 ### 4.6 Measured first
 
@@ -589,14 +590,14 @@ T1 and T2 measure on the devices what the design relies on, with throwaway probe
 
 | # | What | Device | The design assumes until then |
 |---|---|---|---|
-| A1 | `USE_EXACT_ALARM` granted, and `canScheduleExactAlarms()` true | Phone, emulator | Yes on both (`D-8`) |
-| A2 | An exact alarm 2–3 minutes ahead: with the app in front; the screen off; forced deep Doze; the app swiped from Recents (by the user); the process ended (`end_process`). The delay of each. | Phone | On time, within seconds, in every case once the settings are relaxed |
-| A3 | Alarms 10 minutes apart, each set from the last one's receiver, for an hour in forced Doze, and overnight in natural Doze with the phone unplugged | Phone | No delay over 1 minute; the 10-minute repeats aren't throttled |
+| A1 | `USE_EXACT_ALARM` granted, and `canScheduleExactAlarms()` true | Phone, emulator | Yes on both (`D-8`). **Phone: yes** (T1). |
+| A2 | An alarm 2–3 minutes ahead: with the app in front; the screen off; forced deep Doze; the app swiped from Recents (by the user); the process ended (`end_process`). The delay of each. | Phone | On time, within seconds, in every case once the settings are relaxed. **Screen off, `setExactAndAllowWhileIdle()`: held until a 5-minute grid, up to 4 min 15 s late, with stock settings and with the battery saver at "No restrictions"** (Q5). The other cases are measured with `setAlarmClock()`. |
+| A3 | Alarms 10 minutes apart, each set from the last one's receiver, for an hour in forced Doze, and overnight in natural Doze with the phone unplugged; alarm clocks | Phone | No delay over 1 minute; the 10-minute repeats aren't throttled |
 | A4 | A restart: the alarm is gone; `BOOT_COMPLETED` reaches a receiver that isn't exported, after the first unlock; the time from the unlock to the receiver. With Autostart off, then on. | Phone | Delivered within a minute of the unlock, at least with Autostart on |
 | A5 | `adb install -r`: `MY_PACKAGE_REPLACED` reaches the receiver; whether the alarm and the notifications survive the update | Phone | Delivered; P5 sets everything again either way |
 | A6 | `TIME_SET` and `TIMEZONE_CHANGED` reach the receiver. `CurrentZoneClock` follows the new zone in the running process (P2's pending check). | Emulator only | Delivered; the zone followed |
 | A7 | A *Force stop* cancels the alarm | Phone | Yes (IAmOk) |
-| A8 | Only if A2 or A3 are late: the same with `setAlarmClock()` | Phone | Not needed |
+| A8 | Only if A2 or A3 are late: the same with `setAlarmClock()` | Phone | **Done:** with the screen off and stock settings, three alarm clocks were 45–53 ms late (Q5). |
 | N1 | HyperOS's defaults for the debug app's notifications: heads-up ("floating"), lock screen, sound, badge | Phone | Heads-up and lock screen allowed; if not, they go on P7's list |
 | N2 | Sound without vibration, in normal, vibrate and silent modes, and in Do Not Disturb | Phone | Sound only in normal mode; never a vibration |
 | N3 | A repeat: an update of a notification already in the shade, posted with sound, sounds again and shows heads-up again; a silent update doesn't | Phone, emulator | Yes |
@@ -605,7 +606,7 @@ T1 and T2 measure on the devices what the design relies on, with throwaway probe
 | N6 | Taken, Snooze and Skip reach a receiver that isn't exported: from the shade, and from the lock screen without unlocking | Phone | Yes |
 | N7 | Swiping a reminder away: what remains, and whether a silent repost brings it back | Phone | It goes; a repost brings it back (Q2) |
 
-If a result contradicts this SPEC, the session stops and asks the user, and changes the SPEC first (`phase-docs`, "SPEC change during implementation"). The likeliest is `D-8`'s fallback to `setAlarmClock()`.
+If a result contradicts this SPEC, the session stops and asks the user, and changes the SPEC first (`phase-docs`, "SPEC change during implementation"). A2 and A8 did: the alarm is an alarm clock from v0.3 on (Q5). The handover records every run.
 
 ## 5. Security and privacy
 
@@ -614,6 +615,7 @@ Plan §3 applies. Treatments are health data, and in this phase they reach the n
 - **Permissions:** exactly the four of plan §3: `POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`. P1's allowlist check keeps running in `build`, and still fails on `INTERNET`.
 - **Components:** three receivers, none exported. The alarm and the actions use explicit, immutable `PendingIntent`s, each to a component of the app; the activity's too. A receiver checks the intent's action and decodes its key, and ignores anything else. No `android:process`.
 - **Debug only:** `DebugActivity` is exported in debug builds, as a launcher activity must be (Q3). It is never in a release build: the handover's manifest comparison checks that the release manifest gains only the permissions and the three receivers.
+- **The alarm clock** (Q5): the status bar shows an alarm icon, and quick settings and the lock screen may show the next alarm's time. Only the time, never what the reminder is for. Tapping it opens the app, on Home.
 - **What the shade shows:** the medicine, the dose, the treatment's name and the instructions; never the notes. On the lock screen too, as agreed (`RM-11`, Q16 of the specification). Answering from the lock screen needs no unlock (P5-D7).
 - **What is stored:** the reminder records, which hold only take keys and instants, in the same file as the rest (`files/datastore/pills.json`). Nothing is stored elsewhere, except debug builds' log.
 - **Logs:** debug builds only, IDs and times only (§4.3.10). The log file stays in the app's private storage, covered by P1's backup exclusions. Exception messages are never logged: only class names.
@@ -636,7 +638,7 @@ Unit tests are JUnit Jupiter. `:core`'s run in `./gradlew build`; `:app`'s too (
 | `TestSchedulesTest` (debug): the test treatment's drafts validate with minutes allowed; their first take, interval and IDs | Unit (`testDebug`) | `D-15` |
 | `ReminderChannelTest`: the channel exists with high importance, the default sound, no vibration, public lock-screen visibility and no Do Not Disturb bypass | Instrumented | `RM-2`, `RM-8`, `RM-11`, `D-10` |
 | `ReminderShadeTest`, with its own prefix and the permission granted through `UiAutomation`: a posted reminder's channel, category, visibility, group, time, title and text, three actions with their labels, and its content intent; `shown()` lists it and ignores other tags; `remove` removes it; a silent post of an unchanged reminder doesn't repost it; the summary; everything removed at the end | Instrumented | `RM-1`, `RM-3`, `RM-4`, `RM-11` |
-| `WakeUpAlarmTest`, with its own identifier: `set` puts one `RTC_WAKEUP` alarm at the instant, exact and allowed while idle, in `dumpsys alarm`; setting again replaces it; `cancel` removes it | Instrumented | `D-7`, `D-8` |
+| `WakeUpAlarmTest`, with its own identifier: `set` puts one alarm clock at the instant, with its show intent to `MainActivity`, in `dumpsys alarm`; setting again replaces it; `cancel` removes it | Instrumented | `D-7`, `D-8` |
 | `OpenTakeTest`: `MainActivity` started with a reminder's content intent opens the Take screen; Back goes Home; a recreated activity doesn't open it again | Instrumented | `RM-6` |
 
 ### Manual checks
@@ -658,7 +660,7 @@ Unit tests are JUnit Jupiter. `:core`'s run in `./gradlew build`; `:app`'s too (
 | M11 | `gradle installDebug` (an update) between two takes | The alarm set again; the next reminder on time | `NF-2` |
 | M12 | *Force stop* from Android's settings, then open the app | No alarm until it opens; then the alarm at once (`alarms`) | `NF-2` |
 | M13 | End, then delete, a test treatment with a reminder in the shade (debug screen) | Its reminder goes at once; no alarm left for it | `TR-11`, `TR-9` |
-| M14 | Between two reminders, and after every take is answered | `alarms` lists exactly one alarm, at the next wake-up; none when nothing is left. No service runs (`dumpsys activity services`) | `NF-5`, `D-7` |
+| M14 | Between two reminders, and after every take is answered | `alarms` lists exactly one alarm clock, at the next wake-up, and the status bar shows its icon; none, and no icon, when nothing is left. Tapping the next alarm in quick settings opens the app. No service runs (`dumpsys activity services`) | `NF-5`, `D-7` |
 
 **On the emulator** (API 36):
 
@@ -679,7 +681,7 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 | T2 | **Measure notifications** (§4.6, N1–N7), the same way, on the phone and the emulator. Record HyperOS's defaults and the settings P7's check must name. Report T1 and T2 to the user, with what they mean for `D-8`, Q2 and Q4. |
 | T3 | **Reminder state in the store:** `PillsData.reminders`; the format's `reminders` field, its mapping and checks, and `pills-v1-reminders.json`; `PillsData.snooze` and its repository helper; `deleteTreatment` and `saveTreatment` drop records (P5-D8). Unit tests in both modules. |
 | T4 | **The reconcile on the JVM:** `Reconciler`, `ReminderShade`, `WakeUpAlarm`, `ReminderContent`, `TakeKeyCodec`, `ReminderLog`, and `Reminders` with its observer and `answer`. Unit tests with fakes. |
-| T5 | **Android:** `ReminderChannel`, `AndroidReminderShade`, `ExactWakeUpAlarm`, `ReminderIntents`, the three receivers, the manifest, `AppContainer`, `PillsReminderApp`, `MainActivity.onStart`, the debug log's Android side. Instrumented tests: channel, shade, alarm. A first reminder seen on the emulator, by a treatment saved from a throwaway test or adb. |
+| T5 | **Android:** `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, the three receivers, the manifest, `AppContainer`, `PillsReminderApp`, `MainActivity.onStart`, the debug log's Android side. Instrumented tests: channel, shade, alarm. A first reminder seen on the emulator, by a treatment saved from a throwaway test or adb. |
 | T6 | **Debug tools:** `DebugActivity`, its screen and ViewModel, `TestSchedules`, the debug manifest and strings. Draw every state of the screen (`phone` skill, "Checking a screen in every state"), light and dark, at the largest font, on the phone's content area. `TestSchedulesTest`. |
 | T7 | **Opening a take** (`RM-6`): the content intent, `MainActivity` and `AppNavHost`. `OpenTakeTest`. |
 | T8 | **Device runs:** M1–M14 on the phone, stock settings then relaxed, and E1–E4 on the emulator. Every instrumented test passes on the emulator and the phone. Record everything in the handover. It may span a night. |
@@ -699,7 +701,7 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q5.
+None at the moment. New questions are numbered from Q6.
 
 ### Answered
 
@@ -711,6 +713,7 @@ The review confirmed the four draft assumptions. Q2 and Q4 went into specificati
 | Q2 | What swiping a reminder away does | Nothing to the take: it isn't answered or snoozed, and stays Due. The reminder comes back at the next reconcile: with sound if a repeat is due then, silently otherwise. (`RM-5`, §4.3.4) |
 | Q3 | How to open the debug screen in debug builds | A second launcher icon, "Pills debug", for a `DebugActivity` declared only in the debug manifest, and exported there, as launcher activities are. The release build has nothing of it. (Plan §3, §4.3.9) |
 | Q4 | Two reminders that alert at the same moment | Both appear, each in the group, each posted with sound; Android may play one sound or two, and either is fine. T2 records what the phone does. (`RM-4`, §4.3.4) |
+| Q5 | Found in T1: with the screen off and HyperOS's stock settings, `setExactAndAllowWhileIdle()` alarms were held until a 5-minute grid on `elapsedRealtime`, up to 4 min 15 s late, outside Doze too, and still with the battery saver at "No restrictions". Three `setAlarmClock()` alarms in the same conditions were 45–53 ms late. | The alarm is an alarm clock, `D-8`'s fallback, which PQ-2 accepted with its status-bar icon. The user agreed on 2026-11-20. Plan v0.5 (`D-8`); §4.3.3, §4.6, §5, §6. The rest of T1 measures alarm clocks. |
 
 ## 10. Change log
 
@@ -718,3 +721,4 @@ The review confirmed the four draft assumptions. Q2 and Q4 went into specificati
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
 | 0.2 | 2026-11-20 | Review: Q1–Q4 answered, confirming the draft assumptions. Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3); §2 quotes them. Ready. |
+| 0.3 | 2026-11-20 | From T1 (Q5): the alarm is an alarm clock, `setAlarmClock()`, because HyperOS held exact alarms for up to 5 minutes with the screen off. Plan v0.5 (`D-8`), which §2.1 quotes. §1, §2 (`RM-2`, `NF-1`), §3, §4.1–§4.3.3 (`AlarmClockWakeUp`), §4.6 (A1, A2, A8 results), §5 (the status-bar icon), §6 (`WakeUpAlarmTest`, M14). |
