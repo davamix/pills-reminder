@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 |
+| **Status** | In progress |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p3-storage` |
 | **Last session** | 2026-11-20 |
 
@@ -25,11 +25,11 @@ Start or continue phase P3 (Storage) of the pills reminder.
 
 ## Current state
 
-Not started. SPEC.md v0.1 is a draft, waiting for review. The app still keeps its data in memory (`InMemoryTreatmentRepository`), so nothing survives the process.
+Started. SPEC.md v0.2 is Ready. The app still keeps its data in memory (`InMemoryTreatmentRepository`), so nothing survives the process.
 
 ## Next steps
 
-1. Once SPEC.md is agreed and `Ready`, start with `T1`: add DataStore and kotlinx-serialization-json to `:app`, and check that DataStore works in `:app`'s JVM unit tests (SPEC Q6).
+1. Start with `T1`: add DataStore and kotlinx-serialization-json to `:app`, and check that DataStore works in `:app`'s JVM unit tests (SPEC Q6).
 
 ## Tasks
 
