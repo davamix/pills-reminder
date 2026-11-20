@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#2](https://github.com/davamix/pills-reminder/pull/2) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#2](https://github.com/davamix/pills-reminder/pull/2) on 2026-11-20. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p2-domain` |
 | **Last session** | 2026-11-20 |
@@ -11,21 +11,11 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P2 (Domain model and schedule) of the pills reminder.
-
-1. Use the phase-start skill for P2. Read only docs/phases/P2-domain/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p2-domain. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. All tasks are done, and pull request #2 is open. It may have been merged by now, or have review comments: check with `gh pr view 2 --comments`. Once it is merged, use the phase-close skill. No device is needed.
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-All seven tasks are done, and pull request [#2](https://github.com/davamix/pills-reminder/pull/2) is open. CI passed on commit `03bb5cc` ([run](https://github.com/davamix/pills-reminder/actions/runs/44783502006)).
+Merged into `main` in pull request [#2](https://github.com/davamix/pills-reminder/pull/2) (merge commit `7ee5a20`), with CI green on the branch's last commit `870d6c2` ([run](https://github.com/davamix/pills-reminder/actions/runs/44783886295)). What was built:
 
 - `:core` holds the model, validation, schedule, take states, queries, actions and repository interface of SPEC §4.2, in `io.github.davamix.pillsreminder.core.{model,schedule,actions,time}`. `AppContainer` has `clock` (`CurrentZoneClock`) and `repository` (`InMemoryTreatmentRepository`).
 - `./gradlew build` passes locally: 117 unit tests in `:core`, 0 failures; lint, ktlint and the permission allowlist pass.
@@ -37,8 +27,7 @@ Nothing changes on screen: the app still shows P1's placeholders.
 
 ## Next steps
 
-1. Deal with any review comments on pull request #2, on this branch.
-2. Once the user has merged it, use the `phase-close` skill on `main`. For its skills review, see "Known issues": two findings for the `phone` and `handover` skills.
+None for P2. These phases can start now, in parallel, since P2 was their only dependency: P3 (storage), P4 (reminder planner), P6 (treatment management UI) and P7 (home screen and reminder check). None has a SPEC.md or HANDOVER.md yet; the `phase-docs` skill writes them.
 
 ## Tasks
 
@@ -52,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | T4 | Done | The §4.4 walk checks, at every minute, that each state change happens exactly when `nextStateChange` predicted it. |
 | T5 | Done | |
 | T6 | Done | |
-| T7 | In review | Pull request #2. The trimming test sits in `SaveTreatmentTest`, not `ValidationTest` (SPEC v0.3 §6). |
+| T7 | Done | Pull request #2, merged. The trimming test sits in `SaveTreatmentTest`, not `ValidationTest` (SPEC v0.3 §6). |
 
 ## Decisions and deviations
 
@@ -90,6 +79,10 @@ On the phone, unlock it first, and run `allow_test_start` after a fresh install.
 ## Session log
 
 Newest first.
+
+### 2026-11-20 (close)
+
+- The user merged pull request #2. P2 is closed: `Done` in plan §5.1, and its done criteria ticked in SPEC.md §8.
 
 ### 2026-11-20 (implementation)
 

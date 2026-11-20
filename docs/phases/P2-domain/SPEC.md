@@ -623,16 +623,16 @@ Every test is a JUnit Jupiter unit test in `:core`, with fixed clocks (`Clock.fi
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `./gradlew build` passes locally and in CI, with `:core`'s tests among them (the totals recorded in the handover)
-- [ ] Unit tests cover every rule of spec §4.3 and every row of §6, including the plan's list for P2:
-  - [ ] the §4.4 example: 21 and 15 takes, the last on Mon 30 Nov 00:00 and Sat 28 Nov 00:00;
-  - [ ] intervals in days and weeks, and a medicine with no end;
-  - [ ] both daylight saving changes in Europe/Madrid, and a change of time zone;
-  - [ ] editing a medicine halfway through, and ending a treatment early.
-- [ ] `:core` depends on nothing but Kotlin, kotlinx-coroutines and its test libraries
-- [ ] Every instrumented test passes on the emulator
-- [ ] HANDOVER.md is up to date, and the plan's status table is updated
+- [x] All tasks done
+- [x] `./gradlew build` passes locally and in CI, with `:core`'s tests among them (the totals recorded in the handover)
+- [x] Unit tests cover every rule of spec §4.3 and every row of §6, including the plan's list for P2:
+  - [x] the §4.4 example: 21 and 15 takes, the last on Mon 30 Nov 00:00 and Sat 28 Nov 00:00;
+  - [x] intervals in days and weeks, and a medicine with no end;
+  - [x] both daylight saving changes in Europe/Madrid, and a change of time zone;
+  - [x] editing a medicine halfway through, and ending a treatment early.
+- [x] `:core` depends on nothing but Kotlin, kotlinx-coroutines and its test libraries
+- [x] Every instrumented test passes on the emulator
+- [x] HANDOVER.md is up to date, and the plan's status table is updated
 
 ## 9. Open questions
 
