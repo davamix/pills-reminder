@@ -73,7 +73,8 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
   - `model`: the treatment types, the editor's drafts and their validation (`TR-8`), `PillsData`, `TreatmentRepository` and `InMemoryTreatmentRepository`.
   - `schedule`: `PlannedTakes` (one schedule), `MedicineTakes` (a medicine's takes and states, `nextTake`, `canMarkEarly`, `lastAnswered`, `nextStateChange`), and `PillsData.takesOf(id)`, `take(key, now)` and `status(id, now)`.
   - `actions`: every change to the data, as pure functions on `PillsData` and as suspend helpers on the repository (`repository.markTaken(key, clock)`, …).
-  - `time`: `dueAt(zone)` and `CurrentZoneClock`. P4 adds `reminders`.
+  - `time`: `dueAt(zone)` and `CurrentZoneClock`.
+  - `reminders` (P4): `ReminderPlanner.plan(data, reminders, now)`, a pure function that returns a `ReminderPlan`. That holds the reminders the shade should hold, which of them alert, the next wake-up, the records to store (`recorded`) and `removals(inShade)`. `ReminderState` has one record per Due take, `Snoozed(until)` or `Alerted(count, lastAt)`, as instants in whole seconds, and `snooze(data, key, now)`. It isn't in `PillsData` yet: P5 adds it there and to the format in one change (P4-D6).
 - **Treatment data** (P2-D4):
   - Change it only through the `core.actions` helpers. They run the rules inside `update`, on the latest data, so an answer given from a notification while an editor is open is never lost.
   - Takes and their states are never stored (plan `D-5`): ask `MedicineTakes` for them.
