@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "treatments": [
+    {
+      "id": "example",
+      "name": "Example",
+      "notes": "",
+      "medicines": [
+        {
+          "id": "amoxicillin",
+          "name": "Amoxicillin",
+          "dose": "1 capsule",
+          "instructions": "",
+          "schedule": {
+            "firstTake": "2026-11-23T08:00",
+            "interval": {
+              "amount": 8,
+              "unit": "hours"
+            },
+            "duration": {
+              "unit": "days",
+              "count": 7
+            }
+          },
+          "earlierSchedules": []
+        },
+        {
+          "id": "atrovent",
+          "name": "Atrovent",
+          "dose": "3 puffs",
+          "instructions": "",
+          "schedule": {
+            "firstTake": "2026-11-23T08:00",
+            "interval": {
+              "amount": 8,
+              "unit": "hours"
+            },
+            "duration": {
+              "unit": "days",
+              "count": 5
+            }
+          },
+          "earlierSchedules": []
+        }
+      ]
+    },
+    {
+      "id": "ended",
+      "name": "Ended example",
+      "notes": "Después de comer, ½ \"dose\" \\ new\nline\tand 💊",
+      "endedAt": "2026-11-25T12:30",
+      "medicines": [
+        {
+          "id": "weekly",
+          "name": "Weekly ñandú",
+          "dose": "½ tablet",
+          "instructions": "Después de comer, ½ \"dose\" \\ new\nline\tand 💊",
+          "schedule": {
+            "firstTake": "2026-11-23T09:00",
+            "interval": {
+              "amount": 1,
+              "unit": "weeks"
+            },
+            "duration": {
+              "unit": "noEnd"
+            }
+          },
+          "earlierSchedules": [
+            {
+              "schedule": {
+                "firstTake": "2026-11-16T09:00",
+                "interval": {
+                  "amount": 2,
+                  "unit": "days"
+                },
+                "duration": {
+                  "unit": "weeks",
+                  "count": 2
+                }
+              },
+              "until": "2026-11-20T09:00"
+            },
+            {
+              "schedule": {
+                "firstTake": "2026-11-22T12:00",
+                "interval": {
+                  "amount": 12,
+                  "unit": "hours"
+                },
+                "duration": {
+                  "unit": "days",
+                  "count": 3
+                }
+              },
+              "until": "2026-11-22T10:00"
+            }
+          ]
+        },
+        {
+          "id": "minutes",
+          "name": "Minutes",
+          "dose": "",
+          "instructions": "",
+          "schedule": {
+            "firstTake": "2026-11-24T07:15",
+            "interval": {
+              "amount": 30,
+              "unit": "minutes"
+            },
+            "duration": {
+              "unit": "days",
+              "count": 1
+            }
+          },
+          "earlierSchedules": []
+        }
+      ]
+    }
+  ],
+  "answers": [
+    {
+      "medicineId": "amoxicillin",
+      "plannedAt": "2026-11-23T08:00",
+      "answer": "taken",
+      "takenAt": "2026-11-23T08:05"
+    },
+    {
+      "medicineId": "atrovent",
+      "plannedAt": "2026-11-23T08:00",
+      "answer": "skipped"
+    },
+    {
+      "medicineId": "minutes",
+      "plannedAt": "2026-11-24T07:15",
+      "answer": "skipped"
+    },
+    {
+      "medicineId": "minutes",
+      "plannedAt": "2026-11-24T07:45",
+      "answer": "taken",
+      "takenAt": "2026-11-24T07:50"
+    },
+    {
+      "medicineId": "weekly",
+      "plannedAt": "2026-11-16T09:00",
+      "answer": "taken",
+      "takenAt": "2026-11-16T09:00"
+    },
+    {
+      "medicineId": "weekly",
+      "plannedAt": "2026-11-23T09:00",
+      "answer": "taken",
+      "takenAt": "2026-11-23T09:02"
+    }
+  ]
+}
