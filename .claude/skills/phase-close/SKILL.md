@@ -1,6 +1,6 @@
 ---
 name: phase-close
-description: Close a pills-reminder phase after the user has merged its pull request. On main, it marks the phase Done in the plan, ticks its done criteria in SPEC.md, and finishes its HANDOVER.md. Use when the user says a phase's pull request is merged, e.g. "PR is merged" or "close P3".
+description: Close a pills-reminder phase after the user has merged its pull request. On main, it marks the phase Done in the plan, ticks its done criteria in SPEC.md, finishes its HANDOVER.md, and then reviews the skills, proposing new skills or changes to skills and CLAUDE.md from what the phase taught. Use when the user says a phase's pull request is merged, e.g. "PR is merged" or "close P3".
 ---
 
 # Close a merged phase
@@ -23,6 +23,15 @@ Input: a phase ID, e.g. `P3`. If none is given, take it from the merged pull req
      - **Tasks:** set the last task (the pull request one) to `Done`.
      - **Session log:** add an entry at the top, `### <date> (close)`, saying the user merged the pull request and the phase is closed.
 4. **Commit and push to `main`,** with the message `Close PN: mark done in plan, spec and handover`.
-5. **Report to the user:** what was closed, and which phases can start now. For each of those, say whether its SPEC.md and HANDOVER.md exist yet. If they don't, the `phase-docs` skill writes them.
+5. **Review the skills** (plan `D-17`). Each phase runs in its own session, so a lesson not written down is lost to the next one.
+   - **Look back at the phase:** its HANDOVER.md ("Decisions and deviations", "Known issues", the session log), and what in this session or the earlier ones cost time: a command that had to be worked out, a device behaviour that surprised, a step repeated by hand, a skill that was wrong or missing a case.
+   - **Propose,** each with the time or context it saves:
+     - a **new skill**, for a procedure later phases will repeat, with its name and what it does;
+     - **changes to an existing skill**, where it was wrong, incomplete or slow, including its helpers;
+     - **additions to CLAUDE.md**, for a lesson that applies to every phase.
+   - Say plainly when nothing is worth adding. Don't propose a skill for a one-off.
+   - **Ask the user** which to make. Make those they agree to, on `main`. A new skill gets the next `SK-n` in plan §7, and its row there; that doesn't need a new plan version. Commit with `Skills after PN: <summary>`, and push.
+   - Add a line to the handover's closing session-log entry naming what was changed, or "Skills review: nothing to change". Commit it with the skills, or on its own.
+6. **Report to the user:** what was closed, what the skills review changed, and which phases can start now. For each of those, say whether its SPEC.md and HANDOVER.md exist yet. If they don't, the `phase-docs` skill writes them.
 
 Leave the phase branch and its worktree alone unless the user asks to delete them.

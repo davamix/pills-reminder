@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | v0.2, agreed |
 | **Last updated** | 2026-11-20 |
 | **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.4 |
 
@@ -60,7 +60,7 @@ How to read it:
 | D-5 | **Takes are worked out, not stored.** The store keeps the treatments, their medicines and schedules, and the *answers*: Taken (with the time taken) or Skipped, plus snoozes and which alerts have played. Pending, Due and Missed come from the schedule, the answers and the clock. | A medicine with no end has no last take, so its takes can't all be stored. Deriving them also keeps the rules of §4.3 in one place. |
 | D-6 | Planned times are **local date-times** on the phone's clock (`java.time.LocalDateTime`), turned into instants with the phone's current time zone only when needed. A take that falls in the hour skipped by a daylight saving change moves forward by that hour. In the repeated hour, the earlier one counts. Time comes from an injected `java.time.Clock`. | Implements `SC-4`: 08:00 stays 08:00 across daylight saving and time zone changes. Tests use fixed clocks and zones, including Europe/Madrid on the days the clocks change. |
 | D-7 | **One alarm at a time.** The app keeps a single exact alarm, set for the next moment something must happen: a take becomes due, a reminder alerts again, a snooze ends, or a take becomes Missed. When it fires, and after every change, a **reconcile** works out what the notification shade should show now, posts or removes notifications, and sets the next alarm. | One idempotent path handles every trigger: the alarm, a notification action, a restart, an edit, opening the app. Running it twice changes nothing. There are no per-take alarms that could be forgotten or left behind. |
-| D-8 | Exact alarms use `setExactAndAllowWhileIdle()` with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). P5 measures on the phone, in Doze, whether this meets `NF-1`. If it doesn't, the alarm switches to `setAlarmClock()` (PQ-2). | `setExactAndAllowWhileIdle()` is the usual way to alert at a precise time in Doze. Whether HyperOS delays it is unknown until measured. `setAlarmClock()` is never delayed, but it shows an alarm icon in the status bar. |
+| D-8 | Exact alarms use `setExactAndAllowWhileIdle()` with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). P5 measures on the phone, in Doze, whether this meets `NF-1`. If it doesn't, the alarm switches to `setAlarmClock()`, which PQ-2 accepted. | `setExactAndAllowWhileIdle()` is the usual way to alert at a precise time in Doze. Whether HyperOS delays it is unknown until measured. `setAlarmClock()` is never delayed, but it shows an alarm icon in the status bar. |
 | D-9 | **Reconcile on every event that can lose an alarm.** Receivers for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED`, and the app's start, all run the reconcile. Receivers do their short work with `goAsync()`. | Implements `NF-2`. Opening the app after a *Force stop* sets the alarm again. Nothing runs between reminders (`NF-5`). |
 | D-10 | **One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, full content on the lock screen, category *reminder*, and no Do Not Disturb bypass. Each take has its own notification, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported. | Implements `RM-1`–`RM-4`, `RM-8` and `RM-11`. A channel's sound and vibration are set when it is created, so they are right from the first install. |
 | D-11 | `minSdk` 33. | The only phone is Android 13. The notification permission and `USE_EXACT_ALARM` exist from API 33, so no older code paths are needed (`NF-6`). The emulator, at API 36, covers later versions. |
@@ -68,7 +68,8 @@ How to read it:
 | D-13 | Versions: the latest stable releases that work with the installed Android Studio. Workout Timer found that Android Studio 2026.1.3 supports AGP up to 9.3; P1 confirms it. Everything is pinned in the version catalog during P1. | Reproducible builds that open in the installed IDE. Upgrades are deliberate. |
 | D-14 | Each UI feature keeps its text in its own resource file (`strings_<feature>.xml`). | `NF-8` asks for translatable text. Separate files also avoid merge conflicts when phases run in parallel. |
 | D-15 | **Debug builds can schedule in minutes.** They add a "minutes" unit to the interval, and a debug screen that creates a test schedule and shows the next alarm. Release builds have neither. | Checking a reminder on the phone (Doze, restarts, repeats, a missed take) would otherwise take hours per run. This changes nothing the user sees in a release build. |
-| D-16 | The data stays in Android's default, credential-encrypted storage. After a restart, reminders start again once the phone has been unlocked for the first time (PQ-1). | That storage stays locked until the first unlock, so the data is better protected. The alternative (device-encrypted storage, readable before the unlock) is left to PQ-1. |
+| D-16 | The data stays in Android's default, credential-encrypted storage. After a restart, reminders start again once the phone has been unlocked for the first time. A reminder that came due in between alerts as soon as the phone is unlocked. (PQ-1) | The phone has a password, so that storage stays locked until the first unlock, and the data is better protected. Device-encrypted storage, readable before the unlock, isn't needed. |
+| D-17 | **Skills are reviewed after each phase.** When a phase is closed, the session reviews what came up during it, and proposes new skills, or changes to existing skills or to CLAUDE.md, that would save time or give context to later phases. The user decides which to make (skill `phase-close`). | Asked for in the plan review. Each phase runs in its own session, so a lesson that isn't written into a skill or CLAUDE.md is lost to the next one. |
 
 ## 2. Architecture
 
@@ -391,7 +392,7 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
   - **Wiring:** finish any pending wiring: the real repository everywhere; a tapped reminder opens the Take screen; answers in the app remove their notification; the home screen shows answers given from a notification.
   - **End-to-end test:** one UI test that creates a treatment, gets its reminder, answers it and sees the home screen change.
   - **Acceptance:** an acceptance record (`ACCEPTANCE.md`) of how each requirement ID was checked on the phone. It includes a real use of the app over at least a day and a night, with the settings the reminder check asks for.
-  - **Release:** a release build signed with a keystore kept outside the repo, the `v1.0.0` tag, and a GitHub release with the APK attached (PQ-3). Tag and release only with the user's go-ahead.
+  - **Release:** a release build signed with a new keystore of its own, kept outside the repo, the `v1.0.0` tag, and a GitHub release with the APK attached (PQ-3). Tag and release only with the user's go-ahead.
 - **Done when:** every item in the acceptance record passes, and `v1.0.0` is tagged.
 
 ### 5.3 Requirement coverage
@@ -465,6 +466,7 @@ The status column in §5.1 is updated whenever a phase changes status. Status ch
 1. **Start:** read the phase's HANDOVER.md and carry on from "Next steps" (skill `phase-start`).
 2. **Work:** follow the phase SPEC.md. Record any decision or deviation in the handover as it happens.
 3. **End:** run the checks, update the handover, then commit and push (skill `handover`).
+4. **After the merge:** close the phase on `main`, then review the skills (skill `phase-close`, `D-17`).
 
 ## 7. Claude Code skills and context
 
@@ -480,20 +482,31 @@ Skills complement it. They are repeatable procedures, loaded only when used. The
 | SK-4 | `handover` | At the end of a session: runs the checks, updates the handover, commits and pushes, and opens the pull request when the phase is done. | Created 2026-11-19 |
 | SK-5 | `phase-close` | After the user merges a phase's pull request: marks it `Done` in this plan, its SPEC and its handover. | Created 2026-11-19 |
 | SK-6 | `phone` | The phone and the emulator over adb, with helpers: install, launch, screen, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and HyperOS pitfalls. Its helpers that need the app are checked in P1. | Created 2026-11-19 |
-| SK-7 | `reminder-run` | Proposed for P5, if the device runs turn out to repeat the same steps: set up a test schedule, put the phone through one event (Doze, swipe, restart, …), and record when each reminder alerted. | Proposed |
+| SK-7 | `reminder-run` | A candidate for the skills review after P5, if the device runs turn out to repeat the same steps: set up a test schedule, put the phone through one event (Doze, swipe, restart, …), and record when each reminder alerted. | Candidate |
+
+**Skills review after each phase** (`D-17`). Once a phase is merged and closed, the `phase-close` skill looks back at the phase: its decisions and deviations, its known issues, and anything that cost time or had to be worked out twice. It proposes:
+
+- a new skill, for a procedure later phases will repeat;
+- changes to an existing skill, where it was wrong, incomplete or slow;
+- additions to CLAUDE.md, for a lesson that applies to every phase.
+
+The user decides which to make. They go straight to `main`, like the closing edits, and new skills get the next `SK-n` in the table above.
 
 ## 8. Open questions
 
-Each question lists the assumption this draft makes until it is answered.
+None at the moment. New questions are numbered from PQ-4.
 
-| # | Question | Draft assumption |
+### Answered
+
+| # | Question | Decision |
 |---|---|---|
-| PQ-1 | **After a restart.** Does the phone have a PIN, pattern or password? If it does, Android keeps the app's data locked after a restart until the first unlock, so reminders start only then. A reminder due before that alerts as soon as the phone is unlocked. Is that acceptable, or must reminders also work before the first unlock? That would need the data in storage Android opens at boot without your PIN. | It's acceptable: the data stays in the default, better-protected storage (`D-16`). |
-| PQ-2 | **If exact alarms are late in Doze** (P5's measurement, `D-8`), the fallback is `setAlarmClock()`. It is never delayed, but it shows an alarm icon in the status bar, and clock apps and the lock screen may show the next take as "the next alarm". Is that acceptable as a fallback? | Yes, but only if the measurement shows it's needed. |
-| PQ-3 | **Release signing.** A new keystore for this app, kept outside the repo like Workout Timer's, with the signed APK attached to a `v1.0.0` GitHub release? | Yes: a new keystore, and the release made only with your go-ahead. |
+| PQ-1 | Reminders before the first unlock after a restart | The phone has a password. Reminders start again after the first unlock, and the data stays in the default, credential-encrypted storage (`D-16`). |
+| PQ-2 | `setAlarmClock()` as the fallback if exact alarms are late in Doze | Accepted, if P5's measurement shows it's needed, despite its alarm icon in the status bar (`D-8`). |
+| PQ-3 | Release signing | A new keystore for this app, kept outside the repo. The signed APK is attached to a `v1.0.0` GitHub release, made only with the user's go-ahead (P8). |
 
 ## 9. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft, based on specification v0.4. |
+| 0.2 | 2026-11-20 | Review applied: PQ-1 to PQ-3 answered, confirming the draft assumptions (`D-8`, `D-16`, P8). Added `D-17`: skills are reviewed after each phase (§6.4, §7). Every other decision agreed. |

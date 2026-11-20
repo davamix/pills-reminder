@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification is agreed (v0.4), and the implementation plan is a draft under review. There is no code yet. P1 adds the build commands, the code structure and the coding conventions to this file.
+**Status:** the specification (v0.4) and the implementation plan (v0.2) are agreed. There is no code yet. P1 adds the build commands, the code structure and the coding conventions to this file.
 
 ## Documents
 
@@ -32,7 +32,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - `phase-docs`: write a phase's SPEC.md and HANDOVER.md, apply their review, and change a SPEC.md during implementation.
 - `phase-start`: begin or resume a phase (branch, dependencies, status).
 - `handover`: end a session. Runs the checks, updates HANDOVER.md, commits and pushes, and opens the pull request when the phase is done.
-- `phase-close`: after the user merges a phase's pull request, mark the phase `Done` on `main`.
+- `phase-close`: after the user merges a phase's pull request, mark the phase `Done` on `main`, then review the skills: propose new skills, or changes to skills and to this file, from what the phase taught (plan `D-17`). The user decides which to make.
 - `phone`: the phone and the emulator over adb, with helpers: pick the device, start the emulator, install, launch, read the screen, screenshots, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and the HyperOS pitfalls found on this phone.
 
 ## Environment
