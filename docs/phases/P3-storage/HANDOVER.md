@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#3](https://github.com/davamix/pills-reminder/pull/3) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#3](https://github.com/davamix/pills-reminder/pull/3) on 2026-11-20. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p3-storage` |
 | **Last session** | 2026-11-20 |
@@ -11,21 +11,11 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P3 (Storage) of the pills reminder.
-
-1. Use the phase-start skill for P3. Read only docs/phases/P3-storage/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p3-storage. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. Every task is done, and pull request #3 is open. It may have been merged since, or have review comments: check with `gh pr view 3`. If it's merged, use the phase-close skill instead. If there are comments, deal with them on the branch, then run the handover skill again. No device is needed unless a comment changes Android code: then rerun the instrumented tests on the emulator and the phone (unlocked, and `allow_test_start` first).
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-Every task is done. Pull request [#3](https://github.com/davamix/pills-reminder/pull/3) is open, with CI green on `cd22c40` ([run](https://github.com/davamix/pills-reminder/actions/runs/44795885512)).
+Merged into `main` in pull request [#3](https://github.com/davamix/pills-reminder/pull/3) (merge commit `97a3b34`), with CI green on the branch's last commit `28309b8` ([run](https://github.com/davamix/pills-reminder/actions/runs/44796315082)).
 
 - **What's built:** the app keeps its treatments and answers in `files/datastore/pills.json`, through `DataStoreTreatmentRepository`, which `AppContainer.repository` now is. The JSON format, version 1, has its own types and a golden file. A file the app can't read is kept as it is, never written over, and reported as `StoredData.Unreadable`. Every write is checked to read back the same.
 - **Checks:**
@@ -33,14 +23,13 @@ Every task is done. Pull request [#3](https://github.com/davamix/pills-reminder/
   - The 8 instrumented tests pass on the emulator and on the phone, on the code of `bfd03fa`. Only documents changed after that.
   - The manual checks pass: M1–M7 on the emulator, M1–M6 on the phone (see "How to verify").
   - The merged manifests are the same as `main`'s.
-- **Documents:** SPEC.md is v0.3, on `main` and merged into the branch; plan v0.3. `CLAUDE.md` describes the store.
+- **Documents:** SPEC.md is v0.3; plan v0.3. `CLAUDE.md` describes the store.
 
 Nothing changes on screen: the app still shows P1's placeholders.
 
 ## Next steps
 
-1. Wait for the user to merge pull request #3. Deal with any review comments on the branch first.
-2. After the merge, use the `phase-close` skill. Its skills review should take up the op 10021 finding in "Known issues".
+None for P3. These phases can start now, since all their dependencies are `Done`: P4 (reminder planner), P6 (treatment management UI) and P7 (home screen and reminder check). None has a SPEC.md or HANDOVER.md yet; the `phase-docs` skill writes them. P5 also needs P4.
 
 ## Tasks
 
@@ -52,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | `PillsDocument.kt` (format types), `PillsJson.kt` (`encodePillsData`, `decodePillsData`, `Decoded`). `StoreExample` and the golden `pills-v1.json`, generated once from `StoreExample.full`, pretty-printed and checked against SPEC §4.3.1. `PillsJsonTest` (9) and `DamagedDataTest` (36 damaged inputs, plus 3). A treatment's `endedAt` is written before its `medicines`. Times are read only in the exact form written (`2026-11-23T08:00`), so `08:00:00` is refused too. The checks of step 4 have fixed reasons ("map: two answers for the same take"); other failures give the exception's class name. A quoted number would decode as a number, so the "wrong type" case is a name given as a number. |
 | T3 | Done | `PillsDataSerializer` (with the write check) and `DataStoreTreatmentRepository` with `create()`. `DataStoreTreatmentRepositoryTest` (12) on real files in a `@TempDir`, each "restart" cancelling the store's scope before opening a new one. DataStore's temporary file is `pills.json.tmp` (T1). See the decisions on `onUnreadable` and on the empty temporary file. |
 | T4 | Done | `AppContainer.repository` is the store on `files/datastore/pills.json`, with a scope for the process's life and the debug-only log (tag `PillsStore`). `DataStoreOnDeviceTest` (2, on a file in the cache), `StoreDeviceCheck` (skipped unless `-e storeCheck <step>`), and `DeviceExample` (spec §4.4 for instrumented tests). All 8 instrumented tests pass on the emulator and on the phone (`OK (8 tests)`, the check skipped), and the suite leaves no data file behind. The phone's op 10021 had been reset again, so `allow_test_start` granted it. `CLAUDE.md`: the store, the format rules, real data in instrumented tests, and the status line (specification v0.5, plan v0.3). |
-| T5 | In review | M1–M7 pass on the emulator, and M1–M6 on the phone, restarted over adb with the user's go-ahead. Results in "How to verify". Every row of SPEC §6 checked against the tests: each is covered. Pull request [#3](https://github.com/davamix/pills-reminder/pull/3), CI green. |
+| T5 | Done | M1–M7 pass on the emulator, and M1–M6 on the phone, restarted over adb with the user's go-ahead. Results in "How to verify". Every row of SPEC §6 checked against the tests: each is covered. Pull request [#3](https://github.com/davamix/pills-reminder/pull/3), CI green. |
 
 ## Decisions and deviations
 
@@ -102,6 +91,10 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-20 (close)
+
+- The user merged pull request [#3](https://github.com/davamix/pills-reminder/pull/3). P3 is closed: `Done` in plan §5.1, the done criteria ticked in SPEC.md §8.
 
 ### 2026-11-20 (implementation)
 

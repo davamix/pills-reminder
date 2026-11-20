@@ -376,13 +376,13 @@ Record in the handover, for each device: the date, the Android and HyperOS versi
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `./gradlew build` passes locally and in CI, with `:app`'s new unit tests among them (the totals recorded in the handover)
-- [ ] Unit tests cover every row of §6, including the plan's list for P3: a save-and-load round trip, the schema version, an interrupted write and a damaged file
-- [ ] Every instrumented test passes on the emulator and the phone
-- [ ] On the phone, the data survives closing the app, an app update (`adb install -r`), a process killed while writing, and a restart (M1–M6), with the results in the handover
-- [ ] The merged manifests have the same permissions and components as `main`'s, and the new runtime dependencies are listed in the handover
-- [ ] HANDOVER.md is up to date, and the plan's status table is updated
+- [x] All tasks done
+- [x] `./gradlew build` passes locally and in CI, with `:app`'s new unit tests among them (the totals recorded in the handover)
+- [x] Unit tests cover every row of §6, including the plan's list for P3: a save-and-load round trip, the schema version, an interrupted write and a damaged file
+- [x] Every instrumented test passes on the emulator and the phone
+- [x] On the phone, the data survives closing the app, an app update (`adb install -r`), a process killed while writing, and a restart (M1–M6), with the results in the handover
+- [x] The merged manifests have the same permissions and components as `main`'s, and the new runtime dependencies are listed in the handover
+- [x] HANDOVER.md is up to date, and the plan's status table is updated
 
 ## 9. Open questions
 

@@ -206,7 +206,7 @@ Rules:
 |---|---|---|---|---|
 | P1 | Project foundation | `docs/phases/P1-foundation/` | — | Done |
 | P2 | Domain model and schedule | `docs/phases/P2-domain/` | P1 | Done |
-| P3 | Storage | `docs/phases/P3-storage/` | P2 | In progress |
+| P3 | Storage | `docs/phases/P3-storage/` | P2 | Done |
 | P4 | Reminder planner | `docs/phases/P4-reminder-planner/` | P2 | Planned |
 | P5 | Reminders on Android | `docs/phases/P5-reminders/` | P3, P4 | Planned |
 | P6 | Treatment management UI | `docs/phases/P6-treatment-ui/` | P2 | Planned |
