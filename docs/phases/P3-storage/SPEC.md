@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.2 |
+| **Status** | Ready, v0.3 |
 | **Phase** | P3, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 |
 | **Branch** | `phase/p3-storage` |
@@ -140,6 +140,8 @@ class PillsDataSerializer(
 /** P2's repository on a DataStore. */
 class DataStoreTreatmentRepository(
     private val store: DataStore<StoredData>,
+    /** Also told when the file exists but can't be opened, which never reaches the serializer (Q7). */
+    private val onUnreadable: (reason: String) -> Unit = {},
 ) : TreatmentRepository {
     companion object {
         /** One per file and process (§4.3.4). [scope] lives as long as the store. */
@@ -236,7 +238,7 @@ Every field is written, except the optional ones (`endedAt`, `takenAt`, a durati
 2. **Version:** `schemaVersion` must be present and a whole number. Version 1 is read as below. Any other version fails, a newer one included: it comes from a later app, and reading it with this one would lose what it added (P3-D2). Migrations from older versions go here once there are any (§4.3.6).
 3. **Decode strictly** into the format types: every field required except the optional ones, no unknown fields, no wrong types, no unknown units (P3-D2).
 4. **Map** to `PillsData`. P2's constructors check what they check (amounts and counts of at least 1, whole-minute first takes, earlier schedules in order of `until`). The mapping also refuses:
-   - a time with seconds, or one that isn't a valid local date-time;
+   - a time that isn't a valid local date-time, or isn't written exactly as the writer writes it (`2026-11-23T08:00`): with seconds, even `:00`, or with a zone;
    - `"taken"` without `takenAt`, or `"skipped"` with one; a duration of days or weeks without `count`, or `noEnd` with one;
    - two treatments with the same ID, or two medicines with the same ID, in one treatment or across treatments;
    - two answers for the same take, since a map can hold only one of them.
@@ -251,12 +253,12 @@ Nothing is thrown. Every exception from these steps becomes `Unreadable(reason)`
 - **`update` on Unreadable data** throws `UnreadableDataException` from inside DataStore's transform, so DataStore writes nothing (P3-D1).
 - **An update that changes nothing** writes nothing: DataStore compares the new value with the current one. A refused action (`endTreatment` on a treatment already ended, for example) leaves the file untouched.
 - **The write check** (P3-D3): `writeTo` encodes the data, decodes the bytes again, and compares the result with the data. If they differ, it throws `IllegalStateException`, with a message that names no content, before writing a byte. DataStore then keeps the old file, and `update` throws. This catches a mapping that drops a field, and a value the reader would refuse, such as a taken time with seconds.
-- **Atomic replacement:** DataStore writes the new bytes to a temporary file next to the store's file, syncs it to disk, and renames it over the old file. A write cut off at any point, for example by a flat battery or a killed process, leaves the old file whole. DataStore ignores a temporary file left behind, and replaces it at the next write. T3 notes its name.
+- **Atomic replacement:** DataStore writes the new bytes to `pills.json.tmp`, next to the store's file, syncs it to disk (`fd.sync()`), and moves it over the old file (`Files.move`). A write cut off at any point, for example by a flat battery or a killed process, leaves the old file whole. DataStore ignores a temporary file left behind, and replaces it at the next write. It deletes it after an `IOException`, but not after the write check's `IllegalStateException`, which leaves it empty until the next write (Q8).
 - **A write that fails,** for example on a full disk, makes `update` throw an `IOException`. The data, in memory and in the file, stays as it was.
 
 #### 4.3.4 The repository
 
-- `data` is DataStore's `data`. It emits `StoredData.Readable` or `StoredData.Unreadable`, then each change. It never fails for bad content. If reading the file fails with an `IOException` (a file that exists but can't be opened), `data` emits `Unreadable` and ends, and `update` throws that exception.
+- `data` is DataStore's `data`. It emits `StoredData.Readable` or `StoredData.Unreadable`, then each change. It never fails for bad content. If reading the file fails with an `IOException` (a file that exists but can't be opened), `data` reports it through `onUnreadable`, as `read: <class>`, emits `Unreadable` and ends, and `update` throws that exception (Q7).
 - `update(transform)` runs `transform` inside `DataStore.updateData`, on the latest data, one update at a time, and returns the new data. It behaves as P2's fake does, and the helpers in `core.actions` work unchanged.
 - **One store per file in the process.** DataStore refuses a second store for a file while the first one's scope is active. `AppContainer` creates the only one, with a scope that lasts as long as the process. The app must stay in one process: no component may set `android:process` (P5 adds the receivers).
 - **The file** is `files/datastore/pills.json` in the app's own credential-encrypted storage (plan `D-16`), so it can be read only after the phone's first unlock since its restart. The debug build's file is separate from the release build's, as the application IDs differ.
@@ -330,12 +332,12 @@ Unit tests are JUnit Jupiter tests in `:app` (`app/src/test`), on files in a tem
 |---|---|---|
 | `PillsJsonTest`: `StoreExample`'s full data round-trips unchanged: two treatments, one ended; several earlier schedules, including one that holds no takes (as P2's `saveTreatment` can store); every interval unit and duration kind; Taken and Skipped; empty notes and instructions; text with accents, `½`, quotes, a backslash, a new line and an emoji. Empty data round-trips. The same data gives the same bytes, whatever the map's order. Times are written without seconds. The takes and states worked out from the decoded data match the original's at several moments. | Unit | `NF-4`, `TR-10`, `TR-12`, §4.3.1 |
 | `PillsJsonTest`, golden file: `pills-v1.json` decodes to `StoreExample`'s full data, and encoding that data gives the same JSON tree as the file. | Unit | `NF-4` (app updates), §4.3.6 |
-| `DamagedDataTest`: each case gives Unreadable with a reason: an empty file; not JSON; truncated JSON; a JSON array; `schemaVersion` missing, `0`, `2` or `"1"`; an unknown field; a missing field; a wrong type; an unknown unit; an amount or count of 0; days without a count, or `noEnd` with one; an invalid date; a time with seconds; `taken` without `takenAt`, or `skipped` with it; two answers for one take; a treatment ID twice; a medicine ID twice, within and across treatments; earlier schedules out of order. An answer that matches no take is kept. No reason contains the names or doses in the damaged input. | Unit | `NF-4` (damaged file), §4.3.2, §5 |
+| `DamagedDataTest`: each case gives Unreadable with a reason: an empty file; not JSON; truncated JSON; a JSON array; `schemaVersion` missing, `0`, `2` or `"1"`; an unknown field; a missing field; a wrong type; an unknown unit; an amount or count of 0; days without a count, or `noEnd` with one; an invalid date; a time with seconds, with `:00` written out, or with a zone; `taken` without `takenAt`, or `skipped` with it; two answers for one take; a treatment ID twice; a medicine ID twice, within and across treatments; earlier schedules out of order. An answer that matches no take is kept. No reason contains the names or doses in the damaged input. | Unit | `NF-4` (damaged file), §4.3.2, §5 |
 | `DataStoreTreatmentRepositoryTest`, round trip: with no file the data is empty, and no file is created until the first update; `update` returns the new data and `data` emits it; after "restarting" (a new store on the same file), the data is the same; the actions in `core.actions` (save, edit a started medicine, mark taken, end, delete) give the same data after a restart; concurrent updates lose none of one another. | Unit | `NF-4` (app restarts), `TR-10`, `TR-12`, §4.3.4 |
 | `DataStoreTreatmentRepositoryTest`, deleting: after `deleteTreatment` and a restart, the file's text holds none of the treatment's or its medicines' IDs, nor its name. | Unit | `TR-9` |
 | `DataStoreTreatmentRepositoryTest`, damaged file: `data` is Unreadable; `update` throws `UnreadableDataException`; the file's bytes are unchanged and no temporary file is left; `onUnreadable` is called with a reason. A file that can't be opened (a folder in its place) is Unreadable too. | Unit | `NF-4`, §4.3.5 |
 | `DataStoreTreatmentRepositoryTest`, interrupted write: a serializer that writes half the bytes and then throws makes `update` throw; `data` keeps the old data; after a restart the old data reads back and the file's bytes are unchanged. A partial temporary file left by a "crash" is ignored at the restart, and the next update succeeds. | Unit | `NF-4` (interrupted save), §4.3.3 |
-| `DataStoreTreatmentRepositoryTest`, write check: data that wouldn't read back the same (a taken time with seconds; a treatment ID twice) isn't written; `update` throws and the file is unchanged. A refused action leaves the file's bytes and time unchanged. | Unit | P3-D3, §4.3.3 |
+| `DataStoreTreatmentRepositoryTest`, write check: data that wouldn't read back the same (a taken time with seconds; a treatment ID twice) isn't written; `update` throws and the file is unchanged; any temporary file left is empty, and the next update succeeds (Q8). A refused action leaves the file's bytes and time unchanged. | Unit | P3-D3, §4.3.3 |
 | `DataStoreOnDeviceTest`: on a file in the app's cache, on the device's file system: write, restart the store, read the same data; a damaged file stays byte for byte and `update` is refused. | Instrumented (emulator and phone) | `NF-4` on Android |
 | `NavigationSmokeTest` (P1) still passes: the app starts with the real store. | Instrumented (emulator and phone) | `AppContainer` |
 
@@ -384,11 +386,11 @@ Record in the handover, for each device: the date, the Android and HyperOS versi
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q7.
+None at the moment. New questions are numbered from Q9.
 
 ### Answered
 
-The review confirmed the six draft assumptions. Q1, Q3 and Q5 went into plan v0.3 (§2.4, §3 and P5–P7 in §5.2).
+The review confirmed the six draft assumptions. Q1, Q3 and Q5 went into plan v0.3 (§2.4, §3 and P5–P7 in §5.2). Q6 was checked in T1. Q7 and Q8 came up during implementation (T3).
 
 | # | Question | Decision |
 |---|---|---|
@@ -397,7 +399,9 @@ The review confirmed the six draft assumptions. Q1, Q3 and Q5 went into plan v0.
 | Q3 | Reminder state (P4's snoozes and alerts played) isn't in version 1. Plan §2.4 keeps it in the same document. | P5, which depends on both P3 and P4, adds it to the format, following §4.3.6. P3 leaves it as pending wiring. (Plan §2.4, P5) |
 | Q4 | The device checks write the §4.4 example into the debug app's real data on the phone, through `StoreDeviceCheck`, and remove it afterwards. M5 restarts the phone once. | Agreed. The check refuses to run if the data isn't empty, and does nothing unless asked for. The restart waits for the user's go-ahead. (§6, P3-D7) |
 | Q5 | DataStore 1.3.0 depends on Okio, a Square library, through `datastore-core-okio`. Plan §3 asked for "only well-known AndroidX, JetBrains and Google libraries". | Accepted: it comes with AndroidX's own library, from Maven Central, and the app doesn't use it directly. T1 records it in the handover. (Plan §3) |
-| Q6 | DataStore's file storage in `:app`'s JVM unit tests: it uses the Android variant of `datastore-core`, and replaces a file by renaming over it, which can behave differently on Windows. | Assumed to work on this PC and on CI's Linux. T1 checks it first. If it doesn't, stop and ask: the store's tests could use DataStore's Okio storage, or move to instrumented tests. |
+| Q6 | DataStore's file storage in `:app`'s JVM unit tests: it uses the Android variant of `datastore-core`, and replaces a file by renaming over it, which can behave differently on Windows. | Assumed to work on this PC and on CI's Linux. T1 confirmed it on Windows 11: DataStore wrote, replaced and read back a file, also after reopening it. CI's Linux runs the same tests in the pull request. |
+| Q7 | A file that exists but can't be opened (a folder in its place) makes DataStore throw before the serializer runs, so the serializer's `onUnreadable` never hears of it. | The repository's constructor also takes `onUnreadable`, and `create()` passes the same function to both. `data` reports the `IOException` as `read: <class>` before emitting `Unreadable` (§4.2, §4.3.4). |
+| Q8 | After the write check refuses (§4.3.3), DataStore leaves its temporary file behind: it deletes it only in its `IOException` handler, as its bytecode shows. | Accepted. The check throws before the first byte, so the file left is empty, the data file is untouched, and the next write replaces it. The check keeps `IllegalStateException`: an `IOException` would pass a bug off as a disk error. A test checks both (§6). |
 
 ## 10. Change log
 
@@ -405,3 +409,4 @@ The review confirmed the six draft assumptions. Q1, Q3 and Q5 went into plan v0.
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
 | 0.2 | 2026-11-20 | Review: Q1–Q6 answered, confirming the draft assumptions. Q1, Q3 and Q5 went into plan v0.3. Ready. |
+| 0.3 | 2026-11-20 | During implementation (T1, T3). Q6 confirmed on Windows. Q7: the repository's constructor takes `onUnreadable` too (§4.2, §4.3.4). Q8: an empty temporary file stays after the write check refuses (§4.3.3). §4.3.3 names DataStore's temporary file, `pills.json.tmp`. §4.3.2 and §6: times are read only in the exact form written, so `:00` seconds and zones are refused. |
