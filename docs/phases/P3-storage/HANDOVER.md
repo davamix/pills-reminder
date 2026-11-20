@@ -37,7 +37,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | |
+| T1 | Done | DataStore 1.3.0 and kotlinx-serialization-json 1.13.0 added to `:app`, and `buildConfig` turned on. `build` passes, and the merged manifests are the same as `main`'s (debug 7 entries, release 5). New runtime dependencies (release): `androidx.datastore:datastore`, `-android`, `-core`, `-core-android`, `-core-okio`, `-core-okio-jvm` (1.3.0); `androidx.tracing:tracing-android`; `com.squareup.okio:okio` and `okio-jvm` 3.17.0 (SPEC Q5); `org.jetbrains.kotlinx:kotlinx-serialization-json` and `-json-jvm` 1.13.0. Q6: a throwaway JVM test wrote, replaced and read back a file through DataStore on Windows 11, also after reopening it; CI's Linux is checked by the pull request. DataStore's temporary file is `<file>.tmp` (`pills.json.tmp`): it writes it, calls `fd.sync()`, moves it over the file with `Files.move` (`renameTo` below API 26), and deletes a leftover one after a failed write. |
 | T2 | To do | |
 | T3 | To do | |
 | T4 | To do | |
