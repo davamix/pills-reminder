@@ -240,12 +240,12 @@ On the **phone**:
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `gradlew build` passes locally and in CI
-- [ ] Every instrumented test passes on the emulator and the phone
-- [ ] Manual checks pass on the devices they name
-- [ ] The `phone` skill's helpers all work, and the content area is recorded in it
-- [ ] HANDOVER.md is up to date, and the plan's status table is updated
+- [x] All tasks done
+- [x] `gradlew build` passes locally and in CI
+- [x] Every instrumented test passes on the emulator and the phone
+- [x] Manual checks pass on the devices they name
+- [x] The `phone` skill's helpers all work, and the content area is recorded in it
+- [x] HANDOVER.md is up to date, and the plan's status table is updated
 
 ## 9. Open questions
 

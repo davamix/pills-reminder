@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#1](https://github.com/davamix/pills-reminder/pull/1) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#1](https://github.com/davamix/pills-reminder/pull/1) on 2026-11-20. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p1-foundation` |
 | **Last session** | 2026-11-20 |
@@ -11,21 +11,11 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P1 (Project foundation) of the pills reminder.
-
-1. Use the phase-start skill for P1. Read only docs/phases/P1-foundation/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p1-foundation. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. All tasks are done, and pull request #1 is open. Check first whether I have merged it (gh pr view 1). If it is merged, use the phase-close skill, which also runs the skills review. If not, deal with any review comments on it. The phone checks left for me are listed in the pull request.
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-The app skeleton is complete and runs on both devices. Pull request [#1](https://github.com/davamix/pills-reminder/pull/1) is open, and CI passed on it ([run](https://github.com/davamix/pills-reminder/actions/runs/44768461238), 3 min, commit `91b1935`).
+Merged into `main` in pull request [#1](https://github.com/davamix/pills-reminder/pull/1) (merge commit `6a96da6`), with CI green ([run](https://github.com/davamix/pills-reminder/actions/runs/44768461238)). The app skeleton is complete and runs on both devices:
 
 - `./gradlew build` passes locally, with 0 lint issues and ktlint clean. There are no unit tests yet.
 - The 5 instrumented tests pass on the emulator and on the phone (commit `464a118`; no app code changed after it).
@@ -33,12 +23,11 @@ The app skeleton is complete and runs on both devices. Pull request [#1](https:/
 - The permission allowlist check fails the build on `INTERNET` and on any permission outside plan §3.
 - Every `phone` skill helper works on both devices, and the content area is recorded in the skill.
 
-Left for the user, on the phone: the launcher icon and name, and that turning the phone sideways keeps portrait.
+The user checked on the phone that the launcher icon is right, that the app stays in portrait, and that dark mode works.
 
 ## Next steps
 
-1. If the user has review comments on pull request #1, deal with them on the branch.
-2. Once the user has merged it, use the `phase-close` skill: it marks P1 `Done` on `main` and runs the skills review (plan `D-17`). P2 (domain model and schedule) can start after that; its documents don't exist yet (`phase-docs`).
+None for P1. P2 (domain model and schedule) can start now: its only dependency, P1, is `Done`. Its SPEC.md and HANDOVER.md don't exist yet; the `phase-docs` skill writes them.
 
 ## Tasks
 
@@ -55,7 +44,7 @@ The task IDs come from SPEC.md §7.
 | T7 | Done | `setup-java` moved to v6.3.0; the other actions were already the newest |
 | T8 | Done | All helpers checked on both devices; `end_process` fixed and `allow_test_start` added for the phone; content area measured |
 | T9 | Done | |
-| T10 | In review | Emulator checks and phone navigation done by the session. The launcher icon and turning the phone sideways are left for the user, in the pull request. |
+| T10 | Done | Emulator checks and phone navigation done by the session; the user checked the launcher icon, portrait and dark mode on the phone. Pull request #1 merged. |
 
 ## Decisions and deviations
 
@@ -94,6 +83,10 @@ Then open "Pills Reminder (debug)" on the phone: it shows in portrait, and every
 ## Session log
 
 Newest first.
+
+### 2026-11-20 (close)
+
+- The user checked the launcher icon, portrait and dark mode on the phone, and merged pull request #1. P1 is closed.
 
 ### 2026-11-20
 
