@@ -424,14 +424,14 @@ Every test is a JUnit Jupiter unit test in `:core`, with explicit times and zone
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `./gradlew build` passes locally and in CI, with `:core`'s tests among them (the totals recorded in the handover)
-- [ ] Unit tests cover every rule of §4.3 and every row of §6, including the plan's list for P4:
-  - [ ] the §4.4 example over several simulated days, and a weekly medicine with no end over several weeks, with reconciles at random moments in between;
-  - [ ] every alert happens once, at the right minute, and every removal on time;
-  - [ ] several takes at the same time, a snooze, three repeats ten minutes apart, a take that becomes Missed, and a treatment edited, ended or deleted while a reminder is in the shade.
-- [ ] `:core` depends on nothing but Kotlin, kotlinx-coroutines and its test libraries, and `:app` is unchanged
-- [ ] HANDOVER.md is up to date, with the pending wiring for P5, and the plan's status table is updated
+- [x] All tasks done
+- [x] `./gradlew build` passes locally and in CI, with `:core`'s tests among them (the totals recorded in the handover)
+- [x] Unit tests cover every rule of §4.3 and every row of §6, including the plan's list for P4:
+  - [x] the §4.4 example over several simulated days, and a weekly medicine with no end over several weeks, with reconciles at random moments in between;
+  - [x] every alert happens once, at the right minute, and every removal on time;
+  - [x] several takes at the same time, a snooze, three repeats ten minutes apart, a take that becomes Missed, and a treatment edited, ended or deleted while a reminder is in the shade.
+- [x] `:core` depends on nothing but Kotlin, kotlinx-coroutines and its test libraries, and `:app` is unchanged
+- [x] HANDOVER.md is up to date, with the pending wiring for P5, and the plan's status table is updated
 
 ## 9. Open questions
 

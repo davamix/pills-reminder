@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#4](https://github.com/davamix/pills-reminder/pull/4) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#4](https://github.com/davamix/pills-reminder/pull/4) on 2026-11-20. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p4-reminder-planner` |
 | **Last session** | 2026-11-20 |
@@ -11,30 +11,19 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P4 (Reminder planner) of the pills reminder.
-
-1. Use the phase-start skill for P4. Read only docs/phases/P4-reminder-planner/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p4-reminder-planner. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. Pull request #4 is open with all tasks done. First check whether it has been merged or has review comments (gh pr view 4 --comments). If merged, use the phase-close skill instead. No device is needed: P4 is pure Kotlin in :core, and nothing in :app changes, so there are no instrumented tests or phone checks. Reuse P2's test helpers (core/src/test/.../ExampleData.kt and Invariants.kt). P6 or P7 may run in parallel: if this working copy is busy with another phase, use a worktree (phase-start, step 3). P4 doesn't add the reminder state to PillsData or to the JSON format; that is P5's (SPEC P4-D6).
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-All tasks are done. Pull request [#4](https://github.com/davamix/pills-reminder/pull/4) is open, with CI green on `ef7988e` ([run](https://github.com/davamix/pills-reminder/actions/runs/44806241906)).
+Merged into `main` in pull request [#4](https://github.com/davamix/pills-reminder/pull/4) (merge commit `d87ac3f`), with CI green on the branch's last commit `ead4f7a` ([run](https://github.com/davamix/pills-reminder/actions/runs/44806611884)).
 
 - **What's built:** `io.github.davamix.pillsreminder.core.reminders`. It holds `ReminderState` (one record per Due take, `Snoozed` or `Alerted`, in whole seconds), `snooze()`, and `ReminderPlanner.plan()`. The plan returns the reminders the shade should hold, which of them alert, the next wake-up, the records to store and `removals(inShade)`. Nothing in `:app` uses it yet: P5 wires it in.
 - **Checks:** `./gradlew build` passes: 173 unit tests in `:core` (56 new: 14 + 31 + 11) and 60 in `:app`, 0 failures; lint, ktlint and the permission allowlist pass. Four deliberate planner bugs each made tests fail, then were reverted. No instrumented run or device check: nothing in `:app` changed (SPEC §6). The manifests and dependencies are the same as `main`'s, because no build file or `:app` file changed.
-- **Documents:** SPEC.md v0.2 (`Ready`), specification v0.6, both on `main`. `CLAUDE.md` describes the `reminders` package.
+- **Documents:** SPEC.md v0.2, with every done criterion ticked; specification v0.6; plan §5.1 shows P4 `Done`. `CLAUDE.md` describes the `reminders` package.
 
 ## Next steps
 
-1. Deal with any review comments on pull request #4, on this branch.
-2. Once the user has merged it, use the `phase-close` skill on `main`. P5 (reminders on Android) can then start, since P3 and P4 will both be `Done`.
+None for P4. These phases can start now, since all their dependencies are `Done`: P5 (reminders on Android), P6 (treatment management UI) and P7 (home screen and reminder check). None has a SPEC.md or HANDOVER.md yet; the `phase-docs` skill writes them. P5 is on the critical path and is the riskiest phase (plan §5.1).
 
 ## Tasks
 
@@ -45,7 +34,7 @@ The task IDs come from SPEC.md §7.
 | T1 | Done | `ReminderState`, `TakeReminder`, `snooze()`, and `ReminderPlanner`'s constants. `ReminderStateTest`: 14 tests. |
 | T2 | Done | `ReminderPlanner.plan()`, `ReminderPlan`, `Reminder`, `removals`, and the clock check of §4.3.8. `ReminderPlannerTest`: 31 tests, each also checking the one-plan properties of §4.3.10 (`ReminderChecks.kt`: `assertPlanProperties`, `instant()`, `dueTakes()`), including a plan again at now, halfway to the next wake-up and 1 ms before it. Two deliberate mutations of the planner (no pull-back; a repeat 1 minute early) each failed tests, then were reverted. |
 | T3 | Done | `FakePhone.kt`: the fake phone (shade, alarm, store; walks with exact or late alarms, random reconciles, responses and events), the two oracles (`expected` with exact alarms and responses, `expectedAt` from the moments the phone reconciled), and `assertSameLog`. `ReminderWalkTest`: 11 tests, 5 seeds each for the long walks, 1.5 s in all. Two mutations of the planner that only walks see (a snooze's end not a wake-up; a repeat alarm a minute late) each failed walks, then were reverted. |
-| T4 | In review | Every row of SPEC §6 and every rule of §4.3 checked against the tests; KDoc on the public API; `CLAUDE.md` describes the `reminders` package; `build` passes; pull request [#4](https://github.com/davamix/pills-reminder/pull/4) open, CI green. |
+| T4 | Done | Every row of SPEC §6 and every rule of §4.3 checked against the tests; KDoc on the public API; `CLAUDE.md` describes the `reminders` package; `build` passes; pull request [#4](https://github.com/davamix/pills-reminder/pull/4) open, CI green. |
 
 ## Decisions and deviations
 
@@ -79,6 +68,10 @@ Connections to other phases left for later.
 ## Session log
 
 Newest first.
+
+### 2026-11-20 (close)
+
+- The user merged pull request #4. The phase is closed: plan §5.1 shows `Done`, and SPEC §8 is ticked.
 
 ### 2026-11-20 (implementation)
 
