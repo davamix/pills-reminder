@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | In progress |
-| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
+| **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p5-reminders` |
 | **Last session** | 2026-11-20 |
 
@@ -19,17 +19,29 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 1. Use the phase-start skill for P5. Read only docs/phases/P5-reminders/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p5-reminders. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. The phone is needed for T1, T2 and T8, and for the manual checks of other tasks, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks. T1 and T2 use throwaway probes that are never committed. If a measurement contradicts SPEC.md (for example exact alarms late in Doze, which would mean D-8's fallback to setAlarmClock), stop and ask me before changing the design.
+4. The phone is needed for T1, T2 and T8, and for the manual checks of other tasks, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks. T1 and T2 use throwaway probes that are never committed. If a measurement contradicts SPEC.md, stop and ask me before changing the design. T1's probe lives in app/src/debug/ and is kept out of git by .git/info/exclude; remove those lines from it when the probe is deleted, before T6 adds the real debug manifest.
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-Started: the branch exists, and no code has been written yet. The SPEC is Ready (v0.2), with Q1–Q4 answered. P3 and P4 are merged, so P5 builds on the real store and the real planner; no fakes are needed.
+T1 is under way; no app code has been written yet. The first measurements changed the design: with the screen off, HyperOS holds exact alarms for up to 5 minutes, and alarm clocks are on time, so the alarm is an alarm clock (SPEC v0.3, Q5; plan v0.5, `D-8`). An overnight run of alarm clocks, every 10 minutes, with stock settings and the phone unplugged, started at 22:01 UTC on 2026-11-20 (tag `A3night`, 60 alarms, until about 07:57 UTC).
+
+The throwaway probe is `app/src/debug/AndroidManifest.xml` and `app/src/debug/kotlin/io/github/davamix/pillsreminder/probe/Probe.kt`, kept out of git by two lines in `.git/info/exclude`. It is installed on the phone. Commands go through `ProbeControl`, which only the shell can reach (it needs `DUMP`):
+
+```bash
+source .claude/skills/phone/helpers.sh phone && ctl="$pkg/io.github.davamix.pillsreminder.probe.ProbeControl"
+$adb shell am broadcast -n "$ctl" -a probe.SET --es tag <tag> --el delay_s 120 --ei count 3 --el interval_s 180 --es mode clock   # or mode exact
+$adb shell am broadcast -n "$ctl" -a probe.MARK --es text "<step>"
+$adb exec-out run-as $pkg cat files/probe.log
+```
 
 ## Next steps
 
-1. T1, the measurements of alarms and broadcasts on the phone (SPEC §4.6, A1–A8), with stock HyperOS settings first. Write the throwaway probe in the debug source set, and never commit it.
+1. Read the overnight run: `files/probe.log`, lines `A3night`, each alarm's `late=` and `idle=`, and `$adb shell dumpsys deviceidle` for whether the phone reached deep idle (an alarm clock takes the phone out of Doze shortly before it fires, so `idle=false` at the alarm is expected). Record it in "Measurements".
+2. The rest of T1 with alarm clocks, stock settings first (Autostart off, battery saver default): forced Doze (`doze_on`), the user swiping the app from Recents, `end_process`, a restart with the unlock after a due time (A4), `gradle installDebug` as an update (A5), a *Force stop* (A7). Then on the emulator: A1, and A6 (time and zone changes by hand, `CurrentZoneClock`).
+3. Relax the settings (Autostart on) only where a stock run fails, and record what each setting changed: that is P7's list.
+4. Delete the probe and its lines in `.git/info/exclude` once T2 is done too.
 
 ## Tasks
 
@@ -37,7 +49,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | Measure alarms and broadcasts (phone, emulator) |
+| T1 | Doing | A1 on the phone, A2 with the screen off, A8 done; overnight run going. Changed `D-8` (SPEC v0.3, Q5). |
 | T2 | To do | Measure notifications (phone, emulator) |
 | T3 | To do | Reminder state in the store |
 | T4 | To do | The reconcile on the JVM |
@@ -53,12 +65,14 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-20 | The alarm is an alarm clock, `setAlarmClock()` (`D-8`'s fallback). Agreed with the user; in SPEC v0.3 (Q5) and plan v0.5. | T1: with the screen off, `setExactAndAllowWhileIdle()` was held until a 5-minute grid, up to 4 min 15 s late, also exempt from battery optimisation; alarm clocks were within 0.1 s. |
+| 2026-11-20 | The probe takes commands over adb through an exported receiver protected by `android.permission.DUMP`, instead of probe tests. | Only the shell holds `DUMP`, so no other app can reach it, and `am instrument` would end the app's process after each test. It is never committed. |
 
 ## Measurements (T1, T2)
 
 The phone: POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, on wireless debugging only, unplugged. Times are UTC, as the probe logs them; logcat shows local time (UTC+1). The probe is a debug-only receiver, never committed, that logs each alarm's lateness, `isDeviceIdleMode`, `isInteractive` and the process to `files/probe.log`.
 
-**Stock settings:** battery optimisation on (read with `reminder_health`), standby bucket 40 before the install and 10–20 after it. HyperOS's battery saver for the app: "Battery saver", its default (the user). Autostart not yet confirmed.
+**Stock settings:** battery optimisation on (read with `reminder_health`), standby bucket 40 before the install and 10–20 after it. HyperOS's battery saver for the app: "Battery saver", its default; Autostart off (both read by the user in Settings).
 
 | # | When (UTC) | Setup | Result |
 |---|---|---|---|
@@ -74,6 +88,12 @@ The phone: POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, on wireless debuggi
 | A2 run 3 | 21:45–21:56 | `setExactAndAllowWhileIdle` again, with the app's battery saver set to **"No restrictions"** by the user (Autostart still off). That makes Android treat the app as exempt from battery optimisation (`reminder_health`: exempt, standby bucket 5). Screen off throughout. | 1st: late **176 s**, at 21:50:48.7. 2nd: late 1.2 s (set 4 s before it was due). 3rd: late **116 s**, at 21:55:48.7. Still the 5-minute grid. |
 
 **The grid** is on `elapsedRealtime`: every held alarm was delivered at an exact multiple of 300 000 ms since boot (9 900 028, 10 200 047, 11 400 035, 11 700 028 ms). It is HyperOS's own alignment of background apps' alarms while the screen is off: Android's battery optimisation exemption doesn't lift it, and `setAlarmClock()` isn't subject to it.
+
+After run 3, the user set the battery saver back to its default (`reminder_health`: optimised, bucket 10).
+
+| # | When (UTC) | Setup | Result |
+|---|---|---|---|
+| A3 night | 2026-11-20 22:01 → 2026-11-21 ~07:57 | `setAlarmClock()`, 60 alarms 10 minutes apart from 22:06:49, stock settings, screen off, unplugged (53 %), wireless debugging, no adb during the night | Running: to read in the morning |
 
 ## Known issues
 
@@ -97,6 +117,11 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-20, evening
+
+- Done: T1's probe; A1 on the phone; A2 with the screen off, three runs (stock twice, battery saver "No restrictions" once); A8 with alarm clocks. They showed HyperOS's 5-minute grid for exact alarms, so the alarm became an alarm clock, agreed with the user: plan v0.5, SPEC v0.3 (Q5), merged into the branch. Started the overnight run (A3 night).
+- Notes: the phone's screen turns off with `input keyevent KEYCODE_SLEEP` (wakefulness `Dozing`). Don't poll the phone over adb during a run: wait locally, then read the log. Logcat's times are local (UTC+1), the probe's are UTC.
 
 ### 2026-11-20
 
