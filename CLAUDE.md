@@ -43,7 +43,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 | Fix Kotlin formatting | `./gradlew ktlintFormat` |
 | Unit tests only | `./gradlew test` |
 | Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
-| Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first, and run `allow_test_start` after a fresh install, or the run hangs. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data and, on the phone, resets that permission. |
+| Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first; `instrument` grants the HyperOS permission the tests need (`allow_test_start`), which every install, update and restart resets. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data. |
 
 - Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
 - Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.
@@ -83,6 +83,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - **The store** (`data`, P3): `AppContainer.repository` is a `DataStoreTreatmentRepository`, which keeps all of `PillsData` in one JSON document, `files/datastore/pills.json` on the device. Its format types (`PillsDocument.kt`) are kept apart from the model.
   - **A field added to `PillsData`**, or to a type in it, goes into the format in the same change, with a test. The store refuses to write data that doesn't read back the same (P3-D3), so a field left out fails at the first write that sets it.
   - **Golden files never change** (`app/src/test/resources/data/pills-v<N>.json`). A change that old files can't be decoded as raises `schemaVersion` and adds a migration (P3 SPEC §4.3.6).
+  - **To make a golden file,** write the data's encoding to a file from a throwaway unit test, pretty-print it with `python -I -c` and `json.dumps(…, indent=2, ensure_ascii=False)`, and check it by eye against the format in the SPEC. Then delete the test (P3 T2). The golden test compares JSON trees, so the indentation doesn't matter.
   - `StoredData.Unreadable` means the file is kept as it is and every `update` is refused. Show it; never work around it. `update` can also throw an `IOException` when a write fails.
   - DataStore allows one store per file in the process, so the app stays in one process: no `android:process`.
 - The base package is `io.github.davamix.pillsreminder`. The debug build's application ID adds `.debug` and its name is "Pills Reminder (debug)", so it installs next to a release build.
@@ -121,6 +122,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - `adb` is not on PATH: `D:\Android\Sdk\platform-tools\adb.exe` (Git Bash: `/d/Android/Sdk/platform-tools/adb.exe`). The phone is paired over USB **and** wireless debugging, so `adb devices` usually lists it twice, and the emulator adds another entry. Always pass `-s <serial>`; the `phone` skill picks it.
 - Android SDK in `D:\Android\Sdk` (`ANDROID_HOME`): platforms up to `android-37.0`, build-tools up to 37.0.0, emulator 37.1. Android Studio 2026.1 (build 261), whose JDK 25 is `JAVA_HOME`.
 - `gh` is authenticated as the repo's owner. Python 3.12 is installed.
+- **What a library does that its docs don't say** can be read from its classes in the Gradle cache. Unzip the AAR's `classes.jar` from `~/.gradle/caches/modules-2/files-2.1/<group>/<artifact>/<version>/` into the scratchpad, then read a class with `"$JAVA_HOME/bin/javap" -c -p -constants <file>.class`. String constants show names and messages; "Exception table" shows what each `catch` handles. P3 found DataStore's temporary file, its `fd.sync()` and when it deletes the file this way.
 - Create and change files with the Write and Edit tools, not shell heredocs. In Workout Timer, a heredoc that wrote a Kotlin file failed to parse in Git Bash, and nothing was written.
 
 ## Git

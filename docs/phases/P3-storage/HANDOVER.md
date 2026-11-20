@@ -95,6 +95,10 @@ Newest first.
 ### 2026-11-20 (close)
 
 - The user merged pull request [#3](https://github.com/davamix/pills-reminder/pull/3). P3 is closed: `Done` in plan §5.1, the done criteria ticked in SPEC.md §8.
+- Skills review, all four proposals agreed:
+  - `phone`: `instrument` grants op 10021 itself when an install, an update or a restart has reset it. That resolves the known issue above, and was checked on the phone after an update. Its text names the store's file and its hash, and says that a test skipped by an assumption still counts in `OK (N tests)`.
+  - `handover`: `compare-manifests.sh` also compares the release runtime dependencies with `main`'s (checked: 120 libraries, the same).
+  - `CLAUDE.md`: how to make a golden file, and how to read a library's behaviour from its classes in the Gradle cache. The commands table drops the manual `allow_test_start` step.
 
 ### 2026-11-20 (implementation)
 

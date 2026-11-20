@@ -13,7 +13,7 @@ description: End-of-session routine for a pills-reminder phase. It runs the chec
      - **The user may have data in the debug app,** such as treatments made for manual checks: run the whole suite with `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill, helpers). It runs the same tests and keeps the data.
      - **Otherwise,** `./gradlew connectedDebugAndroidTest` works too, with `ANDROID_SERIAL` set to one device. It uninstalls the app when it ends, which deletes that data; afterwards, run `gradle installDebug` to leave the app installed. If unsure, ask first.
      - If only documents changed since a full run passed, don't run it again. Say which commit it ran on, and how.
-   - **Merged manifests:** if dependencies or the manifest changed, check that the merged manifests gain no permission or component, with "Comparing the merged manifests with `main`" below.
+   - **Merged manifests and dependencies:** if dependencies or the manifest changed, check that the merged manifests gain no permission or component, and list the new runtime libraries in the handover, with "Comparing the merged manifests and dependencies with `main`" below.
    - Note the results exactly. Don't call something passing unless it ran and passed.
 2. **Push decisions up.**
    - **Does it need a new SPEC version?** A decision that only settles a point SPEC.md leaves open stays in HANDOVER.md. One that contradicts SPEC.md's text gets a new SPEC version, with a change-log entry. That includes a change to an internal API or behaviour the SPEC describes. New wording for a UI text the SPEC lists as a suggestion isn't a contradiction: the strings file holds the final wording (`phase-docs`, step 5).
@@ -84,14 +84,14 @@ PN of the [implementation plan](docs/IMPLEMENTATION_PLAN.md): <goal, from SPEC.m
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
-## Comparing the merged manifests with `main`
+## Comparing the merged manifests and dependencies with `main`
 
-[compare-manifests.sh](compare-manifests.sh) lists the permissions and components of the debug and release manifests, on the branch and on `main`, and compares them. `main` is built in a scratch worktree, so this working copy stays on the branch. It assumes a Gradle `:app` module, which P1 confirms. Run it in Git Bash from the repo root, after the build, with the session's scratchpad:
+[compare-manifests.sh](compare-manifests.sh) lists the permissions and components of the debug and release manifests, and the release build's runtime libraries, on the branch and on `main`, and compares them. `main` is built in a scratch worktree, so this working copy stays on the branch. It assumes a Gradle `:app` module, which P1 confirms. Run it in Git Bash from the repo root, after the build, with the session's scratchpad:
 
 ```bash
 bash .claude/skills/handover/compare-manifests.sh <scratchpad>
 ```
 
-It prints `debug: same as main (N entries)` and the same for release, or the differences. The script lives in a file because the skill loader replaces shell positional parameters (a dollar sign and a digit) in this text with the words the skill was invoked with: in P2, the functions' arguments became `"all"` and `"tasks"`.
+It prints `debug: same as main (N entries)`, the same for release, and `release dependencies: same as main (N libraries)`, or the differences. The script lives in a file because the skill loader replaces shell positional parameters (a dollar sign and a digit) in this text with the words the skill was invoked with: in P2, the functions' arguments became `"all"` and `"tasks"`.
 
-Every difference is a line starting with `<` (only on `main`) or `>` (new on the branch). A new permission or component must be explained in the handover, or removed. Reminders need a few permissions (notifications, exact alarms, starting after a restart), so the plan lists the expected ones; anything beyond that list is a finding. A changed attribute, such as `exported`, doesn't show here: check that one in the manifest itself.
+Every difference is a line starting with `<` (only on `main`) or `>` (new on the branch). A new permission or component must be explained in the handover, or removed. Reminders need a few permissions (notifications, exact alarms, starting after a restart), so the plan lists the expected ones; anything beyond that list is a finding. A changed attribute, such as `exported`, doesn't show here: check that one in the manifest itself. A new library, `group:artifact` without its version, must be listed in the handover: plan §3 accepts only well-known AndroidX, JetBrains and Google libraries, and what they depend on. A version change alone doesn't show.

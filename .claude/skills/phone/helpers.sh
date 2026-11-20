@@ -81,16 +81,20 @@ gradle() {
 #   instrument                                   the whole suite
 #   instrument ui.home.HomeScreenTest[#method][,…] classes or methods, the package prefix optional
 #   instrument <class> -e <key> <value>          with arguments for the test
-# It passed when the summary ends with "OK (N tests)". On the phone, it first checks that HyperOS lets the test runner
-# start the app's activities (allow_test_start), and that the phone isn't locked, because otherwise the run hangs with
-# no output (P1 T6, P2). It gives up after INSTRUMENT_TIMEOUT seconds (default 900) and says what to look for, instead
-# of waiting forever. It prints nothing until the run ends.
+# It passed when the summary ends with "OK (N tests)". On the phone, it first makes sure that HyperOS lets the test
+# runner start the app's activities, granting op 10021 to the debug app when an install, an update or a restart has
+# reset it (allow_test_start), and checks that the phone isn't locked, because otherwise the run hangs with no output
+# (P1 T6, P2, P3). It gives up after INSTRUMENT_TIMEOUT seconds (default 900) and says what to look for, instead of
+# waiting forever. It prints nothing until the run ends.
 instrument() {
     local spec="" limit=${INSTRUMENT_TIMEOUT:-900}
     if [ "$device" = phone ] && ! $adb shell cmd appops get $pkg 10021 2> /dev/null | grep -q ': allow'; then
-        echo "instrument: HyperOS would block the test runner, because op 10021 isn't allowed for $pkg."
-        echo "  Run allow_test_start first. Uninstalling the app resets it."
-        return 1
+        echo "instrument: op 10021 isn't allowed for $pkg (an install, an update or a restart resets it): granting it."
+        allow_test_start > /dev/null
+        if ! $adb shell cmd appops get $pkg 10021 2> /dev/null | grep -q ': allow'; then
+            echo "instrument: op 10021 is still not allowed, so HyperOS would block the test runner. Is $pkg installed?"
+            return 1
+        fi
     fi
     if [ "$device" = phone ] && $adb shell dumpsys window 2> /dev/null | grep -q 'isKeyguardShowing=true'; then
         echo "instrument: the phone is locked. Ask the user to unlock it, then run this again. While the lock screen"
@@ -181,8 +185,9 @@ end_process() {
 # Lets the debug app open its activities while in the background, which HyperOS refuses by default. Without it, an
 # instrumented test hangs on the phone: the runner starts the app's process in the background, HyperOS logs
 # "MIUILOG- Permission Denied Activity", and the test waits forever (P1 T6). It is HyperOS's per-app permission
-# "Display pop-up windows while running in the background", op 10021, for the debug app only. Uninstalling the app
-# resets it, so run this after each fresh install on the phone. The user agreed to it on 2026-11-20.
+# "Display pop-up windows while running in the background", op 10021, for the debug app only. An uninstall, an update
+# (adb install -r) and a restart of the phone all reset it (P3); instrument grants it again by itself. The user agreed
+# to it on 2026-11-20, and to instrument granting it after P3.
 allow_test_start() {
     $adb shell cmd appops set $pkg 10021 allow
     echo "MIUIOP(10021) for $pkg: $($adb shell cmd appops get $pkg 10021 | tr -d '\r' | head -1)"
