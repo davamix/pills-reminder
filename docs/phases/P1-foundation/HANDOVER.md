@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
+| **Status** | In progress |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p1-foundation` |
 | **Last session** | 2026-11-20 |
