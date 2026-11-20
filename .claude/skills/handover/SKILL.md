@@ -14,6 +14,7 @@ description: End-of-session routine for a pills-reminder phase. It runs the chec
      - **Otherwise,** `./gradlew connectedDebugAndroidTest` works too, with `ANDROID_SERIAL` set to one device. It uninstalls the app when it ends, which deletes that data; afterwards, run `gradle installDebug` to leave the app installed. If unsure, ask first.
      - If only documents changed since a full run passed, don't run it again. Say which commit it ran on, and how.
    - **Merged manifests and dependencies:** if dependencies or the manifest changed, check that the merged manifests gain no permission or component, and list the new runtime libraries in the handover, with "Comparing the merged manifests and dependencies with `main`" below.
+     - To see whether they changed, run `git diff --stat main -- app/ gradle/ '*.gradle.kts'`. If it prints nothing, no manifest, library or build file changed: skip the comparison, and say so in the handover and the pull request.
    - Note the results exactly. Don't call something passing unless it ran and passed.
 2. **Push decisions up.**
    - **Does it need a new SPEC version?** A decision that only settles a point SPEC.md leaves open stays in HANDOVER.md. One that contradicts SPEC.md's text gets a new SPEC version, with a change-log entry. That includes a change to an internal API or behaviour the SPEC describes. New wording for a UI text the SPEC lists as a suggestion isn't a contradiction: the strings file holds the final wording (`phase-docs`, step 5).

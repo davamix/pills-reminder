@@ -42,12 +42,14 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 | Compile, unit tests, Android Lint, ktlint, permission allowlist | `./gradlew build` |
 | Fix Kotlin formatting | `./gradlew ktlintFormat` |
 | Unit tests only | `./gradlew test` |
+| One module's tests, filtered | `./gradlew :core:test --tests '*reminders*'`, with a package or class pattern; in `:app`, `:app:testDebugUnitTest --tests '…'`. Quicker than `build` while working on one package. |
 | Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
 | Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first; `instrument` grants the HyperOS permission the tests need (`allow_test_start`), which every install, update and restart resets. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data. |
 
 - Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
 - Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.
 - `ktlintFormat` can't fix every line that's too long. It can leave one half-wrapped, and `build` then fails on ktlint. Wrap such lines by hand, for example by moving part of an expression into a local `val`. The reports in `app/build/reports/ktlint/` (or `core/…`) name the file and line.
+- On a line that's too long, `ktlintFormat` can also leave code hard to read: in P4 it split a `${…}` template, and an `if` inside a lambda, across several lines. Don't keep such output: shorten the line instead, with a helper or a local `val`, and format again.
 - On JDK 25, ktlint prints harmless `sun.misc.Unsafe` warnings. To hide them and keep only real output, write the output to a file and filter that (Git Bash):
 
   ```bash
@@ -105,6 +107,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - **Formatting numbers:** don't call `String.format` without a `Locale`. Lint warns (`DefaultLocale`), and the result would follow the phone's language. Pad with `padStart` instead.
 - **Tests:**
   - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
+  - **New tests that pass on their first run:** check that they can fail. Copy the file under test to the scratchpad, and put one deliberate bug into the original, for example with `sed`. Run the tests (filtered, see "Commands"), then copy the file back and check it with `cmp`. Note each bug, and the tests that caught it, in the handover. P4 did four this way.
   - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead. Write times as `0800` or `16h00`, not `08:00`.
   - **Instrumented tests** (`app/src/androidTest`): JUnit 4, also with sentence names in backticks (P1-D7). D8 takes spaces because `minSdk` is 33, but **no other ASCII punctuation except `-`, `_` and `$`**: no commas, no parentheses. A comma failed the dex step in P1 T6. To run one of them, run its class: `am instrument -e class Class#method` splits at the spaces.
   - **Instrumented tests and the real data:** `AppContainer.repository` is the app's real file. A test that goes through `MainActivity` or the container reads and writes the data the app really has, on the phone too. Build ViewModels with fakes, and leave the data as it was found. Store tests use their own file in the cache; `StoreDeviceCheck` touches the real data only when run with `-e storeCheck <step>`.

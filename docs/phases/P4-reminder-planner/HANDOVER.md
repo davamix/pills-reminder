@@ -72,6 +72,7 @@ Newest first.
 ### 2026-11-20 (close)
 
 - The user merged pull request #4. The phase is closed: plan §5.1 shows `Done`, and SPEC §8 is ticked.
+- Skills review: `CLAUDE.md` adds a command to run one module's tests with a filter, a warning that `ktlintFormat` can leave long lines hard to read, and how to check that new tests can fail. The `handover` skill adds a one-line check for whether the manifest and dependency comparison is needed.
 
 ### 2026-11-20 (implementation)
 
