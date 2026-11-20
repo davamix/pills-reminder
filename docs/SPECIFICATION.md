@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.3 |
+| **Status** | Draft v0.4 |
 | **Last updated** | 2026-11-20 |
 | **Platform** | Android phone, single user, personal use |
 
@@ -56,7 +56,7 @@ The app is a reminder. It doesn't give medical advice, check doses or know anyth
 ### In scope (v1)
 
 - Creating, editing and deleting treatments and their medicines in the app.
-- Interval schedules: a dose every N hours, days or weeks, from a first take, for N days or with no end.
+- Interval schedules: a dose every N hours, days or weeks, from a first take, for N days or weeks, or with no end.
 - A reminder for every take, which works with the app closed, the screen off, and after the phone restarts.
 - A home screen with the next take of each medicine.
 - Recording each take as taken or skipped.
@@ -109,7 +109,7 @@ What this means for the app:
 | **Medicine** | One medicine in a treatment, with its dose, interval, duration and first take. The same medicine in two treatments is two separate entries. |
 | **Dose** | How much is taken each time, as free text, such as "1 capsule", "3 puffs" or "1/3 tablet". |
 | **Interval** | The time between two takes of a medicine: a whole number of hours, days or weeks, such as "every 8 hours", "every 2 days" or "every week". |
-| **Duration** | How long a medicine is taken: a number of days, counted from its first take (Q23), or **no end**. |
+| **Duration** | How long a medicine is taken: a number of days or weeks, counted from its first take, or **no end**. |
 | **First take** | The date and time of a medicine's first take. Every later take follows from it. |
 | **Take** | One planned intake: a medicine and its dose, at a date and time. For example "Amoxicillin, 1 capsule, Monday 16:00". |
 | **Reminder** | The phone's alert for a take that is due. |
@@ -127,7 +127,7 @@ Treatment
     ├── dose (free text)
     ├── instructions (optional), e.g. "with food"
     ├── interval (a number of hours, days or weeks)
-    ├── duration (days, or no end)
+    ├── duration (a number of days or weeks, or no end)
     ├── first take (date and time)
     └── takes (worked out from the values above)
         ├── planned time
@@ -139,7 +139,7 @@ Treatment
 
 1. A medicine's first take is at its first-take time.
 2. Each following take is one interval after the planned time of the one before.
-3. With a duration in days, the medicine's period runs from its first take for that many days. The last take is the last one that falls inside that period. Every 8 h for 7 days gives 7 × 24 / 8 = **21 takes**. When the interval doesn't divide the period evenly, the count rounds up: every 5 h for 1 day gives takes at 0, 5, 10, 15 and 20 h, so 5 takes, and every 2 days for 7 days gives takes on days 0, 2, 4 and 6, so 4 takes.
+3. With a duration in days or weeks, the medicine's period runs from its first take for that long; a week is 7 days. The last take is the last one that falls inside that period. Every 8 h for 7 days gives 7 × 24 / 8 = **21 takes**. When the interval doesn't divide the period evenly, the count rounds up: every 5 h for 1 day gives takes at 0, 5, 10, 15 and 20 h, so 5 takes, and every 2 days for 7 days gives takes on days 0, 2, 4 and 6, so 4 takes.
 4. With **no end**, takes carry on until the treatment is ended or the medicine is removed from it (`SC-5`).
 5. Planned times are fixed: taking one late or early doesn't move the others (`SC-3`).
 6. Planned times are clock times on the phone, including across daylight saving changes (`SC-4`). An interval in days or weeks keeps the time of day of the first take: every 2 days from Monday 08:00 is Wednesday 08:00, Friday 08:00, and so on.
@@ -192,12 +192,12 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 |---|---|---|
 | TR-1 | The app manages several treatments. More than one can be active at the same time. | Requested |
 | TR-2 | A treatment has one or more medicines. | Requested |
-| TR-3 | Each medicine has a name, a dose per take written as free text (such as "1 capsule" or "3 puffs"), an interval in hours, days or weeks ("every 8 hours", "every 2 days", "every week") and a duration: a number of days ("for 7 days"), or no end. | Requested |
+| TR-3 | Each medicine has a name, a dose per take written as free text (such as "1 capsule" or "3 puffs"), an interval in hours, days or weeks ("every 8 hours", "every 2 days", "every week") and a duration: a number of days or weeks ("for 7 days", "for 12 weeks"), or no end. | Requested |
 | TR-4 | Each medicine has its own first take, a date and a time. Medicines in the same treatment can start at different times. The editor suggests the next full hour. | Agreed |
 | TR-5 | A treatment has a name, and optional notes. | Agreed |
 | TR-6 | A medicine can have optional instructions, such as "with food", which its reminder shows. | Agreed |
 | TR-7 | The dose is free text, such as "1 capsule", "3 puffs" or "1/3 tablet". There is no list of units, and no limit on the amount. | Agreed |
-| TR-8 | Validation: the treatment and each medicine need a name, and a treatment has at least one medicine. The interval is a whole number of hours, days or weeks, and the duration a whole number of days, each at least 1, with no upper limit; or the duration is set to no end. | Agreed |
+| TR-8 | Validation: the treatment and each medicine need a name, and a treatment has at least one medicine. The interval is a whole number of hours, days or weeks, and the duration a whole number of days or weeks, each at least 1, with no upper limit; or the duration is set to no end. | Agreed |
 | TR-9 | Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment. | Agreed |
 | TR-10 | Editing a treatment that has already started changes only what is still to come. Takes that are due or answered keep their state; takes not yet due are worked out again from the new values. | Agreed |
 | TR-11 | A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. | Agreed |
@@ -259,7 +259,7 @@ All screens are portrait.
 | **Treatments** | Every treatment, grouped as Active, Upcoming and Finished | Open one, new treatment |
 | **Treatment** | One treatment: its medicines, with their schedule and progress, and each medicine's last answered take (`TK-5`) | Edit, end early (`TR-11`), delete (with confirmation), open a take |
 | **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine; save; cancel (asks for confirmation if there are unsaved changes) |
-| **Medicine editor** | Name, dose, instructions, interval, duration (days or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Save, cancel |
+| **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Save, cancel |
 | **Take** | One take: planned time, state, and time taken | Taken, Skip, change the time taken, undo (`TK-2`, `TK-5`) |
 | **Settings** | The reminder check (`RM-9`) | Open Android's settings, back |
 | **Reminder** (a notification, not a screen) | A due take (`RM-1`) | Taken, Snooze, Skip; tap to open the take |
@@ -297,7 +297,8 @@ Medicine editor:
 |  Dose          [ 1 capsule            ]  |
 |  Instructions  [ with food            ]  |
 |  Every         [ 8 ] [ hours ▾ ]         |
-|  For           [ 7 ] days   [ ] No end   |
+|  For           [ 7 ] [ days ▾ ]          |
+|                [ ] No end                |
 |  First take    [ Mon 23 Nov ]  [ 08:00 ] |
 |                                          |
 |  21 takes. The last one is on            |
@@ -333,11 +334,7 @@ Reminder:
 
 ## 8. Open questions
 
-Each question lists the assumption this draft makes until it is answered. This one comes from the answer to Q19.
-
-| # | Question | Draft assumption |
-|---|---|---|
-| Q23 | Duration units: the interval can now be in hours, days or weeks (Q19), but the duration is in days (Q3). A medicine taken every week for 12 weeks would then be "for 84 days". Should the duration also be given in weeks, or in months? | Days only, as Q3 says. The editor also shows the duration in weeks when it's a whole number of them: "84 days (12 weeks)". |
+None at the moment. New questions are numbered from Q24, and each one lists the assumption the document uses until it is answered.
 
 ## 9. Decisions
 
@@ -347,7 +344,7 @@ Each question lists the assumption this draft makes until it is answered. This o
 |---|---|---|
 | Q1 | "The number of takes of each" medicine | The dose each time. The app works out the total number of takes from the interval and the duration (`TR-3`, `SC-2`). |
 | Q2 | Kinds of schedule | Only interval schedules in v1: "every N hours", changed by Q19 to "every N hours, days or weeks" (`SC-1`). Other schedules are future ideas (§10). |
-| Q3 | Length of a medicine | A number of days, or no end (`TR-3`, `SC-5`). |
+| Q3 | Length of a medicine | A number of days, or no end (`TR-3`, `SC-5`). Q23 adds weeks. |
 | Q4 | A late take | Later takes keep their planned times (`SC-3`). |
 | Q5 | Daylight saving and time zones | Keep the clock times (`SC-4`). |
 | Q6 | How insistent a reminder is | A notification with sound, without vibration. No full-screen alarm. (`RM-2`) |
@@ -367,6 +364,7 @@ Each question lists the assumption this draft makes until it is answered. This o
 | Q20 | Vibrate mode | Reminders never vibrate. They play their sound unless the phone is in Do Not Disturb or silent mode, and then only appear on screen. (`RM-2`, `RM-8`) |
 | Q21 | Missed takes with long intervals | A take becomes Missed one interval after its planned time, whatever the interval's length (`TK-3`). |
 | Q22 | Where an answered take is changed | Only each medicine's last answered take can be changed, from the Treatment screen (`TK-5`). |
+| Q23 | Duration units | A number of days or weeks, or no end. No months: a number of months is easy to give in weeks. (`TR-3`, `TR-8`) |
 
 ### 9.2 Discarded proposals
 
@@ -395,3 +393,4 @@ Not planned for v1; listed so they are not lost.
 | 0.1 | 2026-11-19 | First draft, from the initial brief and the phone's information. |
 | 0.2 | 2026-11-20 | First review: Q1–Q18 answered. `RM-10` (test reminder) and `TK-6` (history) discarded. Changed: `TR-3` (a duration can have no end, and the dose is free text), `TR-7` (free-text dose, no list of units), `TR-8` (validates only the names and at least one medicine; no upper limit on the interval or the duration), `RM-2` (no vibration). `TR-9` and `TR-12` no longer mention a history. Added `SC-5` (medicines with no end). Every other proposal agreed. New questions Q19–Q22. |
 | 0.3 | 2026-11-20 | Second review: Q19–Q22 answered. Q19 revises Q2: the interval is a number of hours, days or weeks (`TR-3`, `TR-8`, `SC-1`, §4.3 and the editor sketch). `TK-5` now applies only to each medicine's last answered take. `RM-8` says what Do Not Disturb and silent mode do. `SC-5` agreed. New question Q23. |
+| 0.4 | 2026-11-20 | Q23 answered: a duration is a number of days or weeks, or no end (`TR-3`, `TR-8`, §4.1–§4.3 and the editor sketch). No open questions remain. |
