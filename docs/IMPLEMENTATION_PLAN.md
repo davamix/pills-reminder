@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | v0.2, agreed |
+| **Status** | v0.3, agreed |
 | **Last updated** | 2026-11-20 |
-| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.4 |
+| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.5 |
 
 [SPECIFICATION.md](SPECIFICATION.md) says *what* the app does. This plan says *how* it is built: the architecture, the technical decisions, and the phases of work. Each phase gets its own specification and handover documents (see [§6](#6-working-method)).
 
@@ -150,9 +150,11 @@ The home screen (P7) reads the same schedule and take states as the planner, and
   - the treatments, and their medicines and schedules;
   - for a medicine edited after it started, its earlier schedule, which still applies to the takes that were already due or answered (`TR-10`);
   - the answers, by medicine and planned time;
-  - the snoozes, and which alerts have played.
+  - the snoozes, and which alerts have played. P4 defines them, and P5 adds them to P3's format (P3 Q3).
 - Deleting a treatment deletes all of that for it (`TR-9`).
 - If the file can't be read, the app keeps it as it is, doesn't write over it, and says so. A damaged file is never silently replaced by an empty one (`NF-4`).
+  - The home screen shows a message (P7), and the editors refuse to save (P6).
+  - The app offers no repair. The file stays as it is, so that it can be read over adb. Clearing the app's storage in Android's settings starts again, and deletes it. (P3 Q1)
 - The repository interface lives in `:core` (P2), with an in-memory fake for tests and for the phases that run before P3 is merged.
 
 ## 3. Security and privacy
@@ -174,7 +176,7 @@ Treatments are health data. They stay on the phone, and the app stays small and 
 - **Signing keys stay out of the repo.** The release keystore and its passwords live outside the repository, in user-level Gradle properties. `.gitignore` already excludes keystore files.
 - **The repo is public.** No personal data or real treatments in code, tests, documents or screenshots. Test data uses the specification's §4.4 example, and published screenshots come from the emulator (CLAUDE.md).
 - **Trusted dependencies.**
-  - Only well-known AndroidX, JetBrains and Google libraries, from Google Maven and Maven Central.
+  - Only well-known AndroidX, JetBrains and Google libraries, from Google Maven and Maven Central, and the libraries they themselves depend on, such as Square's Okio, which DataStore uses (P3 Q5).
   - The Gradle wrapper is pinned with a checksum and validated in CI.
   - GitHub Actions are pinned to commit SHAs, and CI runs with read-only permissions.
 
@@ -332,6 +334,7 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
   - **Receivers:** the alarm, the notification actions, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED` (`D-9`).
   - **Notifications:** the channel, and one notification per take with its actions (`D-10`). Tapping it opens the app on the take (`RM-6`): on P6's Take screen if it's merged, or on a placeholder otherwise.
   - **Debug tools:** the minutes unit, and a debug screen to create test schedules and see the next alarm (`D-15`).
+  - **Store:** P4's reminder state in P3's JSON document, following P3's rules for changing the format (P3 Q3).
 - **Done when:**
   - instrumented tests check the posted notifications and the alarm, on the emulator;
   - on the phone, the device runs of §4 pass for every event in `NF-1` and `NF-2`, with the HyperOS settings recorded.
@@ -346,6 +349,7 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
   - **Treatments:** every treatment, grouped as Active, Upcoming and Finished.
   - **Treatment:** its medicines, with their schedule and progress, and each one's last answered take; end early (`TR-11`); delete with confirmation (`TR-9`).
   - **Treatment editor:** name and notes; adding, editing and removing medicines; validation messages; a confirmation before discarding unsaved changes (`TR-13`).
+  - **Stored data that can't be read:** the editors refuse to save, and say why. A save that fails says the change wasn't saved (§2.4, P3 Q1).
   - **Medicine editor:**
     - name, free-text dose and instructions;
     - the interval, as a number and a unit;
@@ -370,6 +374,7 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
     - due takes first, highlighted, with a Taken button;
     - then the next take of each medicine, with the time left and the progress, or "No end";
     - upcoming treatments, and an empty state;
+    - a message when the stored data can't be read (§2.4, P3 Q1);
     - updates each minute while open (`HM-5`);
     - marking the next take Taken early (`TK-4`).
   - **Reminder check:**
@@ -510,3 +515,4 @@ None at the moment. New questions are numbered from PQ-4.
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft, based on specification v0.4. |
 | 0.2 | 2026-11-20 | Review applied: PQ-1 to PQ-3 answered, confirming the draft assumptions (`D-8`, `D-16`, P8). Added `D-17`: skills are reviewed after each phase (§6.4, §7). Every other decision agreed. |
+| 0.3 | 2026-11-20 | From the P3 spec review (P3 Q1, Q3 and Q5). §2.4: when the stored file can't be read, P7's home screen says so and P6's editors refuse to save, and the app offers no repair. §2.4 and P5: P5 adds P4's reminder state to P3's format. §3: the libraries that the chosen libraries depend on are accepted, such as Okio for DataStore. Now based on specification v0.5. |
