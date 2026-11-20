@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P4, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 |
 | **Branch** | `phase/p4-reminder-planner` |
@@ -16,17 +16,18 @@ A pure Kotlin `ReminderPlanner` in `:core`. Given the stored data, the reminder 
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.5), so this document stands on its own.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.6), so this document stands on its own.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
-| RM-3 | "A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later." | `snooze()` takes the reminder out of the shade, and it alerts again 10 minutes later (§4.3.4). Taken and Skip are P2's `markTaken` and `skip`; the planner then leaves the answered take out of the shade (§4.3.5). |
+| RM-3 | "A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again." | `snooze()` takes the reminder out of the shade. 10 minutes later a new round of alerts starts: an alert, then up to 3 repeats (§4.3.4). Taken and Skip are P2's `markTaken` and `skip`; the planner then leaves the answered take out of the shade (§4.3.5). |
 | RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade." | One reminder per Due take, each with its own alerts and record. Takes that fall due at the same moment all alert in the same plan. The grouping is P5's. |
-| RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`)." | Rounds of alerts: the first alert, then up to 3 repeats 10 minutes apart, so 4 alerts at most. Then the reminder stays in the plan, silent, until the take is answered or Missed (§4.3.3). |
+| RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times." | Rounds of alerts: the first alert, then up to 3 repeats, each 10 minutes after the alert that played before it, so 4 alerts at most. Then the reminder stays in the plan, silent, until the take is answered or Missed (§4.3.3). |
 | RM-7 | "When a take is answered in the app, or becomes Missed, its reminder is removed from the shade." | An answered or Missed take is never in the plan, so the reconcile removes its reminder (§4.3.5). The next wake-up includes the moment the take becomes Missed (§4.3.6). |
 | TK-3 | "A take still unanswered one interval after its planned time becomes Missed. With an interval of 8 h, the 08:00 take becomes Missed at 16:00; with an interval of a week, a week later. After an edit (`TR-10`), it becomes Missed as soon as the medicine's next take is due, if that comes sooner, so a medicine never has more than one Due take." | The moment: each Due take's Missed time is a wake-up, so its reminder goes then. The rule itself is P2's (`missedAt`, `nextStateChange`). |
 | NF-1 | "**On time:** a reminder alerts within 1 minute of its planned time, also when the phone is idle (Doze), the screen is off, the app was swiped away from Recents, or the phone has restarted, as long as the reminder check (`RM-9`) passes. This is checked on the phone, not only on the emulator." | The timing side: the next wake-up is the exact instant a take falls due, a repeat is due or a snooze ends, with no rounding (§4.3.6). The alarm and the checks on the phone are P5's and P8's. |
 | TK-4 | "A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. The next take is the medicine's Due take, if it has one, or else its first unanswered take still to come. Only one take of a medicine can be marked ahead of its time: the one after it can be marked early once the marked take's planned time has passed." | The planner side of "its reminder is then cancelled": a take answered early never falls due, so it never alerts, and the next wake-up skips it. |
+| TK-5 | "The last answered take of each medicine can be changed later, for example after pressing Taken by mistake: to Taken, to Skipped, or back to unanswered. The Treatment screen shows it. Older takes can't be seen or changed. A take set back to unanswered that is Due again gets its reminder back, which alerts at once, as when the take fell due." | The planner side of the last sentence: a take that is Due again has no record, so it is back in the plan and alerts at once, with a new round (§4.3.5). The rest is P2's and P6's. |
 | TR-9 | "Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment." | The planner side: a deleted treatment's takes are gone, so their reminders leave the shade and their records are dropped (§4.3.5). |
 | TR-10 | "Editing a treatment that has already started changes only what is still to come. Takes that are due or answered keep their state; takes not yet due are worked out again from the new values." | The planner side: a Due take kept by an edit keeps its reminder and its record, with no new alert. Its Missed moment may come sooner, and the next wake-up follows (§4.3.5). |
 | TR-11 | "A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer." | The planner side: an ended treatment has no Due take, so its reminders leave the shade, and nothing of it wakes the app again (§4.3.5). |
@@ -434,14 +435,21 @@ Every test is a JUnit Jupiter unit test in `:core`, with explicit times and zone
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None at the moment. New questions are numbered from Q4.
+
+### Answered
+
+The review confirmed the three draft assumptions. They went into specification v0.6 (`RM-3`, `RM-5`, `TK-5`), which §2 now quotes.
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | What happens after a snooze ends? `RM-3` says the reminder "alerts again 10 minutes later", but not whether it then repeats. | It starts a new round: it alerts when the snooze ends, then repeats every 10 minutes, up to 3 times, as when the take fell due. A reminder can be snoozed again and again, until the take is Missed. The other choice is a single alert when the snooze ends, then silence. |
-| Q2 | When the first alert comes late (the alarm delayed in Doze, or the phone off or locked after a restart), when do the repeats come? | 10 minutes after the alert that played, so a reminder that first alerted at 08:25 repeats at 08:35, 08:45 and 08:55. The other choice keeps them at 08:10, 08:20 and 08:30 after the planned time, so a reminder 25 minutes late would repeat only once. |
-| Q3 | When an answer is undone (`TK-5`) and the take is Due again, does its reminder alert? | Yes, at once, as a take that has just fallen due, with its round of repeats. Showing it silently instead would mean keeping the records of answered takes until they would have been Missed. |
+| Q1 | What happens after a snooze ends | A new round: the reminder alerts, then repeats every 10 minutes, up to 3 times, as when the take fell due. It can be snoozed again, until the take is Missed. (`RM-3`, §4.3.4) |
+| Q2 | When the repeats come after a late first alert | 10 minutes after the alert that played: a reminder that first alerted at 08:25 repeats at 08:35, 08:45 and 08:55. (`RM-5`, §4.3.3, P4-D3) |
+| Q3 | Whether a take Due again after an undo alerts | Yes, at once, as a take that has just fallen due, with its round of repeats. (`TK-5`, §4.3.5) |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
+| 0.2 | 2026-11-20 | Review: Q1–Q3 answered, confirming the draft assumptions. They went into specification v0.6 (`RM-3`, `RM-5`, `TK-5`), which §2 now quotes; §2 adds `TK-5`. Ready. |
