@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 (draft, under review) |
+| **Status** | In progress |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p4-reminder-planner` |
 | **Last session** | 2026-11-20 |
 
@@ -25,11 +25,11 @@ Start or continue phase P4 (Reminder planner) of the pills reminder.
 
 ## Current state
 
-Not started. SPEC.md v0.1 is a draft, waiting for review of its questions Q1–Q3.
+Started. SPEC.md v0.2 is `Ready`: the review confirmed Q1–Q3, which went into specification v0.6. The branch `phase/p4-reminder-planner` exists; no code yet.
 
 ## Next steps
 
-1. Once SPEC.md is `Ready`, start with `T1`: the reminder state (`ReminderState`, `TakeReminder`, `snooze()`) and `ReminderStateTest`.
+1. Start with `T1`: the reminder state (`ReminderState`, `TakeReminder`, `snooze()`) and `ReminderStateTest`.
 
 ## Tasks
 
