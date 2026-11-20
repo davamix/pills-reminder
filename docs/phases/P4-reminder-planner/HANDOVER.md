@@ -37,7 +37,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | |
+| T1 | Done | `ReminderState`, `TakeReminder`, `snooze()`, and `ReminderPlanner`'s constants. `ReminderStateTest`: 14 tests. |
 | T2 | To do | |
 | T3 | To do | |
 | T4 | To do | |
@@ -48,6 +48,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-20 | `TakeReminder.Snoozed` and `Alerted` refuse a time that isn't whole seconds (`IllegalArgumentException`, with only the time in the message). Not listed in SPEC §4.2. | P4-D5 says records hold whole seconds. Checking it in the type, as P2's `Schedule` checks whole minutes, means P5's decoding refuses any other form, and a planner bug can't store one. |
 
 ## Known issues
 
