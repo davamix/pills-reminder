@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P1, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | — |
 | **Branch** | `phase/p1-foundation` |
@@ -175,7 +175,7 @@ The catalog also declares what later phases will need, so parallel phases don't 
 |---|---|---|
 | P1-D1 | The application ID and namespace are `io.github.davamix.pillsreminder`. | The convention for a project hosted on GitHub, and what the `phone` skill already assumes (plan §2.1). It can't easily change once installed. |
 | P1-D2 | Debug builds use the application ID suffix `.debug` and the name "Pills Reminder (debug)". | Debug and release builds can then be installed side by side, each with its own data (P8). |
-| P1-D3 | A fixed colour scheme of the app's own, light and dark, with no dynamic colour from the wallpaper (Q1). | The highlight of due takes (spec `HM-2`) keeps the same, checked contrast whatever the wallpaper. Screenshots and tests stay stable. |
+| P1-D3 | A fixed colour scheme of the app's own, light and dark, with a teal main colour and no dynamic colour from the wallpaper (Q1). The launcher icon is a simple capsule in the main colour, on a light background, with a monochrome layer for themed icons (Q2). | The highlight of due takes (spec `HM-2`) keeps the same, checked contrast whatever the wallpaper. Screenshots and tests stay stable. |
 | P1-D4 | The app draws edge to edge on every Android version (`enableEdgeToEdge()`), and screens keep their content out of the system bars with `Scaffold` insets. | With `targetSdk` 35 or later, Android 15 and later force edge-to-edge: the emulator (API 36) would draw under the bars and the phone (API 33) wouldn't. Doing it everywhere makes both look the same. |
 | P1-D5 | Lint stops the build on errors; warnings are reported. The warnings about locking the orientation are suppressed on purpose, with a comment naming `NF-7`. | Strict, but no noise from a decision already made |
 | P1-D6 | A **permission allowlist check** replaces Workout Timer's no-INTERNET check. A Gradle task reads the merged manifest of every variant, and fails `check` if it declares any permission outside the list in plan §3. `INTERNET` gets its own message, naming `NF-3`. The list already holds P5's permissions (`POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`), so P5 needn't change the check. | A library can add a permission silently. An allowlist catches every one, not only `INTERNET`. Allowing a permission doesn't declare it. |
@@ -249,13 +249,18 @@ On the **phone**:
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None at the moment. New questions are numbered from Q3.
+
+### Answered
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | Colours: a fixed scheme of the app's own, or Material You's dynamic colours, which follow the wallpaper? | A fixed scheme, light and dark, with a teal main colour (P1-D3). |
-| Q2 | The launcher icon: any preference? | A simple capsule, in the main colour, on a light background, with a monochrome layer so it works as a themed icon. |
+| Q1 | Colours | A fixed scheme of the app's own, light and dark, with a teal main colour. No dynamic colour. (P1-D3) |
+| Q2 | Launcher icon | A simple capsule in the main colour, on a light background, with a monochrome layer for themed icons (P1-D3). |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
+| 0.2 | 2026-11-20 | Review: Q1 and Q2 answered, confirming the draft assumptions (P1-D3). Ready. |
