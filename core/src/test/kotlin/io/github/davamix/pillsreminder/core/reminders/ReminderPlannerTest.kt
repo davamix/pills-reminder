@@ -293,9 +293,9 @@ class ReminderPlannerTest {
     fun `the removals are the reminders in the shade that the plan doesn't hold, also those of takes that are gone`() {
         val plan = plan(Example.data, ReminderState(), nov(23, 8, 5))
         val gone = TakeKey(MedicineId("deleted"), nov(23, 8))
-        val missed = TakeKey(Example.amoxicillinId, nov(23, 0))
+        val notATake = TakeKey(Example.amoxicillinId, nov(23, 0))
 
-        assertEquals(setOf(gone, missed), plan.removals(setOf(amox0800, gone, missed, atro0800)))
+        assertEquals(setOf(gone, notATake), plan.removals(setOf(amox0800, gone, notATake, atro0800)))
         assertEquals(emptySet<TakeKey>(), plan.removals(emptySet()))
     }
 
