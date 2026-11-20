@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | v0.3, agreed |
+| **Status** | v0.4, agreed |
 | **Last updated** | 2026-11-20 |
-| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.5 |
+| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.7 |
 
 [SPECIFICATION.md](SPECIFICATION.md) says *what* the app does. This plan says *how* it is built: the architecture, the technical decisions, and the phases of work. Each phase gets its own specification and handover documents (see [§6](#6-working-method)).
 
@@ -155,6 +155,8 @@ The home screen (P7) reads the same schedule and take states as the planner, and
 - If the file can't be read, the app keeps it as it is, doesn't write over it, and says so. A damaged file is never silently replaced by an empty one (`NF-4`).
   - The home screen shows a message (P7), and the editors refuse to save (P6).
   - The app offers no repair. The file stays as it is, so that it can be read over adb. Clearing the app's storage in Android's settings starts again, and deletes it. (P3 Q1)
+  - The reminders change nothing: those already in the shade stay, and no new alarm is set (P5). (P5 Q1)
+- If a reconcile's write fails, nothing is applied, and an alarm 5 minutes later tries again, for as long as it fails (P5 Q1).
 - The repository interface lives in `:core` (P2), with an in-memory fake for tests and for the phases that run before P3 is merged.
 
 ## 3. Security and privacy
@@ -170,7 +172,7 @@ Treatments are health data. They stay on the phone, and the app stays small and 
   - `RECEIVE_BOOT_COMPLETED`: set the alarm again after a restart (`D-9`).
   - `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`: lets the reminder check ask Android to stop optimising the app's battery use (`RM-9`).
   - Whatever AndroidX adds that gives access to nothing, such as `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. P1 lists them.
-- **Minimal surface.** Only the launcher activity is exported. The receivers aren't: the system still delivers its own broadcasts to them, and the alarm and the notification actions use explicit, immutable `PendingIntent`s. P5 confirms on the phone that each receiver gets what it needs.
+- **Minimal surface.** Only the launcher activity is exported, and, in debug builds only, the debug tools' launcher activity (`D-15`, P5 Q3). The receivers aren't: the system still delivers its own broadcasts to them, and the alarm and the notification actions use explicit, immutable `PendingIntent`s. P5 confirms on the phone that each receiver gets what it needs.
 - **Lock screen:** reminders show their full content there, as agreed (`RM-11`, Q16).
 - **Logs never contain treatment content:** no names, doses, instructions or notes, only IDs and times. Release builds don't log.
 - **Signing keys stay out of the repo.** The release keystore and its passwords live outside the repository, in user-level Gradle properties. `.gitignore` already excludes keystore files.
@@ -516,3 +518,4 @@ None at the moment. New questions are numbered from PQ-4.
 | 0.1 | 2026-11-20 | First draft, based on specification v0.4. |
 | 0.2 | 2026-11-20 | Review applied: PQ-1 to PQ-3 answered, confirming the draft assumptions (`D-8`, `D-16`, P8). Added `D-17`: skills are reviewed after each phase (§6.4, §7). Every other decision agreed. |
 | 0.3 | 2026-11-20 | From the P3 spec review (P3 Q1, Q3 and Q5). §2.4: when the stored file can't be read, P7's home screen says so and P6's editors refuse to save, and the app offers no repair. §2.4 and P5: P5 adds P4's reminder state to P3's format. §3: the libraries that the chosen libraries depend on are accepted, such as Okio for DataStore. Now based on specification v0.5. |
+| 0.4 | 2026-11-20 | From the P5 spec review (P5 Q1 and Q3), confirming its draft assumptions. §2.4: with a stored file that can't be read, the reminders already in the shade stay and no new alarm is set; a reconcile whose write fails tries again 5 minutes later. §3: in debug builds only, the debug tools' launcher activity is exported as well. Now based on specification v0.7, which adds P5 Q2 and Q4 to `RM-4` and `RM-5`. |
