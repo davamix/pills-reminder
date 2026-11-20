@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 (draft, under review) |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p2-domain` |
 | **Last session** | 2026-11-20 |
 
@@ -25,11 +25,11 @@ Start or continue phase P2 (Domain model and schedule) of the pills reminder.
 
 ## Current state
 
-Nothing is built yet. SPEC.md v0.1 is written and waiting for review: its questions Q1–Q5 are open.
+Nothing is built yet. SPEC.md v0.2 is `Ready`: the review confirmed every draft assumption, and the specification is now v0.5.
 
 ## Next steps
 
-1. Once SPEC.md is `Ready`, start T1: `:core`'s dependencies (`kotlinx-coroutines-core` as `api`, `kotlinx-coroutines-test`), the model types and the drafts with their validation, and `ValidationTest`.
+1. Start T1: `:core`'s dependencies (`kotlinx-coroutines-core` as `api`, `kotlinx-coroutines-test`), the model types and the drafts with their validation, and `ValidationTest`.
 
 ## Tasks
 
@@ -78,5 +78,5 @@ Newest first.
 
 ### 2026-11-20
 
-- Done: SPEC.md v0.1 and this handover written (`phase-docs` skill). Plan §5.1 set to `Spec draft`.
+- Done: SPEC.md v0.1 and this handover written (`phase-docs` skill). The review confirmed Q1–Q5 as drafted. Q1–Q4 went into specification v0.5 (`TK-3`, `TK-4`, `TR-11`, `TR-4`). SPEC.md v0.2 is `Ready`, and so is P2 in plan §5.1.
 - Notes: P1's handover had no pending wiring. Nothing in P2 depends on device behaviour that hasn't been measured.
