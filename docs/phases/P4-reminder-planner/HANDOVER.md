@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress |
+| **Status** | In progress: all tasks done; pull request [#4](https://github.com/davamix/pills-reminder/pull/4) is waiting for the user to merge it |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p4-reminder-planner` |
 | **Last session** | 2026-11-20 |
@@ -19,17 +19,22 @@ Start or continue phase P4 (Reminder planner) of the pills reminder.
 1. Use the phase-start skill for P4. Read only docs/phases/P4-reminder-planner/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p4-reminder-planner. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. No device is needed: P4 is pure Kotlin in :core, and nothing in :app changes, so there are no instrumented tests or phone checks. Reuse P2's test helpers (core/src/test/.../ExampleData.kt and Invariants.kt). P6 or P7 may run in parallel: if this working copy is busy with another phase, use a worktree (phase-start, step 3). P4 doesn't add the reminder state to PillsData or to the JSON format; that is P5's (SPEC P4-D6).
+4. Pull request #4 is open with all tasks done. First check whether it has been merged or has review comments (gh pr view 4 --comments). If merged, use the phase-close skill instead. No device is needed: P4 is pure Kotlin in :core, and nothing in :app changes, so there are no instrumented tests or phone checks. Reuse P2's test helpers (core/src/test/.../ExampleData.kt and Invariants.kt). P6 or P7 may run in parallel: if this working copy is busy with another phase, use a worktree (phase-start, step 3). P4 doesn't add the reminder state to PillsData or to the JSON format; that is P5's (SPEC P4-D6).
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-Started. SPEC.md v0.2 is `Ready`: the review confirmed Q1–Q3, which went into specification v0.6. The branch `phase/p4-reminder-planner` exists; no code yet.
+All tasks are done. Pull request [#4](https://github.com/davamix/pills-reminder/pull/4) is open, with CI green on `ef7988e` ([run](https://github.com/davamix/pills-reminder/actions/runs/44806241906)).
+
+- **What's built:** `io.github.davamix.pillsreminder.core.reminders`. It holds `ReminderState` (one record per Due take, `Snoozed` or `Alerted`, in whole seconds), `snooze()`, and `ReminderPlanner.plan()`. The plan returns the reminders the shade should hold, which of them alert, the next wake-up, the records to store and `removals(inShade)`. Nothing in `:app` uses it yet: P5 wires it in.
+- **Checks:** `./gradlew build` passes: 173 unit tests in `:core` (56 new: 14 + 31 + 11) and 60 in `:app`, 0 failures; lint, ktlint and the permission allowlist pass. Four deliberate planner bugs each made tests fail, then were reverted. No instrumented run or device check: nothing in `:app` changed (SPEC §6). The manifests and dependencies are the same as `main`'s, because no build file or `:app` file changed.
+- **Documents:** SPEC.md v0.2 (`Ready`), specification v0.6, both on `main`. `CLAUDE.md` describes the `reminders` package.
 
 ## Next steps
 
-1. Start with `T1`: the reminder state (`ReminderState`, `TakeReminder`, `snooze()`) and `ReminderStateTest`.
+1. Deal with any review comments on pull request #4, on this branch.
+2. Once the user has merged it, use the `phase-close` skill on `main`. P5 (reminders on Android) can then start, since P3 and P4 will both be `Done`.
 
 ## Tasks
 
@@ -40,7 +45,7 @@ The task IDs come from SPEC.md §7.
 | T1 | Done | `ReminderState`, `TakeReminder`, `snooze()`, and `ReminderPlanner`'s constants. `ReminderStateTest`: 14 tests. |
 | T2 | Done | `ReminderPlanner.plan()`, `ReminderPlan`, `Reminder`, `removals`, and the clock check of §4.3.8. `ReminderPlannerTest`: 31 tests, each also checking the one-plan properties of §4.3.10 (`ReminderChecks.kt`: `assertPlanProperties`, `instant()`, `dueTakes()`), including a plan again at now, halfway to the next wake-up and 1 ms before it. Two deliberate mutations of the planner (no pull-back; a repeat 1 minute early) each failed tests, then were reverted. |
 | T3 | Done | `FakePhone.kt`: the fake phone (shade, alarm, store; walks with exact or late alarms, random reconciles, responses and events), the two oracles (`expected` with exact alarms and responses, `expectedAt` from the moments the phone reconciled), and `assertSameLog`. `ReminderWalkTest`: 11 tests, 5 seeds each for the long walks, 1.5 s in all. Two mutations of the planner that only walks see (a snooze's end not a wake-up; a repeat alarm a minute late) each failed walks, then were reverted. |
-| T4 | To do | |
+| T4 | In review | Every row of SPEC §6 and every rule of §4.3 checked against the tests; KDoc on the public API; `CLAUDE.md` describes the `reminders` package; `build` passes; pull request [#4](https://github.com/davamix/pills-reminder/pull/4) open, CI green. |
 
 ## Decisions and deviations
 
@@ -49,6 +54,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | Date | Decision | Reason |
 |---|---|---|
 | 2026-11-20 | `TakeReminder.Snoozed` and `Alerted` refuse a time that isn't whole seconds (`IllegalArgumentException`, with only the time in the message). Not listed in SPEC §4.2. | P4-D5 says records hold whole seconds. Checking it in the type, as P2's `Schedule` checks whole minutes, means P5's decoding refuses any other form, and a planner bug can't store one. |
+| 2026-11-20 | Test helpers beyond SPEC §4.1's list: `ReminderChecks.kt` (`assertPlanProperties`, `instant()`, `dueTakes()`), shared by the planner tests and the walks. `FakePhone.kt` also holds the oracles and `assertSameLog`. | §4.1's file names are suggestions. Each plan in every test, the walks' included, is checked against the one-plan properties of §4.3.10. |
+| 2026-11-20 | The walks' responses come 13 seconds past a minute (`after` = whole minutes + 13 s). | Alerts and Missed times fall on whole minutes, or a whole number of 13 s steps after them, so no response ties with an alarm. The oracle doesn't need a rule for which comes first. |
 
 ## Known issues
 
@@ -65,14 +72,23 @@ Connections to other phases left for later.
 
 ## How to verify
 
-- `./gradlew build` (CLAUDE.md shows how to filter its output and total the test results). `:core`'s tests include the planner's.
+- `./gradlew build` (CLAUDE.md shows how to filter its output and total the test results). `:core`'s tests include the planner's: `ReminderStateTest`, `ReminderPlannerTest` and `ReminderWalkTest`, in `core/build/test-results/test/`.
+- Only the planner's tests: `./gradlew :core:test --tests '*reminders*'`.
 - No manual checks and no device: see SPEC.md §6.
 
 ## Session log
 
 Newest first.
 
-### 2026-11-20
+### 2026-11-20 (implementation)
+
+- Done: the review of SPEC v0.1. Q1–Q3 were confirmed and went into specification v0.6 (`RM-3`, `RM-5`, `TK-5`). SPEC v0.2 is `Ready`. Then the branch, and T1–T4, each committed after a passing build. Pull request #4 opened, CI green.
+- Notes:
+  - The planner and the walks passed their first full runs. To check the tests weren't too weak, four deliberate bugs were put into the planner, one at a time: no pull-back after the clock is set back; a repeat a minute early; a snooze's end not a wake-up; a repeat alarm a minute late. Each made tests fail, and each was reverted (checked with `cmp` against a copy).
+  - `ktlintFormat` half-wrapped some long lines in the walks: an `if` inside a lambda, and string templates. They were rewritten by hand with small helpers (`exampleWith`, `saving`), as CLAUDE.md says.
+- Device state left behind: none. No device was used.
+
+### 2026-11-20 (documents)
 
 - Done: SPEC.md v0.1 and this handover written (`phase-docs`). Plan §5.1: P4 is `Spec draft`.
 - Notes: the SPEC's questions Q1–Q3 wait for review.
