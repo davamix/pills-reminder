@@ -39,7 +39,7 @@ The task IDs come from SPEC.md §7.
 |---|---|---|
 | T1 | Done | DataStore 1.3.0 and kotlinx-serialization-json 1.13.0 added to `:app`, and `buildConfig` turned on. `build` passes, and the merged manifests are the same as `main`'s (debug 7 entries, release 5). New runtime dependencies (release): `androidx.datastore:datastore`, `-android`, `-core`, `-core-android`, `-core-okio`, `-core-okio-jvm` (1.3.0); `androidx.tracing:tracing-android`; `com.squareup.okio:okio` and `okio-jvm` 3.17.0 (SPEC Q5); `org.jetbrains.kotlinx:kotlinx-serialization-json` and `-json-jvm` 1.13.0. Q6: a throwaway JVM test wrote, replaced and read back a file through DataStore on Windows 11, also after reopening it; CI's Linux is checked by the pull request. DataStore's temporary file is `<file>.tmp` (`pills.json.tmp`): it writes it, calls `fd.sync()`, moves it over the file with `Files.move` (`renameTo` below API 26), and deletes a leftover one after a failed write. |
 | T2 | Done | `PillsDocument.kt` (format types), `PillsJson.kt` (`encodePillsData`, `decodePillsData`, `Decoded`). `StoreExample` and the golden `pills-v1.json`, generated once from `StoreExample.full`, pretty-printed and checked against SPEC §4.3.1. `PillsJsonTest` (9) and `DamagedDataTest` (36 damaged inputs, plus 3). A treatment's `endedAt` is written before its `medicines`. Times are read only in the exact form written (`2026-11-23T08:00`), so `08:00:00` is refused too. The checks of step 4 have fixed reasons ("map: two answers for the same take"); other failures give the exception's class name. A quoted number would decode as a number, so the "wrong type" case is a name given as a number. |
-| T3 | To do | |
+| T3 | Done | `PillsDataSerializer` (with the write check) and `DataStoreTreatmentRepository` with `create()`. `DataStoreTreatmentRepositoryTest` (12) on real files in a `@TempDir`, each "restart" cancelling the store's scope before opening a new one. DataStore's temporary file is `pills.json.tmp` (T1). See the decisions on `onUnreadable` and on the empty temporary file. |
 | T4 | To do | |
 | T5 | To do | |
 
@@ -49,6 +49,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-20 | `DataStoreTreatmentRepository`'s constructor also takes `onUnreadable`, beside the `DataStore` of SPEC §4.2. `create()` passes the same function to it and to the serializer. | When the file exists but can't be opened, DataStore throws before the serializer runs. The repository's `data` turns that `IOException` into `Unreadable` (SPEC §4.3.4), and reports it too, as `read: <class>`. |
+| 2026-11-20 | After the write check refuses (an `IllegalStateException`, SPEC §4.3.3), an **empty** `pills.json.tmp` stays next to the file until the next write replaces it. The test checks that it's empty and that the next update succeeds. | DataStore deletes its temporary file only in its `IOException` handler (read in its bytecode). The check throws before the first byte, so nothing is lost, and the data file is untouched. Throwing an `IOException` instead would hide a bug as a disk error. |
 
 ## Known issues
 
