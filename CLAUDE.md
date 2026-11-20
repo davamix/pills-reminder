@@ -69,7 +69,16 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 
 ## Code structure
 
-- `:core` is pure Kotlin: the model, the schedule, the take states and the reminder planner. Never add Android dependencies to it (plan `D-2`).
+- `:core` is pure Kotlin: the model, the schedule, the take states and the reminder planner. Never add Android dependencies to it (plan `D-2`). Its packages, under `io.github.davamix.pillsreminder.core`:
+  - `model`: the treatment types, the editor's drafts and their validation (`TR-8`), `PillsData`, `TreatmentRepository` and `InMemoryTreatmentRepository`.
+  - `schedule`: `PlannedTakes` (one schedule), `MedicineTakes` (a medicine's takes and states, `nextTake`, `canMarkEarly`, `lastAnswered`, `nextStateChange`), and `PillsData.takesOf(id)`, `take(key, now)` and `status(id, now)`.
+  - `actions`: every change to the data, as pure functions on `PillsData` and as suspend helpers on the repository (`repository.markTaken(key, clock)`, …).
+  - `time`: `dueAt(zone)` and `CurrentZoneClock`. P4 adds `reminders`.
+- **Treatment data** (P2-D4):
+  - Change it only through the `core.actions` helpers. They run the rules inside `update`, on the latest data, so an answer given from a notification while an editor is open is never lost.
+  - Takes and their states are never stored (plan `D-5`): ask `MedicineTakes` for them.
+  - Compare a planned time with now through `dueAt(now.zone)`, never as local times, which go wrong in the hour the clocks go back.
+  - `AppContainer` has the `clock` and the `repository`.
 - `:app` holds the Android code: `data/`, `reminders/`, `ui/<feature>/`, `navigation/`, and `di/AppContainer.kt`.
 - The base package is `io.github.davamix.pillsreminder`. The debug build's application ID adds `.debug` and its name is "Pills Reminder (debug)", so it installs next to a release build.
 - **Edge to edge** (P1-D4): `MainActivity` calls `enableEdgeToEdge()` on every Android version, and screens keep their content out of the system bars through `Scaffold`. Every screen must fit the phone's content area, **392.7 × 796.4 dp**, which is smaller than the emulator's (`phone` skill, "Devices").
@@ -89,7 +98,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - **Formatting numbers:** don't call `String.format` without a `Locale`. Lint warns (`DefaultLocale`), and the result would follow the phone's language. Pad with `padStart` instead.
 - **Tests:**
   - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
-  - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead.
+  - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead. Write times as `0800` or `16h00`, not `08:00`.
   - **Instrumented tests** (`app/src/androidTest`): JUnit 4, also with sentence names in backticks (P1-D7). D8 takes spaces because `minSdk` is 33, but **no other ASCII punctuation except `-`, `_` and `$`**: no commas, no parentheses. A comma failed the dex step in P1 T6. To run one of them, run its class: `am instrument -e class Class#method` splits at the spaces.
   - **Coroutine tests:** in `runTest`, `advanceUntilIdle()` ignores work that only `backgroundScope` has scheduled. Wait in the foreground instead, for example with `flow.first { … }`. `advanceTimeBy()` does run background work.
   - **Compose UI tests:** use the rules from `androidx.compose.ui.test.junit4.v2` (`createComposeRule`, `createAndroidComposeRule`); the v1 rules are deprecated. `pressBack()` comes from Espresso. After an action that starts a coroutine, wait for its result (`waitUntil { … }` or `waitForIdle()`) before asserting. Also, from Workout Timer:
