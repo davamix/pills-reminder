@@ -41,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | `PillsDocument.kt` (format types), `PillsJson.kt` (`encodePillsData`, `decodePillsData`, `Decoded`). `StoreExample` and the golden `pills-v1.json`, generated once from `StoreExample.full`, pretty-printed and checked against SPEC §4.3.1. `PillsJsonTest` (9) and `DamagedDataTest` (36 damaged inputs, plus 3). A treatment's `endedAt` is written before its `medicines`. Times are read only in the exact form written (`2026-11-23T08:00`), so `08:00:00` is refused too. The checks of step 4 have fixed reasons ("map: two answers for the same take"); other failures give the exception's class name. A quoted number would decode as a number, so the "wrong type" case is a name given as a number. |
 | T3 | Done | `PillsDataSerializer` (with the write check) and `DataStoreTreatmentRepository` with `create()`. `DataStoreTreatmentRepositoryTest` (12) on real files in a `@TempDir`, each "restart" cancelling the store's scope before opening a new one. DataStore's temporary file is `pills.json.tmp` (T1). See the decisions on `onUnreadable` and on the empty temporary file. |
 | T4 | Done | `AppContainer.repository` is the store on `files/datastore/pills.json`, with a scope for the process's life and the debug-only log (tag `PillsStore`). `DataStoreOnDeviceTest` (2, on a file in the cache), `StoreDeviceCheck` (skipped unless `-e storeCheck <step>`), and `DeviceExample` (spec §4.4 for instrumented tests). All 8 instrumented tests pass on the emulator and on the phone (`OK (8 tests)`, the check skipped), and the suite leaves no data file behind. The phone's op 10021 had been reset again, so `allow_test_start` granted it. `CLAUDE.md`: the store, the format rules, real data in instrumented tests, and the status line (specification v0.5, plan v0.3). |
-| T5 | To do | |
+| T5 | Doing | M1–M7 pass on the emulator. M1–M4 pass on the phone. M5 (the phone's restart) waits for the user's go-ahead, then M6. Results in "How to verify". |
 
 ## Decisions and deviations
 
@@ -54,7 +54,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 ## Known issues
 
-None yet. From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
+- **On the phone, an app update also resets HyperOS's op 10021,** not only an uninstall, as the `phone` skill says. After `gradle installDebug` (an `adb install -r`, M3), `instrument` stopped with "Run allow_test_start first", and the run worked after it. Proposed for the `phone` skill's review in `phase-close`: say that every install resets it, or have `instrument` grant it itself on the debug app.
+- From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
 
 ## Pending wiring
 
@@ -71,7 +72,19 @@ The commands and manual steps that check the current state.
 
 - `./gradlew build` (CLAUDE.md, with the output in a file).
 - Instrumented tests, from the `phone` skill: `gradle installDebug installDebugAndroidTest && instrument`.
-- The device checks of SPEC §6, one step at a time: `instrument data.StoreDeviceCheck -e storeCheck <seed|verify|churn|remove>`.
+- The device checks of SPEC §6, one step at a time: `instrument data.StoreDeviceCheck -e storeCheck <seed|verify|churn|remove>`. A skipped run also says `OK (1 test)`: check `$adb logcat -d -s StoreDeviceCheck:I` for "step … passed". The file's hash: `$adb exec-out run-as $pkg cat files/datastore/pills.json | sha256sum`.
+
+**Manual check results** (SPEC §6), 2026-11-20:
+
+| # | Emulator (Android 16, API 36) | Phone (Android 13, HyperOS OS1.0.6.0.TKHEUXM, stock power settings) |
+|---|---|---|
+| M1 seed, verify | Pass. 721 bytes, hash `8bf5da69…` | Pass. 721 bytes, the same hash: the encoding is deterministic |
+| M2 close (`force_stop`), verify | Pass, hash unchanged | Pass, hash unchanged |
+| M3 update (`gradle installDebug`), verify | Pass, hash unchanged (`lastUpdateTime` changed) | Pass, hash unchanged, after `allow_test_start` (see known issues) |
+| M4 killed during `churn`, ×3 | Pass. Killed at write 100+, 200+, 312; each `verify` read the last note written | Pass. Killed at writes 109, 217 and 312; each `verify` read the last note written |
+| M5 restart, verify | Pass (`adb reboot`), hash unchanged (`4df822d5…`) | Waiting for the user's go-ahead. Hash before: `4df822d5…`, 730 bytes |
+| M6 remove | Pass: the file is `{"schemaVersion":1,"treatments":[],"answers":[]}` | To do, after M5 |
+| M7 uninstall, reinstall, suite | Pass: `OK (8 tests)`, no data file afterwards | Not run on the phone (SPEC §6) |
 
 ## Session log
 
