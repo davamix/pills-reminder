@@ -12,6 +12,7 @@ import io.github.davamix.pillsreminder.core.schedule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.time.LocalDateTime
 
@@ -111,5 +112,97 @@ class MedicineTakesTest {
         val takes = MedicineTakes(edited, null, answers)
 
         assertEquals(setOf(nov(23, 8)), takes.answers.keys)
+    }
+
+    // The queries, on spec §4.4's Amoxicillin.
+
+    private fun amoxicillin(vararg answers: Pair<LocalDateTime, Answer>) = MedicineTakes(Example.amoxicillin, null, mapOf(*answers))
+
+    private val taken0800 = nov(23, 8) to Answer.Taken(nov(23, 8))
+
+    @Test
+    fun `the next take is the Due one, or else the first unanswered take still to come`() {
+        assertEquals(nov(23, 8), amoxicillin().nextTake(nowAt(nov(22, 12)))?.key?.plannedAt)
+        assertEquals(TakeState.DUE, amoxicillin().nextTake(nowAt(nov(23, 10, 30)))?.state)
+        assertEquals(nov(23, 8), amoxicillin().nextTake(nowAt(nov(23, 10, 30)))?.key?.plannedAt)
+
+        val afterTaken = amoxicillin(taken0800).nextTake(nowAt(nov(23, 10, 30)))
+        assertEquals(nov(23, 16), afterTaken?.key?.plannedAt)
+        assertEquals(TakeState.PENDING, afterTaken?.state)
+
+        val sixteenTaken = amoxicillin(taken0800, nov(23, 16) to Answer.Taken(nov(23, 16, 1)))
+        assertEquals(nov(24, 0), sixteenTaken.nextTake(nowAt(nov(23, 16, 5)))?.key?.plannedAt)
+    }
+
+    @Test
+    fun `there is no next take once the last one is answered or Missed`() {
+        assertNull(amoxicillin().nextTake(nowAt(nov(30, 8))))
+        assertNull(amoxicillin(nov(30, 0) to Answer.Skipped).nextTake(nowAt(nov(30, 0, 1))))
+    }
+
+    @Test
+    fun `the next take can be marked early while it is Pending, but not the one after it`() {
+        val takes = amoxicillin(taken0800)
+        val now = nowAt(nov(23, 10, 30))
+
+        assertTrue(takes.canMarkEarly(nov(23, 16), now))
+        assertFalse(takes.canMarkEarly(nov(24, 0), now))
+        assertFalse(takes.canMarkEarly(nov(23, 8), now))
+        assertFalse(takes.canMarkEarly(nov(23, 9), now))
+    }
+
+    @Test
+    fun `nothing can be marked early while a take is Due`() {
+        assertFalse(amoxicillin().canMarkEarly(nov(23, 16), nowAt(nov(23, 10, 30))))
+    }
+
+    @Test
+    fun `only one take can be answered ahead of its time`() {
+        val markedEarly = amoxicillin(taken0800, nov(23, 16) to Answer.Taken(nov(23, 10, 30)))
+
+        assertEquals(nov(24, 0), markedEarly.nextTake(nowAt(nov(23, 10, 31)))?.key?.plannedAt)
+        assertFalse(markedEarly.canMarkEarly(nov(24, 0), nowAt(nov(23, 10, 31))))
+        assertFalse(markedEarly.canMarkEarly(nov(24, 0), nowAt(nov(23, 15, 59))))
+        assertTrue(markedEarly.canMarkEarly(nov(24, 0), nowAt(nov(23, 16))))
+    }
+
+    @Test
+    fun `the last answered take is the one with the latest planned time, and progress counts answers`() {
+        val takes = amoxicillin(taken0800, nov(23, 16) to Answer.Skipped, nov(24, 8) to Answer.Taken(nov(24, 8, 20)))
+
+        assertEquals(nov(24, 8), takes.lastAnswered(nowAt(nov(24, 9)))?.key?.plannedAt)
+        assertEquals(3, takes.answeredCount)
+        assertNull(amoxicillin().lastAnswered(nowAt(nov(24, 9))))
+        assertEquals(0, amoxicillin().answeredCount)
+    }
+
+    @Test
+    fun `the next state change is when the Due take is Missed or the next one falls due`() {
+        val now = nowAt(nov(23, 10, 30))
+
+        assertEquals(nowAt(nov(23, 16)).toInstant(), amoxicillin(taken0800).nextStateChange(now))
+        assertEquals(nowAt(nov(23, 16)).toInstant(), amoxicillin().nextStateChange(now))
+        assertEquals(nowAt(nov(23, 8)).toInstant(), amoxicillin().nextStateChange(nowAt(nov(22, 12))))
+    }
+
+    @Test
+    fun `the next state change skips a take answered early, and ends with the last take`() {
+        val markedEarly = amoxicillin(taken0800, nov(23, 16) to Answer.Taken(nov(23, 10, 30)))
+
+        assertEquals(nowAt(nov(24, 0)).toInstant(), markedEarly.nextStateChange(nowAt(nov(23, 10, 31))))
+        assertEquals(nowAt(nov(30, 8)).toInstant(), amoxicillin().nextStateChange(nowAt(nov(30, 1))))
+        assertNull(amoxicillin().nextStateChange(nowAt(nov(30, 8))))
+    }
+
+    @Test
+    fun `a no-end medicine has a next take years ahead`() {
+        val weekly = Example.amoxicillin.copy(schedule = schedule(nov(23, 8), 1, IntervalUnit.WEEKS, MedicineDuration.NoEnd))
+        val takes = MedicineTakes(weekly, null, emptyMap())
+        val later = nowAt(nov(23, 10).plusYears(10))
+        val next = checkNotNull(takes.nextTake(later))
+
+        assertEquals(TakeState.DUE, next.state)
+        assertTrue(next.key.plannedAt <= later.toLocalDateTime() && next.missedAt > later.toLocalDateTime())
+        assertNull(takes.count)
     }
 }

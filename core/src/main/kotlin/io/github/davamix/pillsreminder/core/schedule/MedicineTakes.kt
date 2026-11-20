@@ -8,8 +8,12 @@ import io.github.davamix.pillsreminder.core.model.PillsData
 import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.medicine
 import io.github.davamix.pillsreminder.core.time.dueAt
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
+
+/** Longer than any daylight saving change, so a take planned this long before now on the local clock is past. */
+private const val DUE_SEARCH_MARGIN_HOURS = 3L
 
 /**
  * A medicine's takes: those of its earlier and current schedules, cut at its treatment's end, with their answers and
@@ -89,6 +93,77 @@ class MedicineTakes(
         generateSequence(if (from in this) from else nextAfter(from)) { nextAfter(it) }
             .takeWhile { it < until }
             .map { build(it, now) }
+
+    /** How many takes are answered Taken or Skipped (HM-3). Missed takes don't count. */
+    val answeredCount: Int get() = answers.size
+
+    /**
+     * The medicine's next take (HM-1, TK-4): its Due take if it has one, or else its first unanswered take still to
+     * come, or `null` when none is left.
+     */
+    fun nextTake(now: ZonedDateTime): Take? {
+        val latest = latestDue(now)
+        if (latest != null) build(latest, now).takeIf { it.state == TakeState.DUE }?.let { return it }
+        return firstUnansweredAfter(latest)?.let { build(it, now) }
+    }
+
+    /**
+     * Whether the take planned at [plannedAt] can be marked Taken before it is due (TK-4): it is the next take, it is
+     * Pending, and no take of the medicine is already answered ahead of its time. So one take ahead at most.
+     */
+    fun canMarkEarly(
+        plannedAt: LocalDateTime,
+        now: ZonedDateTime,
+    ): Boolean {
+        val next = nextTake(now) ?: return false
+        return next.key.plannedAt == plannedAt &&
+            next.state == TakeState.PENDING &&
+            answers.keys.none { it.dueAt(now.zone) > now.toInstant() }
+    }
+
+    /** The answered take with the latest planned time (TK-5), or `null` when nothing is answered. */
+    fun lastAnswered(now: ZonedDateTime): Take? = answers.keys.maxOrNull()?.let { build(it, now) }
+
+    /**
+     * The earliest moment after [now] at which a take changes state by itself: the Due take becomes Missed, or the first
+     * unanswered take still to come falls due. `null` when nothing is left to change. P4 wakes up at it; P7 refreshes.
+     */
+    fun nextStateChange(now: ZonedDateTime): Instant? {
+        val latest = latestDue(now)
+        val missed =
+            latest
+                ?.let { build(it, now) }
+                ?.takeIf { it.state == TakeState.DUE }
+                ?.missedAt
+                ?.dueAt(now.zone)
+        val due = firstUnansweredAfter(latest)?.dueAt(now.zone)
+        return listOfNotNull(missed, due).filter { it > now.toInstant() }.minOrNull()
+    }
+
+    /**
+     * The latest take that has fallen due by [now], or `null`. Only it can be Due: every take before it is answered or
+     * Missed, because a take is Missed by the time the next one falls due.
+     *
+     * Starts from the last take planned more than [DUE_SEARCH_MARGIN_HOURS] before now on the local clock, which has
+     * fallen due whatever the daylight saving change, and steps forward comparing instants (SPEC §4.3.2).
+     */
+    private fun latestDue(now: ZonedDateTime): LocalDateTime? {
+        val instant = now.toInstant()
+        var latest = latestAtOrBefore(now.toLocalDateTime().minusHours(DUE_SEARCH_MARGIN_HOURS))
+        var next = if (latest == null) first else nextAfter(latest)
+        while (next != null && next.dueAt(now.zone) <= instant) {
+            latest = next
+            next = nextAfter(next)
+        }
+        return latest
+    }
+
+    /** The first unanswered take after [time], or from the first take when [time] is `null`. */
+    private fun firstUnansweredAfter(time: LocalDateTime?): LocalDateTime? {
+        var next = if (time == null) first else nextAfter(time)
+        while (next != null && next in answers) next = nextAfter(next)
+        return next
+    }
 
     /** The first take planned strictly after [time], or `null`. */
     internal fun nextAfter(time: LocalDateTime): LocalDateTime? =
