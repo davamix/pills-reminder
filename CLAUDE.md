@@ -111,7 +111,8 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 ## Git
 
 - **The repo is public.** Never commit personal data or secrets: device serial numbers, names, e-mail or postal addresses, phone numbers, real treatments or screenshots that show them, keystores, passwords, `local.properties`. Examples and test data use the example in specification §4.4.
-- `main` always builds, once there is code. Each phase is built on its own branch, `phase/pN-<name>`, and merged through a pull request with green CI. The user merges.
+- `main` always builds. Each phase is built on its own branch, `phase/pN-<name>`, and merged through a pull request with green CI. The user merges.
+- **CI runs only on pull requests and on pushes to `main`.** Pushes to a phase branch before its pull request exists start no run, so don't wait for one (skill `handover`).
 - Draft documents (specification, plan, a phase's SPEC.md) are committed and pushed to `main` at every version. That includes a SPEC version made during implementation. Afterwards, merge `main` into the phase branch (skill `handover`).
 - Phase status changes in plan §5.1 also go straight to `main`.
 - HANDOVER.md updates go on the phase branch. The one exception: after the merge, the closing updates go on `main` (skill `phase-close`).

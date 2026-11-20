@@ -23,12 +23,14 @@ description: End-of-session routine for a pills-reminder phase. It runs the chec
 3. **Open the pull request, if the phase is complete.** Do this when every done criterion in SPEC.md §8 passes, apart from the ones that need the pull request or the merge: CI, and the plan's status. Open it before writing the handover, so the handover can record the PR number and the CI result.
    - Commit any remaining work on the phase branch, and push it.
    - Write the body (template below) to a file in the session's scratchpad, not in the repository. Then run `gh pr create --base main --head phase/pN-<name> --title "PN: <phase name>" --body-file <file>`.
-   - Wait for CI on the commit you just pushed. Base the wait on that commit's SHA, not on the pull request. Right after a push, `gh pr checks` can still show the previous commit's finished run, a false green. Before the new run registers, it can report "no checks", which `--watch` also treats as done. Run this in the background and wait for it to finish:
+   - Wait for CI on the commit you just pushed. Base the wait on that commit's SHA, not on the pull request. Right after a push, `gh pr checks` can still show the previous commit's finished run, a false green. Before the new run registers, it can report "no checks", which `--watch` also treats as done.
+   - **CI runs only on pull requests and on pushes to `main`** (`.github/workflows/ci.yml`). A push to a phase branch that has no pull request yet starts no run, so there is nothing to wait for. The wait below gives up after 10 minutes without a run, rather than waiting forever.
+   - Run this in the background and wait for it to finish:
 
      ```bash
-     sha=$(git rev-parse HEAD)
-     until id=$(gh run list --commit "$sha" --workflow CI --json databaseId -q '.[0].databaseId' 2>/dev/null) && [ -n "$id" ]; do sleep 10; done
-     gh run watch "$id" --exit-status --interval 20 > /dev/null; echo "CI exit=$? run=$id"
+     sha=$(git rev-parse HEAD); id=""
+     for i in $(seq 60); do id=$(gh run list --commit "$sha" --workflow CI --json databaseId -q '.[0].databaseId' 2>/dev/null); [ -n "$id" ] && break; sleep 10; done
+     if [ -z "$id" ]; then echo "no CI run for ${sha:0:7} after 10 min: is a pull request open for this branch?"; else gh run watch "$id" --exit-status --interval 20 > /dev/null; echo "CI exit=$? run=$id"; fi
      ```
 
      `CI exit=0` means it passed. Otherwise, `gh run view <id> --log-failed` shows why.

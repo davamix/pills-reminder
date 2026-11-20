@@ -77,14 +77,29 @@ gradle() {
 #   instrument                                   the whole suite
 #   instrument ui.home.HomeScreenTest[#method][,…] classes or methods, the package prefix optional
 #   instrument <class> -e <key> <value>          with arguments for the test
-# It passed when the summary ends with "OK (N tests)".
+# It passed when the summary ends with "OK (N tests)". On the phone, it first checks that HyperOS lets the test runner
+# start the app's activities (allow_test_start), because otherwise the run hangs with no output (P1 T6). It gives up
+# after INSTRUMENT_TIMEOUT seconds (default 900) and says what to look for, instead of waiting forever.
 instrument() {
-    local spec=""
+    local spec="" limit=${INSTRUMENT_TIMEOUT:-900}
+    if [ "$device" = phone ] && ! $adb shell cmd appops get $pkg 10021 2> /dev/null | grep -q ': allow'; then
+        echo "instrument: HyperOS would block the test runner, because op 10021 isn't allowed for $pkg."
+        echo "  Run allow_test_start first. Uninstalling the app resets it."
+        return 1
+    fi
     if [ $# -gt 0 ] && [ "$1" != "-e" ]; then
         spec=$(echo "$1" | tr ',' '\n' | sed "s/^\($app_id\.\)\{0,1\}/$app_id./" | paste -sd, -)
         shift
     fi
-    $adb shell am instrument -w ${spec:+-e class "$spec"} "$@" "$runner" | tr -d '\r' | grep -v '^$' | grep -v '^\s*at ' | tail -40
+    timeout "$limit" $adb shell am instrument -w ${spec:+-e class "$spec"} "$@" "$runner" | tr -d '\r' | grep -v '^$' | grep -v '^\s*at ' | tail -40
+    local rc=${PIPESTATUS[0]}
+    if [ "$rc" -eq 124 ]; then
+        echo "instrument: no result after $limit s. The test runner may still be running on the device."
+        echo "  On the phone, look for 'MIUILOG- Permission Denied Activity' in \$adb logcat -d: HyperOS blocked a test's"
+        echo "  activity. To end the run, force_stop (it also cancels the debug app's alarms)."
+        return 124
+    fi
+    return 0
 }
 
 # Prints every text on screen, on one line. It fails on a screen that never goes idle, such as one with an animation.
@@ -226,6 +241,40 @@ doze_off() {
 # Prints the deep and light Doze states, such as ACTIVE or IDLE.
 doze_state() {
     echo "deep=$($adb shell dumpsys deviceidle get deep | tr -d '\r') light=$($adb shell dumpsys deviceidle get light | tr -d '\r')"
+}
+
+# Runs COMMAND with the emulator in dark mode, then puts night mode back as it was, even if COMMAND fails. Emulator
+# only: on the phone, ask the user to switch it. For example: `with_dark_mode shot <scratchpad>/dark.png`.
+with_dark_mode() {
+    [ "$device" = emulator ] || { echo "with_dark_mode: emulator only; ask the user to switch the phone"; return 1; }
+    local before rc
+    before=$($adb shell cmd uimode night | tr -d '\r' | awk '{ print $NF }')
+    $adb shell cmd uimode night yes > /dev/null
+    $adb shell sleep 2
+    "$@"
+    rc=$?
+    $adb shell cmd uimode night "$before" > /dev/null
+    echo "with_dark_mode: night mode back to '$($adb shell cmd uimode night | tr -d '\r' | awk '{ print $NF }')'"
+    return $rc
+}
+
+# Runs COMMAND with the emulator's display forced into landscape, then puts auto-rotate and the rotation back as they
+# were, even if COMMAND fails. Emulator only. For checking that the app stays in portrait (NF-7): for example
+# `with_landscape shot <scratchpad>/landscape.png`, then look at the picture.
+with_landscape() {
+    [ "$device" = emulator ] || { echo "with_landscape: emulator only; ask the user to turn the phone"; return 1; }
+    local accel user rc
+    accel=$($adb shell settings get system accelerometer_rotation | tr -d '\r')
+    user=$($adb shell settings get system user_rotation | tr -d '\r')
+    $adb shell settings put system accelerometer_rotation 0
+    $adb shell settings put system user_rotation 1
+    $adb shell sleep 2
+    "$@"
+    rc=$?
+    $adb shell settings put system user_rotation "$user"
+    $adb shell settings put system accelerometer_rotation "$accel"
+    echo "with_landscape: accelerometer_rotation back to $($adb shell settings get system accelerometer_rotation | tr -d '\r'), user_rotation to $($adb shell settings get system user_rotation | tr -d '\r')"
+    return $rc
 }
 
 # Waits until the device has finished booting, for at most SECONDS (default 180). For the emulator, or the phone

@@ -87,6 +87,11 @@ Newest first.
 ### 2026-11-20 (close)
 
 - The user checked the launcher icon, portrait and dark mode on the phone, and merged pull request #1. P1 is closed.
+- **Skills review** (plan `D-17`), all three proposals agreed by the user:
+  - `phone`: `instrument` checks HyperOS's test permission on the phone first, and gives up after a deadline (900 s by default) with the likely cause, instead of hanging silently.
+  - `phone`: new `with_dark_mode` and `with_landscape` for the emulator checks; they put the settings back as they were.
+  - `handover` and CLAUDE.md: CI runs only on pull requests and `main`, and the CI wait gives up after 10 minutes without a run.
+- The test APK on both devices was reinstalled from the merged code, removing the throwaway probe that a P1 T8 run had left there.
 
 ### 2026-11-20
 

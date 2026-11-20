@@ -92,7 +92,7 @@ With no argument it takes the only device connected, and refuses when both the p
 |---|---|
 | `use_device phone\|emulator` | Switches device within the same call |
 | `gradle <tasks>` | Runs `./gradlew` quietly, on the chosen device (it sets `ANDROID_SERIAL`), with the output in `build/gradle.log`. On failure it prints the errors. It returns Gradle's own exit code, so `gradle … && …` stops when the build fails. |
-| `instrument [classes] [-e key value]` | Runs instrumented tests and keeps the app's data: the whole suite with no class; or classes and methods separated by commas, with the package prefix optional |
+| `instrument [classes] [-e key value]` | Runs instrumented tests and keeps the app's data: the whole suite with no class; or classes and methods separated by commas, with the package prefix optional. On the phone, it first checks `allow_test_start`'s permission and stops if it's missing. It gives up after `INSTRUMENT_TIMEOUT` seconds (default 900) and says what to look for, rather than hanging. |
 | `texts` | Every text on screen, on one line |
 | `wait_for <pattern> [seconds]` | Waits until a text matching the grep pattern is on screen (default 30 s) |
 | `tap_text <text> [last]` | Taps the node with exactly that text; `last` picks the last match |
@@ -104,11 +104,13 @@ With no argument it takes the only device connected, and refuses when both the p
 | `alarms` | The app's pending alarms, one block each, from `dumpsys alarm`. Nothing printed means none is set. |
 | `notifications` | The app's notifications in the shade: id, channel, title and text |
 | `reminder_health` | What reminders depend on, as Android sees it: notification and exact-alarm permissions, battery optimisation, standby bucket |
+| `with_dark_mode <command>` | Emulator only: runs the command in dark mode, then puts night mode back as it was, even if the command fails |
+| `with_landscape <command>` | Emulator only: runs the command with the display forced into landscape, then puts auto-rotate and the rotation back as they were. For checking that the app stays in portrait. |
 | `doze_on` / `doze_off` / `doze_state` | Forces deep Doze while USB stays connected, undoes it, and prints the deep and light states |
 | `wait_boot [seconds]` | Waits until the device has finished booting (default 180 s) |
 | `wait_for_log <tag> <regex> [seconds]` | Waits until a log line from that tag matches (default 60 s). Clear the log first with `$adb logcat -c`. |
 
-**All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only.
+**All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only. After P1's skills review: `instrument`'s permission check and deadline on the phone, and `with_dark_mode` and `with_landscape` on the emulator.
 
 For example, install the debug build on the emulator, open it and read the screen:
 
@@ -125,7 +127,8 @@ Gradle finds adb by itself, so the Gradle tasks need no path.
 | Task | Command |
 |---|---|
 | Build and install | `gradle installDebug` |
-| Instrumented tests, keeping the app's data | `gradle installDebug installDebugAndroidTest && instrument` runs the whole suite on the installed app, and `instrument <classes>` runs some. It passed when it ends with `OK (N tests)`. Read the summary rather than grepping for `OK`: a filter hides errors such as `no devices/emulators found`. **On the phone, after a fresh install, run `allow_test_start` first**, or the run hangs. Give a run on the phone a deadline, such as `timeout 300 bash -c 'source … phone && instrument'`, so a hang can't block the session. |
+| Instrumented tests, keeping the app's data | `gradle installDebug installDebugAndroidTest && instrument` runs the whole suite on the installed app, and `instrument <classes>` runs some. It passed when it ends with `OK (N tests)`. Read the summary rather than grepping for `OK`: a filter hides errors such as `no devices/emulators found`. **On the phone, after a fresh install, run `allow_test_start` first**; `instrument` checks it and stops if it's missing. |
+| Dark mode and rotation checks | On the emulator, `with_dark_mode shot <file>` and `with_landscape shot <file>`, then look at the pictures. They put the settings back as they were. On the phone, ask the user. |
 | Instrumented tests, uninstalling afterwards | `./gradlew connectedDebugAndroidTest`. It runs on **every** connected device unless `ANDROID_SERIAL` is set, and uninstalls the app when it ends, which deletes its treatments. Run `gradle installDebug` again afterwards. **Don't use it on the phone:** the uninstall also resets `allow_test_start`'s permission, so the next run hangs. Results: "Instrumented test results" below. |
 | Check the app's alarms | `alarms`. After saving a treatment, there should be an alarm for the next take of each medicine; after it fires, one for the take after. |
 | Check the app's notifications | `notifications` |
