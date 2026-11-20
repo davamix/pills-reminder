@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tells the debug build apart from a release build installed next to it (P1-D2). -->
+    <string name="app_name">Pills Reminder (debug)</string>
+</resources>

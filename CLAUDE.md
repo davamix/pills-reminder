@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification (v0.4) and the implementation plan (v0.2) are agreed. There is no code yet. P1 adds the build commands, the code structure and the coding conventions to this file.
+**Status:** the specification (v0.4) and the implementation plan (v0.2) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
 
 ## Documents
 
@@ -34,6 +34,72 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - `handover`: end a session. Runs the checks, updates HANDOVER.md, commits and pushes, and opens the pull request when the phase is done.
 - `phase-close`: after the user merges a phase's pull request, mark the phase `Done` on `main`, then review the skills: propose new skills, or changes to skills and to this file, from what the phase taught (plan `D-17`). The user decides which to make.
 - `phone`: the phone and the emulator over adb, with helpers: pick the device, start the emulator, install, launch, read the screen, screenshots, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and the HyperOS pitfalls found on this phone.
+
+## Commands
+
+| Task | Command |
+|---|---|
+| Compile, unit tests, Android Lint, ktlint, permission allowlist | `./gradlew build` |
+| Fix Kotlin formatting | `./gradlew ktlintFormat` |
+| Unit tests only | `./gradlew test` |
+| Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
+| Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, run `allow_test_start` after a fresh install, or the run hangs. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data and, on the phone, resets that permission. |
+
+- Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
+- Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.
+- `ktlintFormat` can't fix every line that's too long. It can leave one half-wrapped, and `build` then fails on ktlint. Wrap such lines by hand, for example by moving part of an expression into a local `val`. The reports in `app/build/reports/ktlint/` (or `core/…`) name the file and line.
+- On JDK 25, ktlint prints harmless `sun.misc.Unsafe` warnings. To hide them and keep only real output, write the output to a file and filter that (Git Bash):
+
+  ```bash
+  mkdir -p build; ./gradlew build --console=plain -q > build/gradle.log 2>&1; echo "exit=$?"; grep -v -i 'unsafe\|^WARNING' build/gradle.log | tail -30
+  ```
+
+- **Keep Gradle's exit code.** Don't pipe Gradle into `grep` or `tail` and chain the next step with `&&`: the pipe returns the last command's code, so the next step runs after a failed build. In Workout Timer, `am instrument` then ran an old test APK. `set -o pipefail` doesn't help, because `grep -v` returns 1 when it has nothing left to print. Use the file, as above, or the `phone` skill's `gradle` helper, which does the same.
+- `-q` hides the test counts. To total the unit test results per module and test task, after a build:
+
+  ```bash
+  for d in */build/test-results/*/; do grep -h -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$d"*.xml 2>/dev/null | awk -F'"' -v d="$d" '{t+=$2;s+=$4;f+=$6;e+=$8} END {if (NR) print d": tests="t" skipped="s" failures="f" errors="e}'; done
+  ```
+
+- When unit tests fail, this prints each failing test's class, name and message (first 300 characters), from the JUnit XML:
+
+  ```bash
+  grep -h -o '<testcase name="[^"]*" classname="[^"]*"\|<failure message="[^"]\{0,300\}' */build/test-results/*/*.xml | grep -B1 '<failure' | grep -v '^--$' | sed -e 's/^<testcase name="\([^"]*\)" classname="\([^"]*\)"/\2 > \1/' -e 's/^<failure message="/    /' -e 's/&quot;/"/g; s/&lt;/</g; s/&gt;/>/g; s/&amp;/\&/g'
+  ```
+
+## Code structure
+
+- `:core` is pure Kotlin: the model, the schedule, the take states and the reminder planner. Never add Android dependencies to it (plan `D-2`).
+- `:app` holds the Android code: `data/`, `reminders/`, `ui/<feature>/`, `navigation/`, and `di/AppContainer.kt`.
+- The base package is `io.github.davamix.pillsreminder`. The debug build's application ID adds `.debug` and its name is "Pills Reminder (debug)", so it installs next to a release build.
+- **Edge to edge** (P1-D4): `MainActivity` calls `enableEdgeToEdge()` on every Android version, and screens keep their content out of the system bars through `Scaffold`. Every screen must fit the phone's content area, **392.7 × 796.4 dp**, which is smaller than the emulator's (`phone` skill, "Devices").
+- **Navigation:** type-safe routes in `navigation/Routes.kt`, one per screen. The phase that replaces a placeholder owns that screen's route.
+  - **A click that navigates** goes through `dropUnlessResumed`, so a double tap can't open a screen twice, or go back twice.
+  - **Navigation driven by a ViewModel state**, such as leaving the editor after a save, works differently: report it once from a `LaunchedEffect` on that state, after waiting with `lifecycle.currentStateFlow.first { it.isAtLeast(RESUMED) }`, and pass a plain lambda. A screen Android rebuilds after ending the app is composed before its entry is resumed, and `dropUnlessResumed` would silently drop the call (a Workout Timer lesson).
+- **Screens** (Workout Timer's pattern, unless a phase SPEC says otherwise): an entry composable that takes its ViewModel, defaulting to `viewModel(factory = …)`, and a stateless `…Content` composable that draws the state. The factory, in the ViewModel's companion, gets the container with `(this[APPLICATION_KEY] as PillsReminderApp).container`. Tests build the ViewModel directly, with fakes.
+
+## Conventions
+
+- **Text:** all user-facing text lives in resources, one `res/values/strings_<feature>.xml` per feature (plan `D-14`). English only for now.
+- **Permissions:** only those in plan §3. The build's allowlist check fails on any other, and on `INTERNET` (P1-D6). A new one needs a plan change first.
+- **Logs** never contain treatment content (names, doses, instructions, notes), only IDs and times (plan §3).
+- **Time:** `java.time`, with an injected `Clock`. Logic never reads the system clock itself (plan `D-6`).
+- **Versions:** pinned in `gradle/libs.versions.toml`. AGP must stay at 9.3 or lower while Android Studio 2026.1 is the installed IDE. The Compose BOM stays at 2026.09.00: 2026.11.01 (Compose 1.13) needs `compileSdk` 37.1, and only the `android-37.0` platform is installed.
+- **Kotlin style:** ktlint, official style (`.editorconfig`). Run `ktlintFormat` before committing.
+- **Formatting numbers:** don't call `String.format` without a `Locale`. Lint warns (`DefaultLocale`), and the result would follow the phone's language. Pad with `padStart` instead.
+- **Tests:**
+  - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
+  - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead.
+  - **Instrumented tests** (`app/src/androidTest`): JUnit 4, also with sentence names in backticks (P1-D7). D8 takes spaces because `minSdk` is 33, but **no other ASCII punctuation except `-`, `_` and `$`**: no commas, no parentheses. A comma failed the dex step in P1 T6. To run one of them, run its class: `am instrument -e class Class#method` splits at the spaces.
+  - **Coroutine tests:** in `runTest`, `advanceUntilIdle()` ignores work that only `backgroundScope` has scheduled. Wait in the foreground instead, for example with `flow.first { … }`. `advanceTimeBy()` does run background work.
+  - **Compose UI tests:** use the rules from `androidx.compose.ui.test.junit4.v2` (`createComposeRule`, `createAndroidComposeRule`); the v1 rules are deprecated. `pressBack()` comes from Espresso. After an action that starts a coroutine, wait for its result (`waitUntil { … }` or `waitForIdle()`) before asserting. Also, from Workout Timer:
+    - A `LazyColumn` item exists only once it's scrolled into composition. Tag the list, and call `performScrollToNode(matcher)` on it before using an item.
+    - With the soft keyboard up, Back only closes the keyboard. Call `closeSoftKeyboard()` before `pressBack()`.
+    - A click on a node with empty bounds raises no error, and lands at the screen's corner. The window resizes when the keyboard changes, even between `performScrollToNode` and `performClick`, so call `closeSoftKeyboard()` before a click that follows a scroll.
+    - `and` and `or` on matchers are members and need no import. `assert(…)` on a node is an extension, imported from `androidx.compose.ui.test.assert`.
+    - `captureToImage()` reads the colours and look of a screen in a test.
+  - **JUnit 4 asserts:** `assertNotNull` returns nothing, so its result can't be used. To check a value and then use it, write `val x = checkNotNull(y) { "…" }`.
+- **Ownership:** each phase owns its packages. Shared files (the catalog, build files, the manifest, `AppContainer`, `Routes` and `AppNavHost`) only get that phase's own entries.
 
 ## Environment
 

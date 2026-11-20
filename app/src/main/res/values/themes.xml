@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window theme, shown before Compose draws. Compose's PillsReminderTheme does the rest. -->
+    <style name="Theme.PillsReminder" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+</resources>

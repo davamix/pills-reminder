@@ -132,17 +132,34 @@ force_stop() {
     $adb shell am force-stop $pkg
 }
 
-# Ends the app's process the way Android does to free memory, keeping its alarms. Debug build only (run-as). Home
-# first, so the app isn't in the foreground.
+# Ends the app's process the way Android does to free memory, keeping its alarms. Home first, so the app is in the
+# background. It sends SIGKILL through run-as (debug build), as the low-memory killer does. HyperOS's SELinux policy
+# refuses that ("avc: denied { sigkill }" from runas_app, P1 T8), so on the phone it falls back to `am kill`, which ends
+# a background app's process without cancelling its alarms. It says which one worked.
 end_process() {
     $adb shell input keyevent KEYCODE_HOME
-    $adb shell sleep 1
+    $adb shell sleep 2
     local pid
     pid=$($adb shell pidof $pkg | tr -d '\r')
     [ -z "$pid" ] && { echo "end_process: the app isn't running"; return 1; }
-    $adb shell run-as $pkg kill -9 "$pid"
+    $adb shell run-as $pkg kill -9 "$pid" > /dev/null 2>&1
     $adb shell sleep 1
-    if [ -z "$($adb shell pidof $pkg | tr -d '\r')" ]; then echo "process $pid ended"; else echo "process $pid still running"; return 1; fi
+    if [ -z "$($adb shell pidof $pkg | tr -d '\r')" ]; then echo "process $pid ended (SIGKILL)"; return 0; fi
+    $adb shell am kill $pkg
+    $adb shell sleep 2
+    if [ -z "$($adb shell pidof $pkg | tr -d '\r')" ]; then echo "process $pid ended (am kill)"; return 0; fi
+    echo "end_process: process $pid still running"
+    return 1
+}
+
+# Lets the debug app open its activities while in the background, which HyperOS refuses by default. Without it, an
+# instrumented test hangs on the phone: the runner starts the app's process in the background, HyperOS logs
+# "MIUILOG- Permission Denied Activity", and the test waits forever (P1 T6). It is HyperOS's per-app permission
+# "Display pop-up windows while running in the background", op 10021, for the debug app only. Uninstalling the app
+# resets it, so run this after each fresh install on the phone. The user agreed to it on 2026-11-20.
+allow_test_start() {
+    $adb shell cmd appops set $pkg 10021 allow
+    echo "MIUIOP(10021) for $pkg: $($adb shell cmd appops get $pkg 10021 | tr -d '\r' | head -1)"
 }
 
 # Lists the app's pending alarms from `dumpsys alarm`: one block per alarm, with its type (RTC_WAKEUP, …), its time

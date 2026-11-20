@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="treatment_editor_title">Treatment editor</string>
+    <string name="treatment_editor_add_medicine">Add medicine</string>
+    <string name="medicine_editor_title">Medicine editor</string>
+</resources>

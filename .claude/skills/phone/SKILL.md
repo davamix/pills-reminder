@@ -1,6 +1,6 @@
 ---
 name: phone
-description: Work with the POCO F3 phone and the PillsReminder_API_36 emulator over adb for the pills-reminder app, with ready-made Bash helpers (helpers.sh). Pick the device (the phone is listed twice, USB and wireless), start and stop the emulator, build and install, launch, read the text on screen, wait for a text or a log line, tap by text, take screenshots, run instrumented tests without wiping the app's data, list the app's pending alarms and its notifications, check the permissions reminders need, force Doze, end the app's process as Android does, read the app's private files; and the HyperOS pitfalls found on this phone. Use whenever the app needs to run on a device, be checked visually, or have its reminders checked, measured or debugged.
+description: Work with the POCO F3 phone and the PillsReminder_API_36 emulator over adb for the pills-reminder app, with ready-made Bash helpers (helpers.sh). Pick the device (the phone is listed twice, USB and wireless), start and stop the emulator, build and install, launch, read the text on screen, wait for a text or a log line, tap by text, take screenshots, run instrumented tests without wiping the app's data (and grant the HyperOS permission they need on the phone), list the app's pending alarms and its notifications, check the permissions reminders need, force Doze, end the app's process as Android does, read the app's private files; and the HyperOS pitfalls found on this phone. Use whenever the app needs to run on a device, be checked visually, or have its reminders checked, measured or debugged.
 ---
 
 # Work with the phone and the emulator
@@ -14,9 +14,11 @@ description: Work with the POCO F3 phone and the PillsReminder_API_36 emulator o
 | Model | POCO F3 (`M2012K11AG`, codename `alioth`) |
 | OS | Android 13, API 33, HyperOS `OS1.0.6.0.TKHEUXM`, security patch 2024-03-01 |
 | Screen | 1080 × 2400 px, 440 dpi: about 393 × 873 dp in portrait |
-| App content area | Not measured yet (P1): the screen minus the status and navigation bars. Every screen must fit in it. |
+| App content area | **392.7 × 796.4 dp**: below a 29.1 dp status bar (the camera cutout) and above a 47.3 dp navigation bar, because the phone uses **3-button navigation** (`navigation_mode` 0). Measured in P1 T8 with the app drawing edge to edge. Every screen must fit in it: it is the tighter of the two devices. |
+| Navigation | 3 buttons: Back is a real button, and the bottom inset is large |
 | Language and time | Spanish (`es-ES`), Europe/Madrid, 24-hour clock |
-| Connection | USB debugging and wireless debugging, both paired |
+| Connection | USB debugging and wireless debugging, both paired. Either may be the only one connected. |
+| Debug app cold start | 0.65 s (`am start -W`, P1 T8) |
 
 It is the user's own daily phone. Ask before anything that changes its settings, restarts it, puts it in Doze, or installs or removes anything other than the app. Leave it as you found it. Read its screen (`texts`, `shot`) only while the app is in front: the rest is the user's private data. **Never write the phone's serial number in a file in the repo**, which is public.
 
@@ -26,7 +28,8 @@ It is the user's own daily phone. Ask before anything that changes its settings,
 |---|---|
 | Image | `system-images;android-36;google_apis_playstore;x86_64`: Android 16, API 36, with Google Play. A production image: `adb root` doesn't work. |
 | Screen | 1080 × 2400 px, 440 dpi, the same as the phone. Set by hand in `~/.android/avd/PillsReminder_API_36.avd/config.ini`. |
-| Other | 4 GB RAM, hardware keyboard on (type from the PC), WHPX acceleration |
+| App content area | 392.7 × 824.7 dp: 24 dp status bar, 24 dp navigation bar, because it uses gesture navigation (`navigation_mode` 2). 28 dp taller than the phone's, so a layout that fits here can still overflow on the phone. |
+| Other | 4 GB RAM, hardware keyboard on (type from the PC), WHPX acceleration. Debug app cold start 1.3 s. |
 
 The other AVDs on this PC (`Medium_Phone_API_36.0`, `IAmOk_Watcher_36`) belong to the IAmOk project. Leave them alone.
 
@@ -68,7 +71,7 @@ Start it in the background (`run_in_background`), from Git Bash:
 
 ## Package names
 
-Assumed until P1 creates the project. If P1 chooses others, change them here and in [helpers.sh](helpers.sh).
+Set in P1 (P1-D1, P1-D2). If they ever change, change them here and in [helpers.sh](helpers.sh).
 
 - Debug build: `io.github.davamix.pillsreminder.debug`
 - Release build: `io.github.davamix.pillsreminder`
@@ -96,7 +99,8 @@ With no argument it takes the only device connected, and refuses when both the p
 | `launch` | Opens the app as its launcher icon does |
 | `shot <file>` | Saves a screenshot to a local file, to look at with Read |
 | `force_stop` | Force-stops the app. **It cancels every alarm the app has set** (see "HyperOS and Android pitfalls"). |
-| `end_process` | Ends the app's process as Android does to free memory, keeping its alarms (debug build) |
+| `end_process` | Ends the app's process as Android does to free memory, keeping its alarms. SIGKILL through `run-as` on the emulator; on the phone, HyperOS refuses that and it falls back to `am kill`. It says which worked. |
+| `allow_test_start` | On the phone: lets the debug app open its activities from the background, so instrumented tests don't hang. Run it after each fresh install (see "HyperOS and Android pitfalls"). |
 | `alarms` | The app's pending alarms, one block each, from `dumpsys alarm`. Nothing printed means none is set. |
 | `notifications` | The app's notifications in the shade: id, channel, title and text |
 | `reminder_health` | What reminders depend on, as Android sees it: notification and exact-alarm permissions, battery optimisation, standby bucket |
@@ -104,7 +108,7 @@ With no argument it takes the only device connected, and refuses when both the p
 | `wait_boot [seconds]` | Waits until the device has finished booting (default 180 s) |
 | `wait_for_log <tag> <regex> [seconds]` | Waits until a log line from that tag matches (default 60 s). Clear the log first with `$adb logcat -c`. |
 
-**Checked on 2026-11-19, before the app existed,** against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator; `alarms` on both, with the same format on Android 13 (HyperOS) and 16. **Not yet run:** `gradle`, `instrument`, `launch`, `force_stop` and `end_process`, which need the app. Check them in P1 and fix this note.
+**All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only.
 
 For example, install the debug build on the emulator, open it and read the screen:
 
@@ -121,15 +125,16 @@ Gradle finds adb by itself, so the Gradle tasks need no path.
 | Task | Command |
 |---|---|
 | Build and install | `gradle installDebug` |
-| Instrumented tests, keeping the app's data | `gradle installDebug installDebugAndroidTest && instrument` runs the whole suite on the installed app, and `instrument <classes>` runs some. It passed when it ends with `OK (N tests)`. Read the summary rather than grepping for `OK`: a filter hides errors such as `no devices/emulators found`. |
-| Instrumented tests, uninstalling afterwards | `./gradlew connectedDebugAndroidTest`. It runs on **every** connected device unless `ANDROID_SERIAL` is set, and uninstalls the app when it ends, which deletes its treatments. Run `gradle installDebug` again afterwards. Results: "Instrumented test results" below. |
+| Instrumented tests, keeping the app's data | `gradle installDebug installDebugAndroidTest && instrument` runs the whole suite on the installed app, and `instrument <classes>` runs some. It passed when it ends with `OK (N tests)`. Read the summary rather than grepping for `OK`: a filter hides errors such as `no devices/emulators found`. **On the phone, after a fresh install, run `allow_test_start` first**, or the run hangs. Give a run on the phone a deadline, such as `timeout 300 bash -c 'source … phone && instrument'`, so a hang can't block the session. |
+| Instrumented tests, uninstalling afterwards | `./gradlew connectedDebugAndroidTest`. It runs on **every** connected device unless `ANDROID_SERIAL` is set, and uninstalls the app when it ends, which deletes its treatments. Run `gradle installDebug` again afterwards. **Don't use it on the phone:** the uninstall also resets `allow_test_start`'s permission, so the next run hangs. Results: "Instrumented test results" below. |
 | Check the app's alarms | `alarms`. After saving a treatment, there should be an alarm for the next take of each medicine; after it fires, one for the take after. |
 | Check the app's notifications | `notifications` |
 | Check what reminders need | `reminder_health`. HyperOS's Autostart can't be read through adb: ask the user, or read it in the app's reminder check (spec `RM-9`). |
 | Grant or revoke the notification permission | `$adb shell pm grant $pkg android.permission.POST_NOTIFICATIONS`, or `pm revoke`. Fine on the emulator; on the phone, ask first, and put it back. |
 | Exact-alarm permission | `$adb shell cmd appops set $pkg SCHEDULE_EXACT_ALARM allow` (or `deny`, or `default`). Same rule: ask before changing it on the phone. |
 | Put the device in Doze | `doze_on`, then `doze_state` must say `deep=IDLE`. **Always** run `doze_off` afterwards, from a `trap` in a script so a failure can't leave it on. On the phone, ask first. |
-| Simulate Android ending the process | `end_process`, never `force_stop`. Then check that `alarms` still lists the next take. |
+| Simulate Android ending the process | `end_process`, never `force_stop`. Then check that `alarms` still lists the next take. On the phone it uses `am kill`, which IAmOk found unreliable on this phone: `end_process` checks `pidof` and says if the process survived. |
+| Time a cold start | `force_stop`, then `$adb shell am start -W -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n $pkg/$activity`, and read `TotalTime`. Keep the action and category, so a later `launch` brings back the same task. |
 | Restart the device | Emulator: `$adb reboot`, then `wait_boot`. Phone: ask the user first, and tell them they will need to unlock it. Until the phone is unlocked once after a restart, the app's own storage is locked, and Android sends the app `BOOT_COMPLETED` only after that. Wait with `wait_boot` in the background. |
 | Swipe the app away from Recents | Ask the user to do it on the phone. On HyperOS this ends the process but keeps the alarms (IAmOk). |
 | Change the time zone or the clock | The shell can't: `cmd time_zone_detector suggest_manual_time_zone` throws a `SecurityException` (no `SUGGEST_MANUAL_TIME_AND_ZONE`), and `adb root` isn't available. On the emulator, drive *Settings > System > Date & time* with `tap_text`, after turning off automatic time and time zone. Put them back afterwards. Never change the phone's clock. Most time logic is tested in unit tests with an injected clock and zone instead. |
@@ -185,7 +190,9 @@ Found on this same phone by the IAmOk project ([device matrix](https://github.co
 - **Battery saver** per app is restricted by default. "No restrictions" is the permissive setting.
 - **Test with stock settings first, and record the result.** Only then relax the settings and repeat. The difference is the finding: it says what the app's reminder check (`RM-9`) must ask the user to change.
 - **`am force-stop` cancels every alarm,** and Android delivers nothing to the app until it is opened again. Never use it to stand in for "Android ended the app". `end_process` does that.
-- **`am kill` doesn't reliably end the process** on this phone. `end_process` sends `kill -9` through `run-as` instead.
+- **HyperOS blocks activities started from the background.** It logs `MIUILOG- Permission Denied Activity` and starts nothing, with no error to the caller. An instrumented test then hangs: the test runner restarts the app's process in the background, and its activity never opens, even with the app on screen first. The fix is HyperOS's per-app permission "Display pop-up windows while running in the background" (op 10021), for the debug app only: `allow_test_start`. Uninstalling the app resets it. The same block may matter in P5 and P7, wherever the app starts an activity that the user didn't just tap (P1 T6).
+- **`run-as` can't signal the app's process** on this phone: SELinux denies it (`avc: denied { sigkill }` from `runas_app` to `untrusted_app`), and toybox's `kill` only says "unknown pid". `end_process` falls back to `am kill`, which worked in P1 T8 once the app was in the background.
+- **`am kill` doesn't always end the process** on this phone (IAmOk: it once survived six attempts). Check with `pidof`, as `end_process` does.
 - **Swiping the app away** from Recents ends its process, but doesn't cancel its alarms or clear its notifications.
 - **`dumpsys deviceidle force-idle` can stop short of deep idle** when the screen is off, because HyperOS holds the phone in its own dozing state. Check `doze_state`, and the "Idling history" in `$adb shell dumpsys deviceidle`. An alarm that fires on a phone that never idled proves nothing.
 - **MIUI optimisation** (developer options) changes permission and notification behaviour. Leave it as it is.

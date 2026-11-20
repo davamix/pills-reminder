@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The same as the Compose theme's background (ui/theme/Color.kt), so the window doesn't flash at start. -->
+    <color name="window_background">#FFF4FBFA</color>
+    <color name="ic_launcher_background">#FFE0F2F1</color>
+    <color name="ic_launcher_primary">#FF006A6A</color>
+</resources>
