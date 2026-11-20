@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.4, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Status** | v0.5, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
 | **Last updated** | 2026-11-20 |
 | **Platform** | Android phone, single user, personal use |
 
@@ -156,7 +156,7 @@ stateDiagram-v2
     Due --> Due : snoozed (RM-3)
     Due --> Taken : Taken
     Due --> Skipped : Skip
-    Due --> Missed : no answer for one interval (TK-3)
+    Due --> Missed : no answer in time (TK-3), or ended (TR-11)
 ```
 
 An answered take can be corrected later (`TK-5`).
@@ -193,14 +193,14 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | TR-1 | The app manages several treatments. More than one can be active at the same time. | Requested |
 | TR-2 | A treatment has one or more medicines. | Requested |
 | TR-3 | Each medicine has a name, a dose per take written as free text (such as "1 capsule" or "3 puffs"), an interval in hours, days or weeks ("every 8 hours", "every 2 days", "every week") and a duration: a number of days or weeks ("for 7 days", "for 12 weeks"), or no end. | Requested |
-| TR-4 | Each medicine has its own first take, a date and a time. Medicines in the same treatment can start at different times. The editor suggests the next full hour. | Agreed |
+| TR-4 | Each medicine has its own first take, a date and a time. Medicines in the same treatment can start at different times. The editor suggests the next full hour. The first take can be in the past, for a treatment that started before it was entered. Its takes already past are then Missed, except the latest one while it is still Due (`TK-3`). | Agreed |
 | TR-5 | A treatment has a name, and optional notes. | Agreed |
 | TR-6 | A medicine can have optional instructions, such as "with food", which its reminder shows. | Agreed |
 | TR-7 | The dose is free text, such as "1 capsule", "3 puffs" or "1/3 tablet". There is no list of units, and no limit on the amount. | Agreed |
 | TR-8 | Validation: the treatment and each medicine need a name, and a treatment has at least one medicine. The interval is a whole number of hours, days or weeks, and the duration a whole number of days or weeks, each at least 1, with no upper limit; or the duration is set to no end. | Agreed |
 | TR-9 | Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment. | Agreed |
 | TR-10 | Editing a treatment that has already started changes only what is still to come. Takes that are due or answered keep their state; takes not yet due are worked out again from the new values. | Agreed |
-| TR-11 | A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. | Agreed |
+| TR-11 | A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer. | Agreed |
 | TR-12 | Finished treatments stay in the app until you delete them. | Agreed |
 | TR-13 | Leaving the editor with unsaved changes asks for confirmation before discarding them. | Agreed |
 
@@ -235,8 +235,8 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 |---|---|---|
 | TK-1 | Each planned take has a state: Pending (not yet due), Due, Taken, Skipped or Missed (§4.3). | Agreed |
 | TK-2 | Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20". | Agreed |
-| TK-3 | A take still unanswered one interval after its planned time becomes Missed. With an interval of 8 h, the 08:00 take becomes Missed at 16:00; with an interval of a week, a week later. | Agreed |
-| TK-4 | A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. | Agreed |
+| TK-3 | A take still unanswered one interval after its planned time becomes Missed. With an interval of 8 h, the 08:00 take becomes Missed at 16:00; with an interval of a week, a week later. After an edit (`TR-10`), it becomes Missed as soon as the medicine's next take is due, if that comes sooner, so a medicine never has more than one Due take. | Agreed |
+| TK-4 | A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. The next take is the medicine's Due take, if it has one, or else its first unanswered take still to come. Only one take of a medicine can be marked ahead of its time: the one after it can be marked early once the marked take's planned time has passed. | Agreed |
 | TK-5 | The last answered take of each medicine can be changed later, for example after pressing Taken by mistake: to Taken, to Skipped, or back to unanswered. The Treatment screen shows it. Older takes can't be seen or changed. | Agreed |
 
 ### 5.5 Home screen
@@ -394,3 +394,4 @@ Not planned for v1; listed so they are not lost.
 | 0.2 | 2026-11-20 | First review: Q1–Q18 answered. `RM-10` (test reminder) and `TK-6` (history) discarded. Changed: `TR-3` (a duration can have no end, and the dose is free text), `TR-7` (free-text dose, no list of units), `TR-8` (validates only the names and at least one medicine; no upper limit on the interval or the duration), `RM-2` (no vibration). `TR-9` and `TR-12` no longer mention a history. Added `SC-5` (medicines with no end). Every other proposal agreed. New questions Q19–Q22. |
 | 0.3 | 2026-11-20 | Second review: Q19–Q22 answered. Q19 revises Q2: the interval is a number of hours, days or weeks (`TR-3`, `TR-8`, `SC-1`, §4.3 and the editor sketch). `TK-5` now applies only to each medicine's last answered take. `RM-8` says what Do Not Disturb and silent mode do. `SC-5` agreed. New question Q23. |
 | 0.4 | 2026-11-20 | Q23 answered: a duration is a number of days or weeks, or no end (`TR-3`, `TR-8`, §4.1–§4.3 and the editor sketch). No open questions remain. |
+| 0.5 | 2026-11-20 | From the P2 spec review (P2 Q1–Q4), confirming its draft assumptions. `TK-3`: after an edit, a take becomes Missed as soon as the medicine's next take is due, if that comes sooner. `TK-4`: which take is the next one, and only one take marked early at a time. `TR-11`: a take due when the treatment is ended becomes Missed, and one marked Taken early keeps its answer. `TR-4`: the first take can be in the past. The state diagram in §4.3 shows the end of a treatment. |
