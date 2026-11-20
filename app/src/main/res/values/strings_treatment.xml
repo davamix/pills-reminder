@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="treatment_title">Treatment</string>
+    <string name="treatment_edit">Edit</string>
+    <string name="treatment_open_take">Open take</string>
+</resources>
