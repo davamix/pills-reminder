@@ -2,12 +2,12 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** specification draft. There is no code yet. The tech stack is chosen in the implementation plan, once the specification is agreed. P1 then adds the build commands, the code structure and the coding conventions to this file.
+**Status:** the specification is agreed (v0.4), and the implementation plan is a draft under review. There is no code yet. P1 adds the build commands, the code structure and the coding conventions to this file.
 
 ## Documents
 
 - `docs/SPECIFICATION.md`: what the app does. Requirement IDs look like `TR-3`, `RM-5` or `NF-1`; open questions are `Qn`.
-- `docs/IMPLEMENTATION_PLAN.md` (not written yet): how it is built. Decisions `D-n`, phases `P1`, `P2`, …, skills `SK-n`, questions `PQ-n`, and the phases' status in §5.1.
+- `docs/IMPLEMENTATION_PLAN.md`: how it is built. Decisions `D-n`, phases `P1`, `P2`, …, skills `SK-n`, questions `PQ-n`, and the phases' status in §5.1.
 - `docs/phases/PN-<name>/SPEC.md` and `HANDOVER.md`: one specification and one progress tracker per phase, from the templates in `docs/phases/_templates/`.
 
 When working on a phase, read only its HANDOVER.md and SPEC.md (skill `phase-start`). They quote everything needed. Each HANDOVER.md starts with a prompt to paste into a new session to start or continue that phase. Keep it current.
@@ -16,7 +16,7 @@ When working on a phase, read only its HANDOVER.md and SPEC.md (skill `phase-sta
 
 ### The implementation plan
 
-When it is written, it follows Workout Timer's plan, because the skills rely on its sections:
+It follows Workout Timer's plan, because the skills rely on its sections. Keep these when changing it:
 
 - §1 Tech stack, with the technical decisions `D-n` in §1.1.
 - §2 Architecture. §3 Security and privacy, including the permissions the app may declare. §4 Testing strategy.

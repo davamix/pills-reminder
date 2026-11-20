@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.4 |
+| **Status** | v0.4, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
 | **Last updated** | 2026-11-20 |
 | **Platform** | Android phone, single user, personal use |
 
