@@ -43,7 +43,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 | Fix Kotlin formatting | `./gradlew ktlintFormat` |
 | Unit tests only | `./gradlew test` |
 | Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
-| Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, run `allow_test_start` after a fresh install, or the run hangs. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data and, on the phone, resets that permission. |
+| Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first, and run `allow_test_start` after a fresh install, or the run hangs. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data and, on the phone, resets that permission. |
 
 - Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
 - Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.

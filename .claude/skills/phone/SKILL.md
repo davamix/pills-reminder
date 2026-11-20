@@ -65,7 +65,7 @@ Start it in the background (`run_in_background`), from Git Bash:
 
 - Add `-no-window -no-audio` when the user doesn't need to see it.
 - `-no-snapshot-save` boots cold each time, so no half-way state carries over. Installed apps and their data are kept: they live on the emulator's disk, not in the snapshot.
-- Then wait for it: `source .claude/skills/phone/helpers.sh emulator && wait_boot`.
+- Then wait for it: `source .claude/skills/phone/helpers.sh none && wait_emulator`. It waits until the emulator is online and has booted, and picks it as the device. Right after the start, `helpers.sh emulator` fails, because adb doesn't list the emulator yet. `adb -e wait-for-device` fails too while the phone is on wireless debugging ("more than one emulator").
 - Stop it with `$adb emu kill`.
 - Only one instance of an AVD can run at a time, unless every instance, the first included, was started with `-read-only` (IAmOk).
 
@@ -90,9 +90,9 @@ With no argument it takes the only device connected, and refuses when both the p
 
 | Function | What it does |
 |---|---|
-| `use_device phone\|emulator` | Switches device within the same call |
+| `use_device phone\|emulator` | Switches device within the same call. `none`, as the argument to `helpers.sh`, loads the helpers without picking one. |
 | `gradle <tasks>` | Runs `./gradlew` quietly, on the chosen device (it sets `ANDROID_SERIAL`), with the output in `build/gradle.log`. On failure it prints the errors. It returns Gradle's own exit code, so `gradle … && …` stops when the build fails. |
-| `instrument [classes] [-e key value]` | Runs instrumented tests and keeps the app's data: the whole suite with no class; or classes and methods separated by commas, with the package prefix optional. On the phone, it first checks `allow_test_start`'s permission and stops if it's missing. It gives up after `INSTRUMENT_TIMEOUT` seconds (default 900) and says what to look for, rather than hanging. |
+| `instrument [classes] [-e key value]` | Runs instrumented tests and keeps the app's data: the whole suite with no class; or classes and methods separated by commas, with the package prefix optional. On the phone, it first checks `allow_test_start`'s permission and that the phone is unlocked, and stops if either is missing. It gives up after `INSTRUMENT_TIMEOUT` seconds (default 900) and says what to look for, rather than hanging. It prints nothing until the run ends. |
 | `texts` | Every text on screen, on one line |
 | `wait_for <pattern> [seconds]` | Waits until a text matching the grep pattern is on screen (default 30 s) |
 | `tap_text <text> [last]` | Taps the node with exactly that text; `last` picks the last match |
@@ -107,10 +107,12 @@ With no argument it takes the only device connected, and refuses when both the p
 | `with_dark_mode <command>` | Emulator only: runs the command in dark mode, then puts night mode back as it was, even if the command fails |
 | `with_landscape <command>` | Emulator only: runs the command with the display forced into landscape, then puts auto-rotate and the rotation back as they were. For checking that the app stays in portrait. |
 | `doze_on` / `doze_off` / `doze_state` | Forces deep Doze while USB stays connected, undoes it, and prints the deep and light states |
+| `wait_emulator [seconds] [boot seconds]` | After starting the emulator: waits until it is online (default 300 s), picks it, and waits for its boot (default 180 s). Load the helpers with `none` first. |
 | `wait_boot [seconds]` | Waits until the device has finished booting (default 180 s) |
+| `connected_results` | After `./gradlew connectedDebugAndroidTest`: the totals from its XML, then each failing test with its message. No device needed. |
 | `wait_for_log <tag> <regex> [seconds]` | Waits until a log line from that tag matches (default 60 s). Clear the log first with `$adb logcat -c`. |
 
-**All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only. After P1's skills review: `instrument`'s permission check and deadline on the phone, and `with_dark_mode` and `with_landscape` on the emulator.
+**All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only. After P1's skills review: `instrument`'s permission check and deadline on the phone, and `with_dark_mode` and `with_landscape` on the emulator. After P2's skills review: `instrument`'s lock check on the unlocked phone (the locked case wasn't tried, to leave the phone alone), and `wait_emulator` with the phone on wireless debugging. `connected_results` was moved unchanged from this file into `helpers.sh`, and not run, since `connectedDebugAndroidTest` uninstalls the app.
 
 For example, install the debug build on the emulator, open it and read the screen:
 
@@ -154,12 +156,10 @@ Gradle finds adb by itself, so the Gradle tasks need no path.
 After `./gradlew connectedDebugAndroidTest`, read the results from the XML instead of the Gradle output. The totals, then one line per failing test with its class, name and the first 300 characters of its message:
 
 ```bash
-f=$(ls app/build/outputs/androidTest-results/connected/debug/*.xml | head -1)
-grep -o '<testsuites tests="[0-9]*" failures="[0-9]*" errors="[0-9]*" skipped="[0-9]*"' "$f" | sed 's/<testsuites //'
-awk '/<testcase /{match($0,/ name="[^"]*"/); n=substr($0,RSTART+7,RLENGTH-8); match($0,/classname="[^"]*"/); c=substr($0,RSTART+11,RLENGTH-12); sub(/.*\./,"",c)} /<(failure|error)/{l=$0; sub(/.*<(failure|error)[^>]*>/,"",l); if (l ~ /^[[:space:]]*$/) getline l; print c" > "n"\n    "substr(l,1,300)}' "$f"
+source .claude/skills/phone/helpers.sh none && connected_results
 ```
 
-The path assumes an `:app` module; P1 confirms it. `instrument` prints its own summary instead: one line per class with a dot per test, then each failure with its message, and `OK (N tests)` or `FAILURES!!!`.
+The path assumes an `:app` module; P1 confirms it. The `awk` program is in `helpers.sh`, not here, because the skill loader replaces shell positional parameters (a dollar sign and a digit) in this text with the words the skill was invoked with (P2). `instrument` prints its own summary instead: one line per class with a dot per test, then each failure with its message, and `OK (N tests)` or `FAILURES!!!`.
 
 ## Checking a screen in every state
 
@@ -194,6 +194,7 @@ Found on this same phone by the IAmOk project ([device matrix](https://github.co
 - **Test with stock settings first, and record the result.** Only then relax the settings and repeat. The difference is the finding: it says what the app's reminder check (`RM-9`) must ask the user to change.
 - **`am force-stop` cancels every alarm,** and Android delivers nothing to the app until it is opened again. Never use it to stand in for "Android ended the app". `end_process` does that.
 - **HyperOS blocks activities started from the background.** It logs `MIUILOG- Permission Denied Activity` and starts nothing, with no error to the caller. An instrumented test then hangs: the test runner restarts the app's process in the background, and its activity never opens, even with the app on screen first. The fix is HyperOS's per-app permission "Display pop-up windows while running in the background" (op 10021), for the debug app only: `allow_test_start`. Uninstalling the app resets it. The same block may matter in P5 and P7, wherever the app starts an activity that the user didn't just tap (P1 T6).
+- **HyperOS also refuses activities while the phone is locked,** even with op 10021 allowed: `MIUILOG- Permission Denied Activity KeyguardLocked`. An instrumented run started on a locked phone hung until its 900 s deadline (P2). `instrument` now checks `isKeyguardShowing` in `$adb shell dumpsys window` first. If it says the phone is locked, ask the user to unlock it.
 - **`run-as` can't signal the app's process** on this phone: SELinux denies it (`avc: denied { sigkill }` from `runas_app` to `untrusted_app`), and toybox's `kill` only says "unknown pid". `end_process` falls back to `am kill`, which worked in P1 T8 once the app was in the background.
 - **`am kill` doesn't always end the process** on this phone (IAmOk: it once survived six attempts). Check with `pidof`, as `end_process` does.
 - **Swiping the app away** from Recents ends its process, but doesn't cancel its alarms or clear its notifications.

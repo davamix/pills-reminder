@@ -4,6 +4,7 @@
 #   source .claude/skills/phone/helpers.sh             # the only device connected
 #   source .claude/skills/phone/helpers.sh phone       # the POCO F3, over USB if possible
 #   source .claude/skills/phone/helpers.sh emulator    # the running emulator
+#   source .claude/skills/phone/helpers.sh none        # no device yet, e.g. before wait_emulator
 #
 # Each function says what it does above it. SKILL.md lists them under "Helpers".
 
@@ -49,6 +50,9 @@ use_device() {
         emulator)
             serial=$emu
             [ -z "$serial" ] && { echo "use_device: no emulator is running; start it as SKILL.md says" >&2; return 1; } ;;
+        none)
+            # Loads the helpers without picking a device, for wait_emulator.
+            return 0 ;;
         *)
             echo "use_device: say phone or emulator, not '$want'" >&2
             return 1 ;;
@@ -78,13 +82,20 @@ gradle() {
 #   instrument ui.home.HomeScreenTest[#method][,…] classes or methods, the package prefix optional
 #   instrument <class> -e <key> <value>          with arguments for the test
 # It passed when the summary ends with "OK (N tests)". On the phone, it first checks that HyperOS lets the test runner
-# start the app's activities (allow_test_start), because otherwise the run hangs with no output (P1 T6). It gives up
-# after INSTRUMENT_TIMEOUT seconds (default 900) and says what to look for, instead of waiting forever.
+# start the app's activities (allow_test_start), and that the phone isn't locked, because otherwise the run hangs with
+# no output (P1 T6, P2). It gives up after INSTRUMENT_TIMEOUT seconds (default 900) and says what to look for, instead
+# of waiting forever. It prints nothing until the run ends.
 instrument() {
     local spec="" limit=${INSTRUMENT_TIMEOUT:-900}
     if [ "$device" = phone ] && ! $adb shell cmd appops get $pkg 10021 2> /dev/null | grep -q ': allow'; then
         echo "instrument: HyperOS would block the test runner, because op 10021 isn't allowed for $pkg."
         echo "  Run allow_test_start first. Uninstalling the app resets it."
+        return 1
+    fi
+    if [ "$device" = phone ] && $adb shell dumpsys window 2> /dev/null | grep -q 'isKeyguardShowing=true'; then
+        echo "instrument: the phone is locked. Ask the user to unlock it, then run this again. While the lock screen"
+        echo "  shows, HyperOS refuses the tests' activity ('MIUILOG- Permission Denied Activity KeyguardLocked'), and"
+        echo "  the run hangs until the deadline (P2)."
         return 1
     fi
     if [ $# -gt 0 ] && [ "$1" != "-e" ]; then
@@ -277,6 +288,20 @@ with_landscape() {
     return $rc
 }
 
+# Waits until the emulator just started (SKILL.md, "Starting and stopping the emulator") is online, picks it as the
+# device, and waits until it has booted, for at most SECONDS each (default 300 and 180). Load the helpers with `none`:
+# right after the start the emulator isn't listed yet, so `helpers.sh emulator` would fail. It doesn't use
+# `adb -e wait-for-device`, which fails with "more than one emulator" while the phone is on wireless debugging (P2).
+#   source .claude/skills/phone/helpers.sh none && wait_emulator
+wait_emulator() {
+    local end=$((SECONDS + ${1:-300}))
+    until "$adb_bin" devices | tr -d '\r' | awk '$1 ~ /^emulator-/ && $2 == "device"' | grep -q .; do
+        [ $SECONDS -ge $end ] && { echo "wait_emulator: no emulator online after ${1:-300} s" >&2; return 1; }
+        sleep 2
+    done
+    use_device emulator && wait_boot "${2:-180}"
+}
+
 # Waits until the device has finished booting, for at most SECONDS (default 180). For the emulator, or the phone
 # after a reboot.
 wait_boot() {
@@ -287,6 +312,16 @@ wait_boot() {
         $adb shell sleep 2 2>/dev/null || sleep 2
     done
     return 0
+}
+
+# After ./gradlew connectedDebugAndroidTest: the totals from its XML results, then one line per failing test with its
+# class and name, and the first 300 characters of its message. No device needed: load the helpers with `none`.
+connected_results() {
+    local f
+    f=$(ls app/build/outputs/androidTest-results/connected/debug/*.xml 2> /dev/null | head -1)
+    [ -z "$f" ] && { echo "connected_results: no results under app/build/outputs/androidTest-results" >&2; return 1; }
+    grep -o '<testsuites tests="[0-9]*" failures="[0-9]*" errors="[0-9]*" skipped="[0-9]*"' "$f" | sed 's/<testsuites //'
+    awk '/<testcase /{match($0,/ name="[^"]*"/); n=substr($0,RSTART+7,RLENGTH-8); match($0,/classname="[^"]*"/); c=substr($0,RSTART+11,RLENGTH-12); sub(/.*\./,"",c)} /<(failure|error)/{l=$0; sub(/.*<(failure|error)[^>]*>/,"",l); if (l ~ /^[[:space:]]*$/) getline l; print c" > "n"\n    "substr(l,1,300)}' "$f"
 }
 
 # Waits until a log line from TAG matches REGEX, for at most SECONDS (default 60), without sleeping. Clear the log

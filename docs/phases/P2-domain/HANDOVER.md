@@ -83,6 +83,11 @@ Newest first.
 ### 2026-11-20 (close)
 
 - The user merged pull request #2. P2 is closed: `Done` in plan §5.1, and its done criteria ticked in SPEC.md §8.
+- **Skills review** (plan `D-17`), all four proposals agreed by the user:
+  - `phone`: `instrument` refuses to start on a locked phone, instead of hanging for 900 s (HyperOS's `KeyguardLocked`).
+  - `phone`: new `wait_emulator`, loaded with `helpers.sh none`. It waits for a just-started emulator without `adb -e`, which fails while the phone is on wireless debugging.
+  - `handover`: the manifest comparison moved to `compare-manifests.sh`. The cause of the `"all"` in the known issues was the skill loader, which replaces positional parameters in a SKILL.md with the skill's arguments. The `phone` skill's results one-liner had the same exposure, so it moved into `helpers.sh` as `connected_results`.
+  - `CLAUDE.md`: unlock the phone before an instrumented run.
 
 ### 2026-11-20 (implementation)
 

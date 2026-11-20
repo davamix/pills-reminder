@@ -86,23 +86,12 @@ PN of the [implementation plan](docs/IMPLEMENTATION_PLAN.md): <goal, from SPEC.m
 
 ## Comparing the merged manifests with `main`
 
-Lists the permissions and components of the debug and release manifests, on the branch and on `main`, and compares them. `main` is built in a scratch worktree, so this working copy stays on the branch. It assumes a Gradle `:app` module, which P1 confirms. Run it in Git Bash after the build, with `sp` set to the session's scratchpad.
+[compare-manifests.sh](compare-manifests.sh) lists the permissions and components of the debug and release manifests, on the branch and on `main`, and compares them. `main` is built in a scratch worktree, so this working copy stays on the branch. It assumes a Gradle `:app` module, which P1 confirms. Run it in Git Bash from the repo root, after the build, with the session's scratchpad:
 
 ```bash
-sp=<scratchpad>
-# Permissions and components of a merged manifest, one "<tag> <name>" per line.
-components() { tr '\n' ' ' < "$1" | grep -o -E '<(uses-permission|permission|activity|activity-alias|service|receiver|provider)[^>]*>' | sed -E 's/^<([a-z-]+)[^>]*android:name="([^"]*)".*/\1 \2/' | sort; }
-manifest() { find "$1/app/build/intermediates/merged_manifest/$2" -name AndroidManifest.xml | head -1; }
-
-./gradlew :app:processDebugMainManifest :app:processReleaseMainManifest --console=plain -q 2>&1 | grep -v -i 'unsafe\|^WARNING'
-git worktree add -q --detach "$sp/main-wt" origin/main && cp local.properties "$sp/main-wt/" 2>/dev/null
-(cd "$sp/main-wt" && ./gradlew :app:processDebugMainManifest :app:processReleaseMainManifest --console=plain -q 2>&1 | grep -v -i 'unsafe\|^WARNING')
-for v in debug release; do
-  a=$(manifest "$sp/main-wt" $v); b=$(manifest . $v)
-  if [ -z "$a" ] || [ -z "$b" ]; then echo "$v: merged manifest not found"; continue; fi
-  diff <(components "$a") <(components "$b") && echo "$v: same as main ($(components "$b" | wc -l) entries)"
-done
-git worktree remove --force "$sp/main-wt"
+bash .claude/skills/handover/compare-manifests.sh <scratchpad>
 ```
+
+It prints `debug: same as main (N entries)` and the same for release, or the differences. The script lives in a file because the skill loader replaces shell positional parameters (a dollar sign and a digit) in this text with the words the skill was invoked with: in P2, the functions' arguments became `"all"` and `"tasks"`.
 
 Every difference is a line starting with `<` (only on `main`) or `>` (new on the branch). A new permission or component must be explained in the handover, or removed. Reminders need a few permissions (notifications, exact alarms, starting after a restart), so the plan lists the expected ones; anything beyond that list is a finding. A changed attribute, such as `exported`, doesn't show here: check that one in the manifest itself.
