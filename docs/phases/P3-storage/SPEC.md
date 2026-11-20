@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P3, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 |
 | **Branch** | `phase/p3-storage` |
@@ -320,7 +320,7 @@ Plan §3 applies. The data is health data, and this phase is where it reaches th
 - **Deleting (`TR-9`):** once `deleteTreatment` is written, the file no longer holds the treatment, its medicines or its answers, because DataStore writes a new file and renames it over the old one. A test reads the file to confirm it. What the phone's flash storage keeps of old blocks is outside the app's reach.
 - **Test data:** spec §4.4 ("Example", Amoxicillin, Atrovent), with made-up IDs, also in the golden file. The repo is public: no real treatments. On the phone, `StoreDeviceCheck` writes only the example, refuses to start if the stored data isn't empty, and removes the example at the end.
 - **Instrumented tests and the real data:** from P3 on, `AppContainer.repository` is the real file. An instrumented test that goes through `MainActivity` or the container reads and writes the data the app really has, on the phone too. P3's own tests use a file in the cache, apart from `StoreDeviceCheck`. Later phases should build ViewModels with fakes, as CLAUDE.md already says, and a test through the activity must leave the data as it found it. T4 adds this to CLAUDE.md, and the handover lists it for P6, P7 and P8.
-- **Dependencies:** DataStore (AndroidX) and kotlinx-serialization-json (JetBrains), from Google Maven and Maven Central. Okio, from Square, comes with DataStore (Q5). The permission allowlist check confirms that no permission is added. T1 also compares the merged manifests' components with `main`'s.
+- **Dependencies:** DataStore (AndroidX) and kotlinx-serialization-json (JetBrains), from Google Maven and Maven Central. Okio, from Square, comes with DataStore, which plan §3 accepts (Q5). The permission allowlist check confirms that no permission is added. T1 also compares the merged manifests' components with `main`'s.
 
 ## 6. Testing
 
@@ -384,17 +384,24 @@ Record in the handover, for each device: the date, the Android and HyperOS versi
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None at the moment. New questions are numbered from Q7.
+
+### Answered
+
+The review confirmed the six draft assumptions. Q1, Q3 and Q5 went into plan v0.3 (§2.4, §3 and P5–P7 in §5.2).
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | Who tells the user that the data can't be read, and what they can do then. Plan §2.4 says the app "says so". | P3 provides `StoredData.Unreadable` and a debug log line. The home screen (P7) shows a message, and P6's screens refuse to edit, as pending wiring for them. v1 offers no repair inside the app: the file is kept, to be read over adb, and clearing the app's storage in Android's settings starts again. |
+| Q1 | Who tells the user that the data can't be read, and what they can do then. Plan §2.4 says the app "says so". | P3 provides `StoredData.Unreadable` and a debug log line. P7's home screen shows a message, and P6's editors refuse to save, as pending wiring for them. The app offers no repair: the file is kept, to be read over adb, and clearing the app's storage in Android's settings starts again. (§4.3.5, plan §2.4) |
 | Q2 | Strict reading: a file with an unknown field, or a newer `schemaVersion`, is Unreadable, rather than read with the unknown parts dropped. | Strict (P3-D2). It matters most during development: every build has `versionCode` 1, so an older build can be installed over a newer one, for example from another branch. That build then leaves the newer file untouched, and the newer build reads it again once it's back. A lenient read would have dropped the newer fields at its first write. |
-| Q3 | Reminder state (P4's snoozes and alerts played) isn't in version 1. Plan §2.4 keeps it in the same document. | P5, which depends on both P3 and P4, adds it to the format, following §4.3.6. P3 leaves it as pending wiring. |
-| Q4 | The device checks write the §4.4 example into the debug app's real data on the phone, through `StoreDeviceCheck`, and remove it afterwards. M5 restarts the phone once. | Agreed as the way to meet the plan's done criterion on the phone. The check refuses to run if the data isn't empty, and does nothing unless asked for. The restart waits for the user's go-ahead. |
-| Q5 | DataStore 1.3.0 depends on Okio, a Square library, through `datastore-core-okio`. Plan §3 asks for "only well-known AndroidX, JetBrains and Google libraries". | Accepted: it comes with AndroidX's own library, from Maven Central, and the app doesn't use it directly. T1 records it in the handover. |
-| Q6 | DataStore's file storage in `:app`'s JVM unit tests: it uses the Android variant of `datastore-core`, and replaces a file by renaming over it, which can behave differently on Windows. | It works on both this PC and CI's Linux. T1 checks it first. If not, stop and ask: the store's tests could use DataStore's Okio storage, or move to instrumented tests. |
+| Q3 | Reminder state (P4's snoozes and alerts played) isn't in version 1. Plan §2.4 keeps it in the same document. | P5, which depends on both P3 and P4, adds it to the format, following §4.3.6. P3 leaves it as pending wiring. (Plan §2.4, P5) |
+| Q4 | The device checks write the §4.4 example into the debug app's real data on the phone, through `StoreDeviceCheck`, and remove it afterwards. M5 restarts the phone once. | Agreed. The check refuses to run if the data isn't empty, and does nothing unless asked for. The restart waits for the user's go-ahead. (§6, P3-D7) |
+| Q5 | DataStore 1.3.0 depends on Okio, a Square library, through `datastore-core-okio`. Plan §3 asked for "only well-known AndroidX, JetBrains and Google libraries". | Accepted: it comes with AndroidX's own library, from Maven Central, and the app doesn't use it directly. T1 records it in the handover. (Plan §3) |
+| Q6 | DataStore's file storage in `:app`'s JVM unit tests: it uses the Android variant of `datastore-core`, and replaces a file by renaming over it, which can behave differently on Windows. | Assumed to work on this PC and on CI's Linux. T1 checks it first. If it doesn't, stop and ask: the store's tests could use DataStore's Okio storage, or move to instrumented tests. |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-20 | First draft |
+| 0.2 | 2026-11-20 | Review: Q1–Q6 answered, confirming the draft assumptions. Q1, Q3 and Q5 went into plan v0.3. Ready. |
