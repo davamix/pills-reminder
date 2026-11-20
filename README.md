@@ -13,7 +13,7 @@ It is a reminder only. It doesn't give medical advice or check doses. It works o
 
 ## Status
 
-The specification is a first draft, under review. There is no code yet.
+The specification is a draft, under review. There is no code yet.
 
 - [Specification](docs/SPECIFICATION.md): what the app does.
 - Implementation plan: written once the specification is agreed. The work is then built in phases, each with its own specification and handover in [docs/phases/](docs/phases/).
