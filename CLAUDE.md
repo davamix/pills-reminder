@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification (v0.4) and the implementation plan (v0.2) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
+**Status:** the specification (v0.5) and the implementation plan (v0.3) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
 
 ## Documents
 
@@ -80,6 +80,11 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
   - Compare a planned time with now through `dueAt(now.zone)`, never as local times, which go wrong in the hour the clocks go back.
   - `AppContainer` has the `clock` and the `repository`.
 - `:app` holds the Android code: `data/`, `reminders/`, `ui/<feature>/`, `navigation/`, and `di/AppContainer.kt`.
+- **The store** (`data`, P3): `AppContainer.repository` is a `DataStoreTreatmentRepository`, which keeps all of `PillsData` in one JSON document, `files/datastore/pills.json` on the device. Its format types (`PillsDocument.kt`) are kept apart from the model.
+  - **A field added to `PillsData`**, or to a type in it, goes into the format in the same change, with a test. The store refuses to write data that doesn't read back the same (P3-D3), so a field left out fails at the first write that sets it.
+  - **Golden files never change** (`app/src/test/resources/data/pills-v<N>.json`). A change that old files can't be decoded as raises `schemaVersion` and adds a migration (P3 SPEC §4.3.6).
+  - `StoredData.Unreadable` means the file is kept as it is and every `update` is refused. Show it; never work around it. `update` can also throw an `IOException` when a write fails.
+  - DataStore allows one store per file in the process, so the app stays in one process: no `android:process`.
 - The base package is `io.github.davamix.pillsreminder`. The debug build's application ID adds `.debug` and its name is "Pills Reminder (debug)", so it installs next to a release build.
 - **Edge to edge** (P1-D4): `MainActivity` calls `enableEdgeToEdge()` on every Android version, and screens keep their content out of the system bars through `Scaffold`. Every screen must fit the phone's content area, **392.7 × 796.4 dp**, which is smaller than the emulator's (`phone` skill, "Devices").
 - **Navigation:** type-safe routes in `navigation/Routes.kt`, one per screen. The phase that replaces a placeholder owns that screen's route.
@@ -100,6 +105,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
   - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
   - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead. Write times as `0800` or `16h00`, not `08:00`.
   - **Instrumented tests** (`app/src/androidTest`): JUnit 4, also with sentence names in backticks (P1-D7). D8 takes spaces because `minSdk` is 33, but **no other ASCII punctuation except `-`, `_` and `$`**: no commas, no parentheses. A comma failed the dex step in P1 T6. To run one of them, run its class: `am instrument -e class Class#method` splits at the spaces.
+  - **Instrumented tests and the real data:** `AppContainer.repository` is the app's real file. A test that goes through `MainActivity` or the container reads and writes the data the app really has, on the phone too. Build ViewModels with fakes, and leave the data as it was found. Store tests use their own file in the cache; `StoreDeviceCheck` touches the real data only when run with `-e storeCheck <step>`.
   - **Coroutine tests:** in `runTest`, `advanceUntilIdle()` ignores work that only `backgroundScope` has scheduled. Wait in the foreground instead, for example with `flow.first { … }`. `advanceTimeBy()` does run background work.
   - **Compose UI tests:** use the rules from `androidx.compose.ui.test.junit4.v2` (`createComposeRule`, `createAndroidComposeRule`); the v1 rules are deprecated. `pressBack()` comes from Espresso. After an action that starts a coroutine, wait for its result (`waitUntil { … }` or `waitForIdle()`) before asserting. Also, from Workout Timer:
     - A `LazyColumn` item exists only once it's scrolled into composition. Tag the list, and call `performScrollToNode(matcher)` on it before using an item.

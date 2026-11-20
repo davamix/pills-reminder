@@ -39,6 +39,8 @@ android {
 
     buildFeatures {
         compose = true
+        // BuildConfig.DEBUG: only debug builds log (plan §3).
+        buildConfig = true
     }
 
     lint {
@@ -65,6 +67,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.kotlinx.serialization.core)
+    // The store: one JSON document in DataStore (plan D-4, P3).
+    implementation(libs.androidx.datastore)
+    implementation(libs.kotlinx.serialization.json)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
