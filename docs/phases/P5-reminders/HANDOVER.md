@@ -5,7 +5,7 @@
 | **Status** | In progress |
 | **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p5-reminders` |
-| **Last session** | 2026-11-20 |
+| **Last session** | 2026-11-21 |
 
 This document tracks the phase as it's built. Update it at the end of every session, so the next one can continue from here.
 
@@ -19,15 +19,23 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 1. Use the phase-start skill for P5. Read only docs/phases/P5-reminders/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p5-reminders. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. The phone is needed for T1, T2 and T8, and for the manual checks of other tasks, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks. T1 and T2 use throwaway probes that are never committed. If a measurement contradicts SPEC.md, stop and ask me before changing the design. T1's probe lives in app/src/debug/ and is kept out of git by .git/info/exclude; remove those lines from it when the probe is deleted, before T6 adds the real debug manifest.
+4. The phone is needed for T1, T2 and T8, and for the manual checks of other tasks, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks. T1 and T2 use throwaway probes that are never committed. If a measurement contradicts SPEC.md, stop and ask me before changing the design. T1's probe lives in app/src/debug/ and is kept out of git by .git/info/exclude; remove those lines from it when the probe is deleted, before T6 adds the real debug manifest. T1 is half done: the rest needs me with the phone for about an hour, so ask me first whether I'm available; if I'm not, ask whether to go ahead with T3 and T4, which need no device.
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-T1 is under way; no app code has been written yet. The first measurements changed the design: with the screen off, HyperOS holds exact alarms for up to 5 minutes, and alarm clocks are on time, so the alarm is an alarm clock (SPEC v0.3, Q5; plan v0.5, `D-8`). An overnight run of alarm clocks, every 10 minutes, with stock settings and the phone unplugged, started at 22:01 UTC on 2026-11-20 (tag `A3night`, 60 alarms, until about 07:57 UTC).
+T1 is half done, and no app code has been written yet. The branch's code is the same as `main`'s. Stopped because the user isn't available for the hands-on tests.
 
-The throwaway probe is `app/src/debug/AndroidManifest.xml` and `app/src/debug/kotlin/io/github/davamix/pillsreminder/probe/Probe.kt`, kept out of git by two lines in `.git/info/exclude`. It is installed on the phone. Commands go through `ProbeControl`, which only the shell can reach (it needs `DUMP`):
+What T1 found so far (details in "Measurements"):
+
+- `USE_EXACT_ALARM` is granted on the phone.
+- With the screen off, HyperOS holds exact alarms (`setExactAndAllowWhileIdle()`) until a 5-minute grid, up to 4 min 15 s late, also with the battery saver at "No restrictions". Alarm clocks are on time. So the alarm is an alarm clock: SPEC v0.3 (Q5), plan v0.5 (`D-8`).
+- Overnight, 60 alarm clocks 10 minutes apart, stock settings, unplugged: all on time, the worst 1.7 s late. The phone stayed in light Doze: deep Doze never starts while an alarm clock is due within 30 minutes.
+
+Still to measure: alarm clocks in deep Doze (forced, then natural), after a swipe from Recents, after the process ends, after a restart and an update, a *Force stop*; then the emulator's A1 and A6. T2 (notifications) after that.
+
+The throwaway probe is `app/src/debug/AndroidManifest.xml` and `app/src/debug/kotlin/io/github/davamix/pillsreminder/probe/Probe.kt`, kept out of git by two lines in `.git/info/exclude`. It exists only in this working copy (`F:\Development\pills-reminder`); in a fresh clone, write it again from this description: a receiver that isn't exported, for its alarm and the four system broadcasts, which logs each one's lateness, `isDeviceIdleMode`, `isInteractive`, the pid and the process start to logcat (`AlarmProbe`) and `files/probe.log`, and chains the next alarm; and `ProbeControl`, exported with `android:permission="android.permission.DUMP"`, for commands from adb. It is installed on the phone, and its log holds every run so far. Commands go through `ProbeControl`, which only the shell can reach (it needs `DUMP`):
 
 ```bash
 source .claude/skills/phone/helpers.sh phone && ctl="$pkg/io.github.davamix.pillsreminder.probe.ProbeControl"
@@ -38,10 +46,18 @@ $adb exec-out run-as $pkg cat files/probe.log
 
 ## Next steps
 
-1. Read the overnight run: `files/probe.log`, lines `A3night`, each alarm's `late=` and `idle=`, and `$adb shell dumpsys deviceidle` for whether the phone reached deep idle (an alarm clock takes the phone out of Doze shortly before it fires, so `idle=false` at the alarm is expected). Record it in "Measurements".
-2. The rest of T1 with alarm clocks, stock settings first (Autostart off, battery saver default): forced Doze (`doze_on`), the user swiping the app from Recents, `end_process`, a restart with the unlock after a due time (A4), `gradle installDebug` as an update (A5), a *Force stop* (A7). Then on the emulator: A1, and A6 (time and zone changes by hand, `CurrentZoneClock`).
-3. Relax the settings (Autostart on) only where a stock run fails, and record what each setting changed: that is P7's list.
-4. Delete the probe and its lines in `.git/info/exclude` once T2 is done too.
+1. Ask the user whether they can be with the phone for about an hour. The phone must be left alone, screen off, during each run; check that with `dumpsys power` (`mWakefulness`), and turn the screen off with `input keyevent KEYCODE_SLEEP` if needed. All with alarm clocks (`--es mode clock`) and stock settings (Autostart off, battery saver default):
+   1. **Forced deep Doze:** three alarm clocks 3 minutes apart; `doze_on` once they are set, `doze_state` must say `deep=IDLE`, and `doze_off` afterwards from a `trap`. About 12 minutes; no help needed.
+   2. **Process ended:** an alarm clock 3 minutes ahead, then `end_process`, checked with `pidof`. The log's `pid` and `procStart` show a new process. About 5 minutes; no help needed.
+   3. **Swipe:** the user opens the app and swipes it away from Recents; then an alarm clock 3 minutes ahead.
+   4. **Restart (A4):** an alarm clock a few minutes ahead; the user restarts the phone and unlocks it only after that time. Record the `BCAST android.intent.action.BOOT_COMPLETED` line against the unlock (`am_user_state_changed` or `wm_set_keyguard_shown` in `logcat -b events`). The alarm doesn't survive a restart; the real app sets it again. Wireless debugging may need reconnecting.
+   5. **Update (A5):** an alarm clock 5 minutes ahead, then `gradle installDebug`: check `alarms` before and after, and the `MY_PACKAGE_REPLACED` line. Note that the install resets op 10021 (`instrument` grants it again).
+   6. **Force stop (A7):** an alarm clock ahead, `force_stop`, then `alarms` should list nothing.
+2. **Natural deep Doze,** best at night: a chain of alarm clocks 3 hours apart (`--ei count 3 --el interval_s 10800`), the phone unplugged and still. Check the idling history for `deep-idle` before each alarm.
+3. **On the emulator:** A1 (`reminder_health`), and A6: change the time, then the time zone, by hand in *Settings > System > Date & time*, with the app running; the `BCAST` lines must show `TIME_SET` and `TIMEZONE_CHANGED`, and `zone` and `clockZone` the new zone in the same `pid`. Put automatic time and zone back.
+4. Relax the settings (Autostart on) only where a stock run fails, and record what each setting changed: that is P7's list.
+5. Then T2. Delete the probe and its lines in `.git/info/exclude` once T2 is done.
+6. If the user isn't available, ask whether to go ahead with T3 and T4 meanwhile: they need no device, and no pending measurement changes them.
 
 ## Tasks
 
@@ -49,7 +65,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | Doing | A1 on the phone, A2 with the screen off, A8 done; overnight run going. Changed `D-8` (SPEC v0.3, Q5). |
+| T1 | Doing | Done: A1 on the phone, A2 with the screen off, A8, A3 overnight (light Doze). Changed `D-8` (SPEC v0.3, Q5). To do: deep Doze, process end, swipe, restart, update, Force stop, emulator A1 and A6. |
 | T2 | To do | Measure notifications (phone, emulator) |
 | T3 | To do | Reminder state in the store |
 | T4 | To do | The reconcile on the JVM |
@@ -114,11 +130,21 @@ Connections to other phases left for later.
 
 The commands and manual steps that check the current state.
 
-- `./gradlew build` (CLAUDE.md shows how to keep its exit code and filter its output).
+- `./gradlew build` (CLAUDE.md shows how to keep its exit code and filter its output). Run it only with the probe in place if that's intended: it compiles and lints the debug source set too.
+- The measurements so far: `source .claude/skills/phone/helpers.sh phone && $adb exec-out run-as $pkg cat files/probe.log`, and "Measurements" above.
+
+**Checks at the end of 2026-11-21's session:** no build was run. The branch's code is the same as `main`'s (`git diff --stat origin/main..HEAD -- app/ core/ gradle/ '*.gradle.kts'` prints nothing), and CI passed on `main` at `cc80648`; its last code change is P4's `ef7988e`. No instrumented run, and no manifest comparison, since nothing in `app/` changed in git. The uncommitted probe was built with `assembleDebug` and installed with `gradle installDebug`.
+
+**Device state left behind:** the phone has the debug app with the probe installed, and its `files/probe.log`. No probe alarm is pending (`alarms`). The battery saver is back to its default (`reminder_health`: optimised), Autostart is off, Doze was never forced, and no setting was changed over adb; the screen was turned off with `KEYCODE_SLEEP` before runs. The emulator wasn't used.
 
 ## Session log
 
 Newest first.
+
+### 2026-11-21
+
+- Done: read the overnight run (A3 night): 60 alarm clocks, all on time, in light Doze only. Recorded it; planned the rest of T1 in "Next steps".
+- Notes: stopped because the user isn't available for the hands-on runs (swipe, restart). Deep Doze doesn't start while an alarm clock is due within 30 minutes, so a natural deep-Doze run needs alarms more than an hour apart.
 
 ### 2026-11-20, evening
 
