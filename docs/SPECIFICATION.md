@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | v0.7, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
-| **Last updated** | 2026-11-20 |
+| **Status** | v0.8, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Last updated** | 2026-11-21 |
 | **Platform** | Android phone, single user, personal use |
 
 This document describes *what* the app does. Once it is agreed, it is the base for the implementation plan.
@@ -219,7 +219,7 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | ID | Requirement | Source |
 |---|---|---|
 | RM-1 | When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any. | Requested |
-| RM-2 | A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved. | Agreed |
+| RM-2 | A reminder is a heads-up notification with sound, without vibration. In vibrate mode it vibrates instead of sounding, as Android does with every notification. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved. | Agreed |
 | RM-3 | A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again. | Agreed |
 | RM-4 | Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound. | Agreed |
 | RM-5 | A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. Swiping a reminder away doesn't answer or snooze its take: the reminder comes back with its next repeat, or, once its repeats are over, silently the next time the app updates its reminders, for example when the app is opened. | Agreed |
@@ -361,7 +361,7 @@ None at the moment. New questions are numbered from Q24, and each one lists the 
 | Q17 | Backups | No backup and no export. Uninstalling the app deletes everything. (`NF-3`, `NF-4`) |
 | Q18 | Distribution | Installed from the PC only. It won't be published on Google Play. (`NF-9`) |
 | Q19 | Long intervals | The interval is a number of hours, days or weeks, because working out long periods in hours is hard. This replaces Q2's "hours only". (`TR-3`, `TR-8`, `SC-1`) |
-| Q20 | Vibrate mode | Reminders never vibrate. They play their sound unless the phone is in Do Not Disturb or silent mode, and then only appear on screen. (`RM-2`, `RM-8`) |
+| Q20 | Vibrate mode | Reminders never vibrate. They play their sound unless the phone is in Do Not Disturb or silent mode, and then only appear on screen. (`RM-2`, `RM-8`) Changed in v0.8, from P5's measurements: in vibrate mode a reminder vibrates instead of sounding. Android turns a notification's sound into a vibration in that mode, and the app can't prevent it without also losing the heads-up. |
 | Q21 | Missed takes with long intervals | A take becomes Missed one interval after its planned time, whatever the interval's length (`TK-3`). |
 | Q22 | Where an answered take is changed | Only each medicine's last answered take can be changed, from the Treatment screen (`TK-5`). |
 | Q23 | Duration units | A number of days or weeks, or no end. No months: a number of months is easy to give in weeks. (`TR-3`, `TR-8`) |
@@ -397,3 +397,4 @@ Not planned for v1; listed so they are not lost.
 | 0.5 | 2026-11-20 | From the P2 spec review (P2 Q1–Q4), confirming its draft assumptions. `TK-3`: after an edit, a take becomes Missed as soon as the medicine's next take is due, if that comes sooner. `TK-4`: which take is the next one, and only one take marked early at a time. `TR-11`: a take due when the treatment is ended becomes Missed, and one marked Taken early keeps its answer. `TR-4`: the first take can be in the past. The state diagram in §4.3 shows the end of a treatment. |
 | 0.6 | 2026-11-20 | From the P4 spec review (P4 Q1–Q3), confirming its draft assumptions. `RM-3`: after a snooze, the reminder repeats as in `RM-5`, and can be snoozed again. `RM-5`: each repeat comes 10 minutes after the alert before it, also when the first alert came late. `TK-5`: a take set back to unanswered that is Due again gets its reminder back, which alerts at once. |
 | 0.7 | 2026-11-20 | From the P5 spec review (P5 Q2 and Q4), confirming its draft assumptions. `RM-5`: swiping a reminder away doesn't answer or snooze its take, and the reminder comes back with its next repeat, or silently once its repeats are over. `RM-4`: reminders that alert at the same moment may play a single sound. |
+| 0.8 | 2026-11-21 | From P5's measurements on the phone (P5 Q7), decided by the user. `RM-2`: in vibrate mode a reminder vibrates instead of sounding, as Android does with every notification; Q20's decision notes the change. `RM-8` stays as it is: P5 keeps reminders silent in Do Not Disturb (P5 Q6). |
