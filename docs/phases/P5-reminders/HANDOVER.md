@@ -93,7 +93,9 @@ After run 3, the user set the battery saver back to its default (`reminder_healt
 
 | # | When (UTC) | Setup | Result |
 |---|---|---|---|
-| A3 night | 2026-11-20 22:01 → 2026-11-21 ~07:57 | `setAlarmClock()`, 60 alarms 10 minutes apart from 22:06:49, stock settings, screen off, unplugged (53 %), wireless debugging, no adb during the night | Running: to read in the morning |
+| A3 night | 2026-11-20 22:01 → 2026-11-21 07:57 | `setAlarmClock()`, 60 alarms 10 minutes apart from 22:06:49, stock settings, screen off, unplugged (53 %), wireless debugging, no adb during the night | **All 60 on time:** late 25 ms to 1.7 s (most 0.5–0.7 s or 1.4–1.7 s). Screen off at every alarm, the same process all night (never ended). Battery 53 % → 47 %. |
+
+**No deep Doze that night,** only light Doze: the idling history has 46 `light-idle` periods, 37 `light-maint` windows and 17 returns to `normal`, mostly marked `(alarm)`, and no `deep` entry. Android doesn't enter deep Doze while an alarm clock is due within `min_time_to_alarm` (30 minutes on this phone), and these came every 10. Real reminders are hours apart, so the phone will reach deep Doze between them: deep Doze is still to be measured, forced (`doze_on`) and natural (an alarm clock more than an hour away, the phone left still).
 
 ## Known issues
 
