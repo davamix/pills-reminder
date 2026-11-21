@@ -25,7 +25,7 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 
 ## Current state
 
-T1, T2 and T3 are done. T3 put the reminder state into the store: `PillsData.reminders`, the snooze action and its repository helper, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file. `./gradlew build` passes. No Android reminder code yet (T5).
+T1 to T4 are done. T3 put the reminder state into the store: `PillsData.reminders`, the snooze action and its repository helper, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file. T4 built the reconcile in `app/.../reminders/`, with no Android class yet: `Reconciler`, `Reminders` (the observer of the data, the answers, `runAsync`), the `ReminderShade`, `WakeUpAlarm` and `ReminderLog` interfaces, `ReminderContent` and `TakeKeyCodec`, all tested on the JVM with fakes. `./gradlew build` passes. Nothing calls them yet: T5 adds the Android side and wires them into `AppContainer`.
 
 T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
 
@@ -38,8 +38,14 @@ The probes are deleted, and their lines in `.git/info/exclude` removed. The phon
 
 ## Next steps
 
-1. **T4, the reconcile on the JVM** (SPEC §4.2, §4.3.1, §4.3.2, §4.3.5, §4.3.10): `Reconciler` (lock, plan inside `update`, then the alarm, removals, posts and summary; Unreadable and failed writes, Q1), the `ReminderShade` and `WakeUpAlarm` interfaces, `ReminderContent` and `PillsData.reminderContent`, `TakeKeyCodec`, `ReminderLog`, and `Reminders` with `start()`'s observer, `answer` and `runAsync`. In `app/src/main/kotlin/.../reminders/`, with no Android class yet, so JVM unit tests can build them with `FakeShade`, `FakeAlarm` and `InMemoryTreatmentRepository`. Show each new test can fail. No device needed.
-2. From T5 on: the emulator, then the phone for the instrumented tests. Run the whole instrumented suite once then: T3 changed the store's format (`data/`), which `DataStoreOnDeviceTest` reads on the device.
+1. **T5, the Android side** (SPEC §4.3.3, §4.3.4, §4.3.6, §4.3.10):
+   - `ReminderChannel` (D-10; no category, vibration off, no Do Not Disturb bypass);
+   - `AndroidReminderShade(context, tagPrefix)`: tags `<prefix>/<TakeKeyCodec>`; the fingerprint in each notification's extras, read back by `shown()`; `VISIBILITY_PUBLIC`; the group, with `GROUP_ALERT_CHILDREN` for an alert and `GROUP_ALERT_SUMMARY` for a silent post; the summary; Taken, Snooze and Skip; the tap to `MainActivity`;
+   - `AlarmClockWakeUp(context, identifier)` (`setAlarmClock`, the `retry` extra, `setAndAllowWhileIdle` without the permission);
+   - `ReminderIntents`; the three receivers, through `Reminders.runAsync`; the manifest (four permissions, three receivers, the boot receiver at `android:priority="999"`);
+   - `AppContainer.reminders`, `PillsReminderApp` calling `start()`, `MainActivity.onStart` reconciling (`APP_OPEN`); the debug `ReminderLog`, logcat and `files/reminders-log.txt`.
+   - Instrumented tests: `ReminderChannelTest`, `ReminderShadeTest`, `WakeUpAlarmTest`, with their own prefix and identifier (P5-D11).
+2. Then run every instrumented test, on the emulator and the phone: T3 changed the store's format (`data/`), which `DataStoreOnDeviceTest` reads on the device.
 
 ## Tasks
 
@@ -50,7 +56,7 @@ The task IDs come from SPEC.md §7.
 | T1 | Done | A1–A8 on the phone and the emulator; the natural deep-Doze night moved to T8 (M7). Changed `D-8` (SPEC v0.3, Q5), the boot receiver's priority (Q9), and found the update and Autostart (Q10). |
 | T2 | Done | N1–N7 on the phone and the emulator, and two fix variants. Changed `D-10` and `RM-2` (SPEC v0.4, Q6–Q8). |
 | T3 | Done | `PillsData.reminders`; `PillsData.snooze` and `repository.snooze` (`core/actions/ReminderActions.kt`, `RepositoryActions.kt`); `deleteTreatment` and `saveTreatment` drop records (P5-D8); the format's `ReminderV1` and its strict mapping; `pills-v1-reminders.json`. Tests: `ReminderActionsTest`, new cases in `DeleteTreatmentTest` and `SaveTreatmentTest`; `ReminderFormatTest`, 15 damaged-record cases in `DamagedDataTest`, a restart in `DataStoreTreatmentRepositoryTest`. Eight deliberate bugs, each caught (session log). |
-| T4 | To do | The reconcile on the JVM |
+| T4 | Done | `Reconciler`, `Reminders`, `ReminderShade`, `WakeUpAlarm`, `ReminderLog`, `ReminderContent`, `TakeKeyCodec` in `app/.../reminders/`. Tests: `ReconcilerTest` (the §4.3.11 timeline, the order, idempotence, silent reposts, removals, failures, the log), `RemindersTest` (answers, the observer, `runAsync`), `ReminderContentTest`, `TakeKeyCodecTest`, with `Fakes.kt`. Twelve deliberate bugs, each caught (session log). |
 | T5 | To do | Android: channel, shade, alarm, receivers, manifest |
 | T6 | To do | Debug tools |
 | T7 | To do | Opening a take |
@@ -67,6 +73,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-20 | The probe takes commands over adb through an exported receiver protected by `android.permission.DUMP`, instead of probe tests. | Only the shell holds `DUMP`, so no other app can reach it, and `am instrument` would end the app's process after each test. It was never committed, and was deleted after T2. |
 | 2026-11-21 | Reminders are silent in Do Not Disturb, so the notifications have no category; in vibrate mode they vibrate. Decided by the user; SPEC v0.4 (Q6, Q7), plan v0.6 (`D-10`), specification v0.8 (`RM-2`). | T2: HyperOS's Do Not Disturb lets the *reminder* category sound, with no setting to change it; Android's fallback vibration in vibrate mode can't be stopped without losing the pop-up. |
 | 2026-11-21 | Silent posts by group alert behaviour; public visibility on each notification; `android:priority="999"` on the boot receiver. SPEC v0.4 (Q8, Q9). | T2: the platform has no `setSilent()`, and ignores an app's channel lock-screen visibility. T1: the priority brought `BOOT_COMPLETED` from 59 s to 8.7 s after the unlock. |
+| 2026-11-21 | T4's shapes, where they differ from SPEC §4.2: `ReminderShade.shown()` returns each reminder's fingerprint by key, and the `Reconciler`, not the shade, decides that a silent post is needed (missing, or a different fingerprint, P5-D5). `ReminderShade.prepare()` creates the channel, called by `Reminders.start()`, which takes the shade. `WakeUpAlarm.set(at, retry)`, so the alarm receiver can say `RETRY`. `ReminderLog` is a `fun interface` with `event(line)`. `TakeKeyCodec` writes `<plannedAt>|<medicineId>`. A failure while applying the plan is also `Failed`, with the retry at the next wake-up when that comes sooner. To fold into the SPEC with T5–T7's, in T9. | The rule of P5-D5 then has JVM tests of its own, rather than living in a fake. The time first in the key means a medicine ID can hold any character. Same behaviour as the SPEC describes. |
 | 2026-11-21 | The natural deep-Doze night moved from T1 to T8 (M7). | Alarm clocks 10 minutes apart keep the phone out of deep Doze; the night needs reminders hours apart, which T8's test treatment gives. Forced deep Doze already passed. |
 
 ## Measurements (T1, T2)
@@ -205,6 +212,24 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-21, evening: T4
+
+- Done: T4, the reconcile on the JVM. `./gradlew build` passes: `:app` 117 unit tests (33 new, in `reminders`), `:core` 177, no failures; Lint, ktlint and the permission allowlist pass. Three tests failed at first, each because its expectation forgot that both 08:00 takes alerted (two removals at 16:00; both repeat at 08:10 and 08:15): the tests were corrected, not the code.
+- Tests that can fail: twelve bugs, one at a time, each caught, each file restored and checked with `cmp`:
+  - silent reminders posted at every reconcile → `ReconcilerTest` (between alerts; the second reconcile; the edit; the swipe; the timeline);
+  - silent reminders never posted → `ReconcilerTest` (a plan with no change; the edit; the swipe; the timeline);
+  - the alarm set after the posts → the order test;
+  - no retry alarm after a failure → both failure tests;
+  - Unreadable treated as a failed write → the Unreadable test;
+  - a failure logged with its message → the class-only test;
+  - a repeat's lateness counted from the planned time → the lateness test;
+  - the observer reconciling only on the first data → both observer tests;
+  - no reconcile after an answer → all four answer tests;
+  - `runAsync` without its guard → the `runAsync` test;
+  - `TakeKeyCodec` accepting seconds → its refusal test;
+  - the fingerprint leaving out the instructions → the fingerprint test.
+- Notes: ktlint split two long `if`s inside lambdas in the tests; replaced with a local `val` and a helper, as CLAUDE.md says. The observer's tests run `Reminders` in a scope of its own on the test's scheduler, so `advanceUntilIdle()` runs it, cancelled at the end of each test.
 
 ### 2026-11-21, evening: T3
 
