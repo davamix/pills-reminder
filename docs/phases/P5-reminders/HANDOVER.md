@@ -25,7 +25,9 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 
 ## Current state
 
-T1 and T2, the measurements on the phone and the emulator, are done; no app code has been written yet. The branch's code is the same as `main`'s. Their results changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
+T1, T2 and T3 are done. T3 put the reminder state into the store: `PillsData.reminders`, the snooze action and its repository helper, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file. `./gradlew build` passes. No Android reminder code yet (T5).
+
+T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
 
 - **The alarm is an alarm clock** (`setAlarmClock()`): HyperOS holds exact alarms for up to 5 minutes with the screen off. Alarm clocks were on time in every case, with stock settings: screen off, light and deep Doze, a night, the process ended, a swipe from Recents, an update.
 - **Notifications:** no category, so Do Not Disturb silences them (HyperOS lets the *reminder* category through); public on each notification, since an app can't set the channel's lock-screen visibility; silent posts as group children with `GROUP_ALERT_SUMMARY` (the platform has no `setSilent()`). In vibrate mode, Android vibrates instead of sounding, now allowed by `RM-2`.
@@ -36,9 +38,8 @@ The probes are deleted, and their lines in `.git/info/exclude` removed. The phon
 
 ## Next steps
 
-1. **T3, reminder state in the store** (SPEC §4.2, §4.3.7, P5-D1, P5-D8): `PillsData.reminders` in `:core`, with `PillsData.snooze` and `TreatmentRepository.snooze` in `core.actions`, and `deleteTreatment` and `saveTreatment` dropping the records of the medicines they remove; then the format's optional `reminders` field in `PillsDocument.kt` and `PillsJson.kt`, its strict mapping, `StoreExample` data with records, and the new golden file `pills-v1-reminders.json` (CLAUDE.md, "To make a golden file"). `pills-v1.json` must still decode and be written the same. Unit tests in both modules; show each new test can fail.
-2. T4, the reconcile on the JVM, with fakes. Neither needs a device.
-3. From T5 on: the emulator, then the phone for the instrumented tests.
+1. **T4, the reconcile on the JVM** (SPEC §4.2, §4.3.1, §4.3.2, §4.3.5, §4.3.10): `Reconciler` (lock, plan inside `update`, then the alarm, removals, posts and summary; Unreadable and failed writes, Q1), the `ReminderShade` and `WakeUpAlarm` interfaces, `ReminderContent` and `PillsData.reminderContent`, `TakeKeyCodec`, `ReminderLog`, and `Reminders` with `start()`'s observer, `answer` and `runAsync`. In `app/src/main/kotlin/.../reminders/`, with no Android class yet, so JVM unit tests can build them with `FakeShade`, `FakeAlarm` and `InMemoryTreatmentRepository`. Show each new test can fail. No device needed.
+2. From T5 on: the emulator, then the phone for the instrumented tests. Run the whole instrumented suite once then: T3 changed the store's format (`data/`), which `DataStoreOnDeviceTest` reads on the device.
 
 ## Tasks
 
@@ -48,7 +49,7 @@ The task IDs come from SPEC.md §7.
 |---|---|---|
 | T1 | Done | A1–A8 on the phone and the emulator; the natural deep-Doze night moved to T8 (M7). Changed `D-8` (SPEC v0.3, Q5), the boot receiver's priority (Q9), and found the update and Autostart (Q10). |
 | T2 | Done | N1–N7 on the phone and the emulator, and two fix variants. Changed `D-10` and `RM-2` (SPEC v0.4, Q6–Q8). |
-| T3 | To do | Reminder state in the store |
+| T3 | Done | `PillsData.reminders`; `PillsData.snooze` and `repository.snooze` (`core/actions/ReminderActions.kt`, `RepositoryActions.kt`); `deleteTreatment` and `saveTreatment` drop records (P5-D8); the format's `ReminderV1` and its strict mapping; `pills-v1-reminders.json`. Tests: `ReminderActionsTest`, new cases in `DeleteTreatmentTest` and `SaveTreatmentTest`; `ReminderFormatTest`, 15 damaged-record cases in `DamagedDataTest`, a restart in `DataStoreTreatmentRepositoryTest`. Eight deliberate bugs, each caught (session log). |
 | T4 | To do | The reconcile on the JVM |
 | T5 | To do | Android: channel, shade, alarm, receivers, manifest |
 | T6 | To do | Debug tools |
@@ -175,6 +176,7 @@ Afterwards the probe's notifications and both channels were removed (`probe.CLEA
 
 ## Known issues
 
+- **A number written as text reads as the number:** kotlinx.serialization accepts `"alerts": "2"` as 2, in strict mode too, as it does for every number of the format (`amount`, `count`), since P3. Nothing is lost: the next write writes a number. `DamagedDataTest` tests a count of 2.5 instead.
 - **Android 16 may time notifications out:** the emulator's records showed `timeout=PT72H`, which the probe didn't set. Not checked: a weekly medicine's reminder can stay Due for a week. The reconcile posts a missing reminder again, silently, so it would come back at the next reconcile. To look at in T5 or T8 on the emulator.
 - **The debug app on the phone keeps the probe's `files/probe.log`** (times and tags only, no content). Harmless; it goes when the app's storage is cleared.
 - **For the skills review** (`phase-close`): the shell can change the emulator's time and zone with `cmd alarm set-time` and `set-timezone` (the `phone` skill says it can't); `notification_alert` in `logcat -b events` gives `[key, buzz, beep, blink]` for each alert, though `beep=1` doesn't mean the ring mode let the sound play; wireless debugging reconnects by itself after a restart, sometimes a minute after the unlock; HyperOS keeps at most 10 notifications per app.
@@ -203,6 +205,20 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-21, evening: T3
+
+- Done: T3, the reminder state in the store. `./gradlew build` passes: `:app` 84 unit tests, `:core` 177, no failures; Lint, ktlint and the permission allowlist pass. The golden file `pills-v1-reminders.json` was made as CLAUDE.md says, from a throwaway test, and checked by eye against SPEC §4.3.7; the test is deleted. CLAUDE.md's line on `core.reminders` now says the state is in `PillsData`.
+- Tests that can fail: eight bugs, one at a time, each caught, each file restored and checked with `cmp`:
+  - the records not sorted → `ReminderFormatTest` (sorted);
+  - `readInstant` without its form check → `DamagedDataTest` (an instant with an offset; the reasons);
+  - no check that a record is one kind → `DamagedDataTest` (both kinds; the reasons);
+  - no range check on the count → `DamagedDataTest` (the reasons; Alerted's own check still refuses it, as `IllegalArgumentException`);
+  - the records not written → `ReminderFormatTest`, `DamagedDataTest`, `DataStoreTreatmentRepositoryTest` (the write check refuses);
+  - `deleteTreatment` keeping the records → `DeleteTreatmentTest`;
+  - `saveTreatment` keeping a removed medicine's record → `SaveTreatmentTest`;
+  - a refused snooze returning the data → `ReminderActionsTest` (both refusal tests).
+- Notes: `DamagedDataTest`'s "an unknown top-level field" used `"reminders"`, now part of the format; it uses `"snoozes"` instead. No instrumented run: the store's format changed, so T5 runs the whole suite on both devices.
 
 ### 2026-11-21, afternoon
 

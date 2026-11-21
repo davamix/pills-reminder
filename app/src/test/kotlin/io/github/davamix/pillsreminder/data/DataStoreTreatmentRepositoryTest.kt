@@ -7,6 +7,7 @@ import io.github.davamix.pillsreminder.core.actions.endTreatment
 import io.github.davamix.pillsreminder.core.actions.markTaken
 import io.github.davamix.pillsreminder.core.actions.saveTreatment
 import io.github.davamix.pillsreminder.core.actions.skip
+import io.github.davamix.pillsreminder.core.actions.snooze
 import io.github.davamix.pillsreminder.core.model.Answer
 import io.github.davamix.pillsreminder.core.model.PillsData
 import io.github.davamix.pillsreminder.core.model.StoredData
@@ -15,6 +16,7 @@ import io.github.davamix.pillsreminder.core.model.TreatmentId
 import io.github.davamix.pillsreminder.core.model.TreatmentRepository
 import io.github.davamix.pillsreminder.core.model.UnreadableDataException
 import io.github.davamix.pillsreminder.core.model.toDraft
+import io.github.davamix.pillsreminder.core.reminders.TakeReminder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -37,6 +39,7 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.time.Instant
 
 /** The store on real files (P3 SPEC §4.3.3–§4.3.5). A "restart" closes the store and opens a new one on the same file. */
 class DataStoreTreatmentRepositoryTest {
@@ -164,6 +167,24 @@ class DataStoreTreatmentRepositoryTest {
             // TR-12: the ended treatment is kept until it is deleted.
             assertTrue(repository.deleteTreatment(StoreExample.treatmentId))
             assertEquals(PillsData(), restart().current())
+        }
+
+    @Test
+    fun `reminder records and a snooze are kept after a restart`() =
+        runTest {
+            open().update { StoreExample.reminded }
+            var repository = restart()
+            assertEquals(StoreExample.reminded, repository.current())
+            assertArrayEquals(encodePillsData(StoreExample.reminded), file.readBytes())
+
+            // Amoxicillin's 16:00 take is still Due at 16:12, and has alerted: it can be snoozed (RM-3).
+            val amoxicillin1600 = TakeKey(StoreExample.amoxicillinId, nov(23, 16))
+            assertTrue(repository.snooze(amoxicillin1600, clockAt(nov(23, 16, 12))))
+            repository = restart()
+            assertEquals(
+                TakeReminder.Snoozed(Instant.parse("2026-11-23T15:22:00Z")),
+                repository.current().reminders.takes[amoxicillin1600],
+            )
         }
 
     @Test

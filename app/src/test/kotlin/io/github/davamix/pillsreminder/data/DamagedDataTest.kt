@@ -5,6 +5,8 @@ import io.github.davamix.pillsreminder.core.model.MedicineId
 import io.github.davamix.pillsreminder.core.model.PillsData
 import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.TreatmentId
+import io.github.davamix.pillsreminder.core.reminders.ReminderState
+import io.github.davamix.pillsreminder.core.reminders.TakeReminder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.fail
+import java.time.Instant
 
 /** Content the store can't read (P3 SPEC §4.3.2): each case is Unreadable, at the right step, with no content in the reason. */
 class DamagedDataTest {
@@ -31,6 +34,7 @@ class DamagedDataTest {
 
     private val example = encodePillsData(StoreExample.example).decodeToString()
     private val full = encodePillsData(StoreExample.full).decodeToString()
+    private val reminded = encodePillsData(StoreExample.reminded).decodeToString()
 
     private fun case(
         name: String,
@@ -60,7 +64,8 @@ class DamagedDataTest {
             edited("schemaVersion as text", "version", "schemaVersion") { JsonPrimitive("1") },
             edited("schemaVersion 1.5", "version", "schemaVersion") { JsonPrimitive(1.5) },
             edited("an unknown field", "decode", "treatments", 0, "colour") { JsonPrimitive("red") },
-            edited("an unknown top-level field", "decode", "reminders") { JsonArray(emptyList()) },
+            // "reminders" was this case's unknown field until P5 made it part of the format (P5 SPEC §4.3.7).
+            edited("an unknown top-level field", "decode", "snoozes") { JsonArray(emptyList()) },
             edited("a missing dose", "decode", "treatments", 0, "medicines", 0, "dose") { null },
             edited("missing earlier schedules", "decode", "treatments", 0, "medicines", 0, "earlierSchedules") { null },
             edited("missing answers", "decode", "answers") { null },
@@ -98,6 +103,34 @@ class DamagedDataTest {
             edited("earlier schedules out of order", "map", "treatments", 1, "medicines", 0, "earlierSchedules", from = full) {
                 JsonArray(it!!.jsonArray.reversed())
             },
+            // Reminder records (P5 SPEC §4.3.7): record 0 is Amoxicillin's, alerted; record 1 is Atrovent's, snoozed.
+            edited("a record's unknown field", "decode", "reminders", 0, "sound", from = reminded) { JsonPrimitive(true) },
+            // A count written as text, "2", reads as 2: kotlinx.serialization accepts quoted numbers, as for every number
+            // of the format, and nothing is lost. A count that can't be a whole number can't be read.
+            edited("a record's count that isn't whole", "decode", "reminders", 0, "alerts", from = reminded) { JsonPrimitive(2.5) },
+            edited("records that aren't a list", "decode", "reminders", from = reminded) { JsonObject(emptyMap()) },
+            edited("a record both snoozed and alerted", "map", "reminders", 0, "snoozedUntil", from = reminded) {
+                JsonPrimitive("2026-11-23T15:20:00Z")
+            },
+            edited("a record neither snoozed nor alerted", "map", "reminders", 1, "snoozedUntil", from = reminded) { null },
+            edited("alerts without a time", "map", "reminders", 0, "lastAlertAt", from = reminded) { null },
+            edited("an alert time without a count", "map", "reminders", 0, "alerts", from = reminded) { null },
+            edited("a count of 0", "map", "reminders", 0, "alerts", from = reminded) { JsonPrimitive(0) },
+            edited("a count of 5", "map", "reminders", 0, "alerts", from = reminded) { JsonPrimitive(5) },
+            edited("an instant without seconds", "map", "reminders", 1, "snoozedUntil", from = reminded) {
+                JsonPrimitive("2026-11-23T15:15Z")
+            },
+            edited("an instant with a fraction", "map", "reminders", 0, "lastAlertAt", from = reminded) {
+                JsonPrimitive("2026-11-23T15:10:00.500Z")
+            },
+            edited("an instant with an offset", "map", "reminders", 1, "snoozedUntil", from = reminded) {
+                JsonPrimitive("2026-11-23T16:15:00+01:00")
+            },
+            edited("an instant that isn't one", "map", "reminders", 0, "lastAlertAt", from = reminded) { JsonPrimitive("16h10") },
+            edited("a record's planned time with seconds", "map", "reminders", 1, "plannedAt", from = reminded) {
+                JsonPrimitive("2026-11-23T16:00:00")
+            },
+            edited("two records for one take", "map", "reminders", from = reminded) { JsonArray(it!!.jsonArray + it.jsonArray[0]) },
             case(
                 "a treatment ID twice",
                 "map",
@@ -157,6 +190,14 @@ class DamagedDataTest {
         assertEquals("map: two answers for the same take", reason("two answers for one take"))
         assertEquals("map: a time isn't written in whole minutes", reason("a time with seconds"))
         assertEquals("version: 2 isn't supported", reason("schemaVersion 2"))
+        assertEquals("map: two reminder records for the same take", reason("two records for one take"))
+        assertEquals("map: a reminder record isn't either snoozed or alerted", reason("a record both snoozed and alerted"))
+        assertEquals("map: a reminder record isn't either snoozed or alerted", reason("a record neither snoozed nor alerted"))
+        assertEquals("map: an alerted reminder record has no time", reason("alerts without a time"))
+        assertEquals("map: an alerted reminder record has no count", reason("an alert time without a count"))
+        assertEquals("map: an alerted reminder record's count is out of range", reason("a count of 5"))
+        assertEquals("map: an instant isn't written in UTC in whole seconds", reason("an instant with a fraction"))
+        assertEquals("map: an instant isn't written in UTC in whole seconds", reason("an instant with an offset"))
     }
 
     @Test
@@ -179,6 +220,14 @@ class DamagedDataTest {
             )
 
         assertEquals(Decoded.Readable(withOrphans), decodePillsData(encodePillsData(withOrphans)))
+    }
+
+    @Test
+    fun `reminder records that match no take are kept as they are`() {
+        val orphan = TakeKey(MedicineId("removed"), nov(23, 16)) to TakeReminder.Snoozed(Instant.parse("2026-11-23T15:15:00Z"))
+        val withOrphan = StoreExample.reminded.copy(reminders = ReminderState(StoreExample.reminded.reminders.takes + orphan))
+
+        assertEquals(Decoded.Readable(withOrphan), decodePillsData(encodePillsData(withOrphan)))
     }
 }
 

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "treatments": [
+    {
+      "id": "example",
+      "name": "Example",
+      "notes": "",
+      "medicines": [
+        {
+          "id": "amoxicillin",
+          "name": "Amoxicillin",
+          "dose": "1 capsule",
+          "instructions": "",
+          "schedule": {
+            "firstTake": "2026-11-23T08:00",
+            "interval": {
+              "amount": 8,
+              "unit": "hours"
+            },
+            "duration": {
+              "unit": "days",
+              "count": 7
+            }
+          },
+          "earlierSchedules": []
+        },
+        {
+          "id": "atrovent",
+          "name": "Atrovent",
+          "dose": "3 puffs",
+          "instructions": "",
+          "schedule": {
+            "firstTake": "2026-11-23T08:00",
+            "interval": {
+              "amount": 8,
+              "unit": "hours"
+            },
+            "duration": {
+              "unit": "days",
+              "count": 5
+            }
+          },
+          "earlierSchedules": []
+        }
+      ]
+    }
+  ],
+  "answers": [
+    {
+      "medicineId": "amoxicillin",
+      "plannedAt": "2026-11-23T08:00",
+      "answer": "taken",
+      "takenAt": "2026-11-23T08:05"
+    },
+    {
+      "medicineId": "atrovent",
+      "plannedAt": "2026-11-23T08:00",
+      "answer": "skipped"
+    }
+  ],
+  "reminders": [
+    {
+      "medicineId": "amoxicillin",
+      "plannedAt": "2026-11-23T16:00",
+      "alerts": 2,
+      "lastAlertAt": "2026-11-23T15:10:00Z"
+    },
+    {
+      "medicineId": "atrovent",
+      "plannedAt": "2026-11-23T16:00",
+      "snoozedUntil": "2026-11-23T15:15:00Z"
+    }
+  ]
+}

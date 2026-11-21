@@ -71,6 +71,15 @@ suspend fun TreatmentRepository.setTakenTime(
     return change { it.setTakenTime(key, at, now) }
 }
 
+/** Snoozes the take's reminder (RM-3). False when refused: the take isn't Due, or is already snoozed. */
+suspend fun TreatmentRepository.snooze(
+    key: TakeKey,
+    clock: Clock,
+): Boolean {
+    val now = ZonedDateTime.now(clock)
+    return change { it.snooze(key, now) }
+}
+
 /** Runs an action that returns `null` when refused, and says whether it was applied. */
 private suspend fun TreatmentRepository.change(action: (PillsData) -> PillsData?): Boolean {
     var applied = false

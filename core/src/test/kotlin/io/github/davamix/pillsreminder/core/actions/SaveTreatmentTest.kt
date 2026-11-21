@@ -18,6 +18,8 @@ import io.github.davamix.pillsreminder.core.model.toDraft
 import io.github.davamix.pillsreminder.core.model.treatment
 import io.github.davamix.pillsreminder.core.nov
 import io.github.davamix.pillsreminder.core.nowAt
+import io.github.davamix.pillsreminder.core.reminders.ReminderState
+import io.github.davamix.pillsreminder.core.reminders.TakeReminder
 import io.github.davamix.pillsreminder.core.schedule.MedicineTakes
 import io.github.davamix.pillsreminder.core.schedule.TakeState
 import io.github.davamix.pillsreminder.core.schedule.TreatmentStatus
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZonedDateTime
 
@@ -159,6 +162,18 @@ class SaveTreatmentTest {
         assertFalse(atrovent in saved.answers)
         assertEquals(answeredFour.answers, saved.answers)
         assertInvariants(saved, tuesday1000)
+    }
+
+    @Test
+    fun `a removed medicine's reminder record goes with it, and the others stay`() {
+        val atrovent = TakeKey(Example.atroventId, nov(24, 8)) to TakeReminder.Alerted(1, Instant.parse("2026-11-24T07:00:00Z"))
+        val amoxicillin = amox(nov(24, 8)) to TakeReminder.Snoozed(Instant.parse("2026-11-24T08:00:00Z"))
+        val data = Example.data.copy(reminders = ReminderState(mapOf(atrovent, amoxicillin)))
+
+        val saved = data.saveTreatment(draft.copy(medicines = draft.medicines.filter { it.id == amoxicillinId }), tuesday1000)
+
+        assertEquals(ReminderState(mapOf(amoxicillin)), saved.reminders)
+        assertEquals(data.reminders, data.saveTreatment(draft, tuesday1000).reminders, "an edit that removes nothing keeps them all")
     }
 
     @Test

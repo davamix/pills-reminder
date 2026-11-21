@@ -26,7 +26,7 @@ import java.time.temporal.ChronoUnit
  *
  * - A medicine whose schedule changed after it started keeps its takes up to the cut-off, the later of now and its
  *   last answered take, under an [EarlierSchedule]; the new schedule's takes after the cut-off replace the rest (TR-10).
- * - A stored medicine missing from the draft is removed with its answers.
+ * - A stored medicine missing from the draft is removed with its answers and its reminder record (P5-D8).
  * - Names, dose, instructions and notes are saved trimmed.
  */
 fun PillsData.saveTreatment(
@@ -53,6 +53,7 @@ fun PillsData.saveTreatment(
     return copy(
         treatments = if (stored == null) treatments + treatment else treatments.map { if (it.id == draft.id) treatment else it },
         answers = answers.filterKeys { it.medicineId !in removed },
+        reminders = reminders.without(removed),
     )
 }
 
@@ -82,11 +83,18 @@ fun PillsData.endTreatment(
     return copy(treatments = treatments.map { if (it.id == id) ended else it })
 }
 
-/** Deletes the treatment and every answer of its medicines (TR-9). `null` if there is no such treatment. */
+/**
+ * Deletes the treatment, every answer of its medicines (TR-9), and their reminder records (P5-D8). `null` if there is no
+ * such treatment.
+ */
 fun PillsData.deleteTreatment(id: TreatmentId): PillsData? {
     val treatment = treatment(id) ?: return null
     val medicines = treatment.medicines.map { it.id }.toSet()
-    return copy(treatments = treatments - treatment, answers = answers.filterKeys { it.medicineId !in medicines })
+    return copy(
+        treatments = treatments - treatment,
+        answers = answers.filterKeys { it.medicineId !in medicines },
+        reminders = reminders.without(medicines),
+    )
 }
 
 /** The draft's medicine, merged with the stored one of the same ID, if any (SPEC §4.3.6). */
