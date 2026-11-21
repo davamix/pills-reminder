@@ -80,6 +80,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-21 | T5's details, where SPEC §4.1–§4.3 is silent or names them otherwise: the three receivers in one file, `Receivers.kt`; `AlarmClockWakeUp(context, action, log)` tells the test alarm apart by its action (`…WAKE_UP.TEST`), which `dumpsys alarm` shows as its tag, and `AlarmReceiver` takes any action starting with `…WAKE_UP`; the summary's tag is `<prefix>-summary` and the group is `…group.<prefix>`, so a test's notifications form a group of their own; a reminder with no dose has the medicine alone as its title; `MainActivity.onStart` reconciles through `Reminders.runAsync`, in the process's scope; `FileReminderLog` stamps its lines with the container's clock. To fold into the SPEC in T9, with T4's. | The tests' alarm must show in `dumpsys alarm` apart from the app's; a title "Minutes: " would be odd. |
 | 2026-11-21 | T6's details, where SPEC §4.3.9 is silent or says otherwise: the screen shows **the next alarm clock** from `AlarmManager.getNextAlarmClock()`, with whether it is this app's, rather than whether the alarm's `PendingIntent` exists (a `PendingIntent` can outlive its alarm); what it reads from the device goes through a `DebugDevice` interface; it refreshes every 2 s and after each action **only while visible** (`WhileSubscribed`), so a debug screen left in the background never wakes the phone during a device run; End and Delete are full-width buttons, one under the other; `AndroidReminderShade.TAG_PREFIX` and `FileReminderLog.FILE_NAME` are shared constants. To fold into the SPEC in T9. | Side by side, the two buttons broke "treatments" mid-word at font scale 2 (the drawings). |
 | 2026-11-21 | T7's details, where SPEC §4.3.8 is silent: `MainActivity` also ignores the take of an intent **relaunched from Recents** (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`); the take opens **right above Home** (`popUpTo<HomeRoute>`, `launchSingleTop`), so whatever was open above Home closes; an intent with no take (the summary's tap, the alarm clock's) leaves an existing activity on the screen it was on, and opens Home only when the app starts; `ReminderIntents.openTakeIntent` and `takeOf(intent)` (in `MainActivity.kt`) are `internal`, for `OpenTakeTest`. To fold into the SPEC in T9. | A task relaunched from Recents after its activity was finished gets the intent that started it, which may be a tap from days ago. "Back returns to Home" holds whatever was open: as Navigation does with deep links. |
+| 2026-11-21 | T8: the night in natural deep Doze (M7) runs once, with **stock** settings, rather than relaxed as §6's done criterion reads. Decided by the user. To fold into the SPEC (§6, §8) in T9. | Stock settings are the stricter case, and how the phone will be used (battery saver at its default): alarm clocks on time then are on time with the settings relaxed too. |
 | 2026-11-21 | `@SuppressLint("MissingPermission")` on `setAlarmClock`. | Lint wants `SCHEDULE_EXACT_ALARM`; `USE_EXACT_ALARM` covers alarm clocks (D-8), and `canScheduleExactAlarms()` is checked first. Without the suppression Lint warned (checked in T5). |
 | 2026-11-21 | The natural deep-Doze night moved from T1 to T8 (M7). | Alarm clocks 10 minutes apart keep the phone out of deep Doze; the night needs reminders hours apart, which T8's test treatment gives. Forced deep Doze already passed. |
 
@@ -187,6 +188,27 @@ Afterwards the probe's notifications and both channels were removed (`probe.CLEA
 **Both contradict the specification:** `RM-8` says a reminder appears without sound in Do Not Disturb, and `RM-2` and spec Q20 say it never vibrates. To decide with the user (SPEC Q6, Q7): leaving out the *reminder* category would let Do Not Disturb silence it; giving the channel its own imperceptible vibration (a pattern of 1 ms) would stop Android's fallback vibration in vibrate mode. Or the specification changes.
 
 - Each record shows `timeout=PT72H`, which the probe didn't set: to check whether Android 16 removes a notification after 72 hours. The reconcile would post it again at the next run (P4-D2), but a weekly medicine's reminder can stay Due for a week.
+
+## Device runs (T8)
+
+The phone, as in "Measurements": POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, wireless debugging only, unplugged, battery 60 %. This branch's debug build with T7. Each alert's lateness is the reminder log's `late=`, from the planned instant to the reconcile's now. Times are local (CET); the log's are UTC.
+
+**Stock settings, 2026-11-21 evening:** Autostart off (HyperOS op 10008 `ignore`), battery saver at its default, battery optimisation on, standby bucket 20. Normal ring mode, Do Not Disturb off. A test treatment every 5 minutes, no end, one medicine: each take alerts once, and is Missed at the next.
+
+| Take | Setup | Result |
+|---|---|---|
+| 21:19 | Debug screen in front, screen on | Late 36 ms |
+| 21:24 | M8: the user swiped the app from Recents at 21:21:12 (`am_kill … SwipeUpClean`) | Late 851 ms, in a new process (`reconcile alarm`, then `app_start`); the 21:19 reminder removed |
+| 21:29 | M7, screen off (since 21:26:26, `mWakefulness=Dozing`) | Late 29 ms |
+| 21:34 | M9: `end_process` at 21:29:22 (`am kill`), `pidof` empty, the alarm still listed | Late 802 ms, in a new process |
+| 21:39 | M11, Autostart off: `gradle installDebug` at 21:35:17, the 21:34 reminder in the shade | The alarm survived; the reminder went at the update and wasn't posted again: HyperOS refused `MY_PACKAGE_REPLACED` ("process is not permitted to auto start"). The 21:39 take late 834 ms, in a new process; the 21:34 take was Missed by then |
+| 21:44 | M12: *Force stop* by the user at 21:39:17 | No alarm (`alarms` empty), `stopped=true`, nothing at 21:44. Opened by the user at 21:45:00: `app_start` alerted the 21:44 take (60.3 s late) and set the alarm for 21:49 at once |
+| 21:49 | Normal | Late 31 ms |
+| 21:54 | M10: the user restarted the phone at about 21:49:30 (booted 21:49:51) and unlocked it at 21:56:05.9 (`am_user_state_changed [0,3]`) | `reconcile boot` 8.4 s after the unlock alerted the 21:54 take; the alarm set again, for 21:59 |
+
+All on time, except where the app couldn't run (Force stop, the restart before the unlock), as the SPEC expects.
+
+**The night, stock settings (M7):** a test treatment every 180 minutes, no end, from 01:00 on 2026-11-22 (01:00, 04:00, 07:00, each with repeats at +10, +20, +30 minutes), created at 21:58:30. The 5-minute treatment deleted first. The phone unplugged and still, Do Not Disturb or Silent mode for the night (the user's choice). To read in the morning: each alert's lateness, and the idling history (`dumpsys deviceidle`) for `deep-idle`.
 
 ## Known issues
 
