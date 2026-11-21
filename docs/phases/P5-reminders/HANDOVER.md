@@ -148,6 +148,14 @@ So the phone doesn't enter deep Doze in the 30 minutes before an alarm clock. If
 
 Then the clock and the zone were put back (`set-time` to the PC's time, `set-timezone Europe/Paris`); automatic time and zone stayed on. The shell **can** change the emulator's time and zone with `cmd alarm set-time` and `set-timezone`, unlike `cmd time_zone_detector` (the `phone` skill says it can't): for the skills review in `phase-close`. Never on the phone.
 
+**T2 on the emulator** (the notification probe: `NotificationProbe.kt` in the same excluded folder, commands through `NotificationProbeControl`, its own channel `probe_reminders`; 2026-11-21 12:56 UTC):
+
+- **`Notification.Builder.setSilent()` doesn't exist** on the platform: it is AndroidX's `NotificationCompat`, which mutes a post by making it a group child with `GROUP_ALERT_SUMMARY`. SPEC P5-D4 and §4.3.4 name it wrongly. The probe posts silently that way: a child with `GROUP_ALERT_SUMMARY` (muted), an alert with `GROUP_ALERT_CHILDREN`, and the summary with `GROUP_ALERT_CHILDREN` (always muted). To fix in the SPEC.
+- **The channel's lock-screen visibility can't be set by the app:** after `lockscreenVisibility = VISIBILITY_PUBLIC`, the created channel reads `-1000` (`VISIBILITY_NO_OVERRIDE`). Lock-screen content then follows each notification's own `setVisibility(VISIBILITY_PUBLIC)` (`vis=1` in the record). SPEC §4.3.4's channel table says otherwise: to fix.
+- The channel: importance 4 (high), `shouldVibrate()` false, the default notification sound, no Do Not Disturb bypass.
+- Two reminders posted 80 ms apart in the group, both with sound: both shown heads-up (`airtimeCount=1` each), but **one sound**: `mSoundNotificationKey` names the first. `RM-4` and Q4 allow it.
+- Each record shows `timeout=PT72H`, which the probe didn't set: to check whether Android 16 removes a notification after 72 hours. The reconcile would post it again at the next run (P4-D2), but a weekly medicine's reminder can stay Due for a week.
+
 ## Known issues
 
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
