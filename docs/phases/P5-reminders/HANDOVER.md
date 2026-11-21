@@ -170,6 +170,19 @@ Then the clock and the zone were put back (`set-time` to the PC's time, `set-tim
 | N5 | 14:16 | Home screen, then `end_process` (`am kill`; `pidof` empty), then the user tapped Test C | **The app opened:** `START u0 {id=open/C … MainActivity (has extras)}`, then `Start proc … for next-top-activity`. HyperOS didn't block it. |
 | Update with reminders | 14:16 | 10 of the app's notifications in the shade, then `gradle installDebug` | **All removed:** 0 after the update. Installing force-stops the app, and Android cancels a force-stopped app's notifications; a *Force stop* (A7) does the same. With Autostart off, `MY_PACKAGE_REPLACED` is blocked (A5), so the reminders stay gone until the next alarm or until the app is opened. |
 
+| Update, Autostart on | 14:19 | The user turned **Autostart on**; `gradle installDebug` | **`MY_PACKAGE_REPLACED` reached the receiver,** 10 s after the install started, in a new process. Autostart is what the update broadcast needs. |
+| Fixes | 14:20–14:21 | A second channel with its own vibration, `vibrationPattern = [0, 1]` (1 ms); Q1 in normal mode and Q2 in vibrate mode on it; Q3 on it with **no category**, in Do Not Disturb | Q1: sound, as before (`buzz=1, beep=1`). Q2: **the user felt a vibration** (`buzz=1, beep=0`): a channel vibration of 1 ms doesn't prevent it. Q3: **no alert at all**, no pop-up, in the shade: Do Not Disturb holds back a notification without the *reminder* category. |
+
+Afterwards the probe's notifications and both channels were removed (`probe.CLEANUP`). Autostart was left **on**, as the user turned it.
+
+**What T1 and T2 mean for P7's reminder check (`RM-9`),** on this phone:
+
+- **Notification permission:** needed (Android).
+- **Exact alarms:** `USE_EXACT_ALARM` is granted at install on Android 13 and 16; the check only confirms it.
+- **Battery optimisation, and HyperOS's battery saver:** not needed. With both at their defaults, alarm clocks were on time in every case: screen off, light and deep Doze, the process ended, a swipe from Recents, after an update. Exempting the app didn't help exact alarms either.
+- **Autostart:** needed only for `MY_PACKAGE_REPLACED`, so that reminders come back right after an app update, which removes them. With it off, `BOOT_COMPLETED` still arrived after a restart.
+- **HyperOS's notification settings** for the app, "Floating notifications" and "Lock screen notifications": on by default. Worth listing as steps to confirm, since turning them off would hide the pop-up and the lock screen content.
+
 **HyperOS keeps at most 10 notifications per app:** when DND1 was posted, with 10 of the app's notifications already in the shade (A to M4 and the summary), HyperOS cancelled the oldest, `take/A`, 2 ms later (`notification_canceled … take/A … reason 8`, `REASON_APP_CANCEL`, though the app cancelled nothing). The shade then held 9 reminders and the summary. A medicine has at most one Due take, so this matters only with 10 or more medicines due at once; the reconcile would post the dropped one again, which would drop another.
 
 **Both contradict the specification:** `RM-8` says a reminder appears without sound in Do Not Disturb, and `RM-2` and spec Q20 say it never vibrates. To decide with the user (SPEC Q6, Q7): leaving out the *reminder* category would let Do Not Disturb silence it; giving the channel its own imperceptible vibration (a pattern of 1 ms) would stop Android's fallback vibration in vibrate mode. Or the specification changes.
