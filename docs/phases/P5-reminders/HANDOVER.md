@@ -113,6 +113,41 @@ After run 3, the user set the battery saver back to its default (`reminder_healt
 
 **No deep Doze that night,** only light Doze: the idling history has 46 `light-idle` periods, 37 `light-maint` windows and 17 returns to `normal`, mostly marked `(alarm)`, and no `deep` entry. Android doesn't enter deep Doze while an alarm clock is due within `min_time_to_alarm` (30 minutes on this phone), and these came every 10. Real reminders are hours apart, so the phone will reach deep Doze between them: deep Doze is still to be measured, forced (`doze_on`) and natural (an alarm clock more than an hour away, the phone left still).
 
+| # | When (UTC) | Setup | Result |
+|---|---|---|---|
+| A2 forced Doze | 2026-11-21 12:12–12:21 | 3 alarm clocks: +150 s, then 3 min apart; `doze_on` right after setting them; stock settings, screen off | **Deep Doze didn't start:** `doze_state` said `deep=INACTIVE` after `doze_on`, and the phone went into light Doze. Android refuses deep idle, even forced, while a wake-from-idle alarm (an alarm clock) is due within `min_time_to_alarm`, 30 minutes. The three alarm clocks: late 34, 68 and 57 ms. |
+
+So the phone doesn't enter deep Doze in the 30 minutes before an alarm clock. If it is already in deep Doze when that window starts, as it will be with reminders hours apart, the alarm clock itself is what must bring it out, on time. That is the case still to measure: an alarm clock more than 30 minutes ahead, with `doze_on` straight after it is set.
+
+| # | When (UTC) | Setup | Result |
+|---|---|---|---|
+| A2 process ended | 2026-11-21 12:22–12:25 | An alarm clock at +180 s, then `end_process` (`am kill`; `pidof` empty afterwards). Stock settings, Autostart off, screen off. | **On time:** late 491 ms, in a new process (pid 10012, started at the alarm): the alarm clock started the app's process with Autostart off. |
+| A2 swipe | 2026-11-21 12:27–12:31 | The user opened the app; an alarm clock at +240 s; the user swiped the app from Recents and locked the phone. Stock settings, Autostart off. | The swipe ended the process (at 12:27:54) and removed the app from Recents. **On time:** late 307 ms, in a new process (pid 10950). |
+| A4 restart | 2026-11-21 12:32–12:40 | An alarm clock at +180 s, then the user restarted the phone; it fired (late 22 ms) before the restart, so the restart's clearing of alarms wasn't seen (`alarms` empty after it, as expected). Booted 12:38:09; the user unlocked at 12:39:18 (`keyguardGoingAway`; `am_user_state_changed [0,3]` at 12:39:20.66). Stock settings, **Autostart off**. Wireless debugging reconnected by itself. | `BOOT_COMPLETED` reached the receiver that isn't exported, in a new process, at 12:40:20.0: **59.3 s after the unlock**. Autostart off didn't block it. Android delivered it to 215 receivers in turn (`BOOT_COMPLETED_BROADCAST_COMPLETION_LATENCY_REPORTED … completeLatency:60120 … receiversSize:215`), and the app's came near the end. `LOCKED_BOOT_COMPLETED` had gone at 12:38:11. |
+
+**After a restart, the reconcile can start up to a minute after the unlock,** because the app waits its turn among every app's `BOOT_COMPLETED` receivers. It is within `NF-1`'s minute here, but grows with the number of apps. To try: `android:priority="999"` on the intent filter, since Android delivers this broadcast in priority order.
+
+| # | When (UTC) | Setup | Result |
+|---|---|---|---|
+| A5 update | 2026-11-21 12:41–12:46 | An alarm clock at +240 s, then `gradle installDebug` (an update: the probe with `android:priority="999"` on its intent filter). Stock settings, Autostart off. | **The alarm survived the update** (`alarms` listed it before and after) and fired late 875 ms, in a new process. **`MY_PACKAGE_REPLACED` was blocked:** `BroadcastQueueInjector: Unable to launch app … for broadcast Intent { act=android.intent.action.MY_PACKAGE_REPLACED … }: process is not permitted to  auto start`. HyperOS force-stops the app during the install (`AutoStartManagerService: prepare force stop`). |
+
+**With Autostart off,** HyperOS blocks `MY_PACKAGE_REPLACED`, but let `BOOT_COMPLETED` through (A4). The alarm survives an update by itself, so the next reminder still comes; what an update does to the notifications in the shade is for T2. Updates come only from the PC (`NF-9`). To try with Autostart on.
+
+| # | When (UTC) | Setup | Result |
+|---|---|---|---|
+| A4 restart 2 | 2026-11-21 12:47–12:50 | The same as the first restart, with `android:priority="999"` on the receiver's intent filter. The user unlocked at 12:50:12 (`am_user_state_changed [0,3]` at 12:50:13.92). Wireless debugging took about a minute to reconnect after the unlock. | `BOOT_COMPLETED` at 12:50:22.6: **8.7 s after the unlock** (the process started at 12:50:21.0), against 59.3 s without the priority. Autostart off didn't block it. |
+| A7 Force stop | 12:51 | An alarm clock at +300 s, then `force_stop` | `alarms`: 1 before, **0 after**. The app is then in Android's stopped state: it gets no broadcast, the shell's included, until it is opened. |
+
+**On the emulator** (`PillsReminder_API_36`, Android 16, API 36), 2026-11-21 12:52–12:54 UTC:
+
+| # | Setup | Result |
+|---|---|---|
+| A1 | `gradle installDebug` | `USE_EXACT_ALARM: granted=true`; `canScheduleExactAlarms()` true; an alarm clock 30 s ahead fired 3 ms late. `MY_PACKAGE_REPLACED` reached the receiver at the install (no HyperOS here). |
+| A6 zone | The app open (pid 3240); `cmd alarm set-timezone Europe/London` from the shell | `TIMEZONE_CHANGED` reached the receiver that isn't exported, in the same process; `ZoneId.systemDefault()` and `CurrentZoneClock().zone` both said Europe/London: **P2's pending check passes.** |
+| A6 time | `cmd alarm set-time <now + 1 h in ms>` | `TIME_SET` reached the receiver, in the same process. |
+
+Then the clock and the zone were put back (`set-time` to the PC's time, `set-timezone Europe/Paris`); automatic time and zone stayed on. The shell **can** change the emulator's time and zone with `cmd alarm set-time` and `set-timezone`, unlike `cmd time_zone_detector` (the `phone` skill says it can't): for the skills review in `phase-close`. Never on the phone.
+
 ## Known issues
 
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
