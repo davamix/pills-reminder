@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.3 |
+| **Status** | Ready, v0.4 |
 | **Phase** | P5, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P3, P4 |
 | **Branch** | `phase/p5-reminders` |
@@ -24,20 +24,20 @@ Before relying on the phone's behaviour, P5 measures it, in Doze, after a swipe 
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.7), so this document stands on its own.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.8), so this document stands on its own.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
 | RM-1 | "When a take is due, the phone alerts with a reminder that names the medicine, the dose and the treatment, for example "Amoxicillin: 1 capsule" and "Example". It also shows the medicine's instructions, if it has any." | The notification's title is "Amoxicillin: 1 capsule", and its text "Example · with food", or only "Example" without instructions (§4.3.4). The text comes from the data at each reconcile, so an edit updates it. |
-| RM-2 | "A reminder is a heads-up notification with sound, without vibration. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved." | A high-importance channel with the default sound and vibration off (`D-10`). The alarm clock and the receivers make it alert with the app closed, the screen off, and after a restart, once the phone is unlocked (`D-16`). Checked on the phone (§6). |
+| RM-2 | "A reminder is a heads-up notification with sound, without vibration. In vibrate mode it vibrates instead of sounding, as Android does with every notification. It alerts whether the app is open or closed, the screen is on or off, the phone is locked, or the phone has restarted since the treatment was saved." | A high-importance channel with the default sound and vibration off (`D-10`); in vibrate mode Android vibrates instead (Q7). The alarm clock and the receivers make it alert with the app closed, the screen off, and after a restart, once the phone is unlocked (`D-16`). Checked on the phone (§6). |
 | RM-3 | "A reminder has three actions: **Taken**, **Snooze** and **Skip**. Taken and Skip record the answer (`TK-2`) and remove the reminder. Snooze removes it, and alerts again 10 minutes later. From then on it repeats as in `RM-5`, every 10 minutes, up to 3 times, and it can be snoozed again." | Three action buttons, each an explicit, immutable `PendingIntent` to a receiver that records the answer or the snooze, then runs the reconcile (§4.3.5). The snooze is stored in P4's reminder state (§4.3.7). |
-| RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound." | One notification per take, identified by its take key, in one group with a summary (§4.3.4). Each is posted with sound; whether Android plays one sound or two is measured in T2 (Q4). |
+| RM-4 | "Each take has its own reminder, so takes due at the same time are answered separately. Android groups them in the notification shade. Reminders that alert at the same moment may play a single sound." | One notification per take, identified by its take key, in one group with a summary (§4.3.4). Each is posted with sound; on the phone, Android played one sound for two posted together (T2, Q4). |
 | RM-5 | "A reminder that isn't answered stays in the notification shade, and alerts again every 10 minutes, up to 3 times. After that it stays there silently, until it is answered or the take becomes Missed (`TK-3`). Each repeat comes 10 minutes after the alert before it, so a reminder whose first alert came late, for example after the phone restarted, still repeats 3 times. Swiping a reminder away doesn't answer or snooze its take: the reminder comes back with its next repeat, or, once its repeats are over, silently the next time the app updates its reminders, for example when the app is opened." | The reconcile posts a reminder with sound when the plan says it alerts, and leaves it in the shade otherwise. A tap doesn't dismiss it. A reminder swiped away is posted again at the next reconcile (Q2). The timing is P4's. |
 | RM-6 | "Tapping a reminder opens the app on that take." | The notification opens `MainActivity` on the take's `TakeRoute`. Until P6 is merged, that is the Take placeholder (§4.3.8). |
 | RM-7 | "When a take is answered in the app, or becomes Missed, its reminder is removed from the shade." | The reconcile runs after every change of the stored data, so an answer given anywhere in the app removes the reminder (P5-D2). The Missed moment is one of the plan's wake-ups. |
-| RM-8 | "Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound." | The channel doesn't bypass Do Not Disturb, and its sound plays on the notification stream, which follows silent mode. Checked on the phone (§6). |
+| RM-8 | "Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound." | The channel doesn't bypass Do Not Disturb, and the notifications have no category, since HyperOS lets the *reminder* category through Do Not Disturb (Q6). The sound plays on the notification stream, which follows silent mode. Checked on the phone (T2, §6). |
 | RM-9 | "**Reminder check:** the app checks what its reminders depend on: the notification permission, the exact-alarm permission, and Android's battery optimisation for the app. It shows what is missing, each with a button that opens the right settings screen. HyperOS's own settings (Autostart, battery saver), which the app can't read, are listed as steps for you to confirm. The check is shown on first launch and in Settings, and the home screen warns while something is missing." | P5's part: measure which of HyperOS's settings reminders need, and which defaults get in the way (T1, T2), and leave P7 the list. P5 declares the permissions (§4.1). The check itself is P7's. |
-| RM-11 | "The lock screen shows a reminder's full content." | Public visibility on the channel and on each notification. Checked on the phone's lock screen. |
+| RM-11 | "The lock screen shows a reminder's full content." | Public visibility on each notification; an app can't set the channel's (Q8). Checked on the phone's lock screen (T2). |
 | TR-6 | "A medicine can have optional instructions, such as "with food", which its reminder shows." | In the reminder's text (RM-1). |
 | TR-9 | "Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment." | The reminder side: the reconcile that follows the delete removes the treatment's reminders. The delete also drops their reminder records in the same write (P5-D8). |
 | TR-11 | "A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer." | The reminder side: the reconcile that follows the end removes the reminder of the take that was due, and no alarm is set for the treatment again. |
@@ -90,7 +90,7 @@ From the example (spec §4.4): "At 16:00 two reminders alert, "Amoxicillin: 1 ca
 | D-7 | "**One alarm at a time.** The app keeps a single exact alarm, set for the next moment something must happen: a take becomes due, a reminder alerts again, a snooze ends, or a take becomes Missed. When it fires, and after every change, a **reconcile** works out what the notification shade should show now, posts or removes notifications, and sets the next alarm." |
 | D-8 | Plan v0.5, from T1: "The alarm is an **alarm clock**, `setAlarmClock()`, with the `USE_EXACT_ALARM` permission. That permission is granted at install and can't be revoked. Google Play restricts it to clock and calendar apps, but this app is never published there (`NF-9`). It shows an alarm icon in the status bar while a reminder is pending, which PQ-2 accepted." Its reason: "with the screen off, HyperOS held the app's `setExactAndAllowWhileIdle()` alarms until a 5-minute grid, up to 4 min 15 s late, outside Doze too, and also with the app exempt from battery optimisation. `setAlarmClock()` alarms came within 0.1 s with stock settings." |
 | D-9 | "**Reconcile on every event that can lose an alarm.** Receivers for `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED`, `TIME_SET` and `TIMEZONE_CHANGED`, and the app's start, all run the reconcile. Receivers do their short work with `goAsync()`." "Opening the app after a *Force stop* sets the alarm again. Nothing runs between reminders (`NF-5`)." |
-| D-10 | "**One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, full content on the lock screen, category *reminder*, and no Do Not Disturb bypass. Each take has its own notification, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported." "A channel's sound and vibration are set when it is created, so they are right from the first install." |
+| D-10 | Plan v0.6, from T2: "**One notification channel**, "Reminders": high importance (heads-up), the default notification sound, vibration off, and no Do Not Disturb bypass. Each take has its own notification, public on the lock screen, with **no category**, in one group, with Taken, Snooze and Skip actions. Each action is an explicit, immutable `PendingIntent` to a receiver that isn't exported." "A channel's sound and vibration are set when it is created, so they are right from the first install." |
 | D-15 | "**Debug builds can schedule in minutes.** They add a "minutes" unit to the interval, and a debug screen that creates a test schedule and shows the next alarm. Release builds have neither." |
 | D-16 | "The data stays in Android's default, credential-encrypted storage. After a restart, reminders start again once the phone has been unlocked for the first time. A reminder that came due in between alerts as soon as the phone is unlocked." |
 
@@ -358,6 +358,8 @@ sequenceDiagram
 - **Receivers wait for their own reconcile** before `finish()`, so the process stays alive until the shade and the alarm are right. The observer's reconcile that may follow finds nothing to do.
 - **After a *Force stop*,** nothing runs until the app is opened. Opening it starts the process, and `APP_START` sets the alarm again (`NF-2`).
 - **After the notification permission is granted,** for example by P7's check, `APP_OPEN` posts the reminders the plan holds, silently.
+- **After an app update,** Android has removed the app's notifications: installing force-stops the app, and so does a *Force stop* (T2). `PACKAGE_REPLACED` posts them again, silently. With Autostart off, HyperOS blocks that broadcast ("process is not permitted to auto start", T1), so they come back only at the next alarm or when the app is opened. Autostart is on P7's list (Q10).
+- **After a restart,** `BOOT_COMPLETED` came 59 s after the unlock, behind 215 other receivers, and 8.7 s after it with the intent filter's priority at 999 (§4.3.6, Q9). Autostart off didn't block it.
 
 #### 4.3.3 The alarm
 
@@ -367,7 +369,8 @@ sequenceDiagram
 - **The status bar** shows an alarm icon while the alarm is set, so while any take is still to come; quick settings and the lock screen may show its time. PQ-2 accepted it.
 - **Without the exact-alarm permission** (`canScheduleExactAlarms()` false, which `USE_EXACT_ALARM` should never allow; alarm clocks need it too): `setAndAllowWhileIdle`, so reminders still come, late, rather than the receiver crashing on a `SecurityException`. Debug builds log it. P7's check shows the permission as missing.
 - **A time in the past** is set as it is: Android fires it within seconds (about 5 s on the phone, T1).
-- **Restarts** clear every alarm; `BOOT` sets it again. Whether an update keeps it is measured in T1; `PACKAGE_REPLACED` sets it again either way.
+- **Restarts** clear every alarm; `BOOT` sets it again. An update keeps it (T1); `PACKAGE_REPLACED` sets it again anyway, when HyperOS lets the broadcast through (Q10).
+- **Doze** (T1): Android doesn't enter deep Doze in the 30 minutes before an alarm clock (`min_time_to_alarm`), and leaves deep Doze about 5 minutes before one. Alarm clocks were on time in light and deep Doze, after the process ended and after a swipe from Recents, with stock settings.
 
 #### 4.3.4 Notifications
 
@@ -378,11 +381,11 @@ sequenceDiagram
 | ID, name | `reminders`, "Reminders" |
 | Importance | `IMPORTANCE_HIGH`: heads-up (`RM-2`) |
 | Sound | The default notification sound, on the notification stream, which follows silent mode (`RM-8`) |
-| Vibration | Off: `enableVibration(false)` (`RM-2`) |
-| Lock screen | `VISIBILITY_PUBLIC`: full content (`RM-11`) |
+| Vibration | Off: `enableVibration(false)` (`RM-2`). In vibrate mode Android vibrates instead of sounding all the same, with its fallback vibration (`RM-2`, Q7). |
 | Do Not Disturb | No bypass (`RM-8`) |
 
-Android keeps a channel's sound, vibration and importance as first created, and the user's changes to them. Changing them later needs a new channel ID, with the old channel deleted.
+- **The lock screen** isn't the channel's to set: Android ignores an app's `lockscreenVisibility` and keeps `VISIBILITY_NO_OVERRIDE` (T2). Each notification is public itself (below), which the lock screen follows (`RM-11`, Q8).
+- Android keeps a channel's sound, vibration and importance as first created, and the user's changes to them. Changing them later needs a new channel ID, with the old channel deleted.
 
 **One notification per Due take** (`RM-4`):
 
@@ -392,8 +395,9 @@ Android keeps a channel's sound, vibration and importance as first created, and 
 | Title | `"%1$s: %2$s"`, medicine and dose: "Amoxicillin: 1 capsule" (`RM-1`) |
 | Text | `"%1$s · %2$s"`, treatment and instructions: "Example · with food"; or only the treatment, "Example", without instructions (`TR-6`). Treatment notes aren't shown. |
 | Time | `setWhen(dueAt)`, shown: the time the take fell due, such as 16:00, not when it was posted (P5-D7). |
-| Category, visibility | `CATEGORY_REMINDER`, `VISIBILITY_PUBLIC` |
-| Group | One group for all reminders, `GROUP_ALERT_CHILDREN`, with a summary (P5-D6) |
+| Category | **None.** HyperOS's Do Not Disturb lets the *reminder* category sound, and shows no setting to change it; without a category, Do Not Disturb holds the sound and the pop-up back, and the reminder stays in the shade (`RM-8`, Q6). |
+| Visibility | `VISIBILITY_PUBLIC`: the full content on the lock screen (`RM-11`, Q8) |
+| Group | One group for all reminders, with a summary (P5-D6). The group alert behaviour chooses between alert and silent (below). |
 | Actions | **Taken**, **Snooze**, **Skip**: explicit, immutable broadcast `PendingIntent`s to `ReminderActionReceiver`, one per take and action (§4.3.5). They work from the lock screen without unlocking (P5-D7). |
 | Tap | Opens the take (`RM-6`, §4.3.8). `setAutoCancel(false)`: the reminder stays until it is answered or Missed (`RM-5`). |
 | Small icon | `ic_notification`, a monochrome pill |
@@ -401,14 +405,18 @@ Android keeps a channel's sound, vibration and importance as first created, and 
 
 **Alert or silent:**
 
-- **Alert:** posted with sound, even when it is already in the shade, as for a repeat. `setOnlyAlertOnce(false)`, so an update sounds again. T2 measures whether an update also shows heads-up again.
-- **Silent:** `setSilent(true)`, and only when the reminder isn't in the shade, or its fingerprint changed (an edit of the name or dose). Otherwise it isn't posted at all (P5-D5). Android drops updates above about 5 a second per app, which needless reposts could reach, and an alert must never be dropped.
+- **Alert:** `setGroupAlertBehavior(GROUP_ALERT_CHILDREN)` and `setOnlyAlertOnce(false)`: it sounds and pops up, also as an update of a reminder already in the shade, as for a repeat (T2: a repeat sounded again and popped up).
+- **Silent:** `setGroupAlertBehavior(GROUP_ALERT_SUMMARY)`: Android mutes a group child that only its summary may alert for, with no sound, no vibration and no pop-up. The platform has no `setSilent()`; that is AndroidX's `NotificationCompat`, which does the same (Q8). Posted only when the reminder isn't in the shade, or its fingerprint changed (an edit of the name or dose). Otherwise it isn't posted at all (P5-D5). Android drops updates above about 5 a second per app, which needless reposts could reach, and an alert must never be dropped.
 
-**The summary:** tag `summary`, posted silently while the plan holds at least one reminder, and again only when the count changes; removed when it holds none. Its text says how many takes are due; tapping it opens the app.
+**The summary:** tag `summary`, with `GROUP_ALERT_CHILDREN`, so it never alerts; posted while the plan holds at least one reminder, and again only when the count changes; removed when it holds none. Its text says how many takes are due; tapping it opens the app.
+
+**HyperOS keeps at most 10 notifications per app,** the summary included, and drops the oldest (T2). A medicine has at most one Due take, so only 10 or more medicines due at once would reach it.
 
 **Swiping a reminder away** (Q2): it doesn't answer or snooze the take. The take is still Due, so the next reconcile posts it again: with sound if a repeat is due then, silently otherwise.
 
-**Two reminders that alert at once** (Q4): both are posted, each with sound. Whether Android plays one sound or two is measured in T2; either meets `RM-4`.
+**Two reminders that alert at once** (Q4): both are posted, each with sound, and both pop up. On the phone, Android played one sound for the two (T2), which `RM-4` allows.
+
+**The ring modes** (T2, Q7): normal mode sounds; HyperOS's Silent mode shows the reminder with no sound and no vibration; vibrate mode vibrates instead of sounding, as Android does with every notification; Do Not Disturb shows it in the shade only (`RM-2`, `RM-8`).
 
 **Without the notification permission,** posts are dropped by Android. The reconcile still records the alerts. P7's check shows the permission as missing.
 
@@ -437,7 +445,8 @@ Android keeps a channel's sound, vibration and importance as first created, and 
 <receiver android:name=".reminders.AlarmReceiver" android:exported="false" />
 <receiver android:name=".reminders.ReminderActionReceiver" android:exported="false" />
 <receiver android:name=".reminders.SystemEventReceiver" android:exported="false">
-    <intent-filter>
+    <!-- BOOT_COMPLETED goes to every app's receivers in turn, in priority order: 999 put the app near the front (Q9). -->
+    <intent-filter android:priority="999">
         <action android:name="android.intent.action.BOOT_COMPLETED" />
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
         <action android:name="android.intent.action.TIME_SET" />
@@ -446,7 +455,8 @@ Android keeps a channel's sound, vibration and importance as first created, and 
 </receiver>
 ```
 
-- **No receiver is exported** (plan §3). The system delivers its own broadcasts to them; T1 confirms each one on the devices. The alarm and the actions reach theirs through explicit `PendingIntent`s.
+- **No receiver is exported** (plan §3). The system delivers its own broadcasts to them: T1 saw `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` on the phone, and `TIME_SET`, `TIMEZONE_CHANGED` and `MY_PACKAGE_REPLACED` on the emulator. The alarm and the actions reach theirs through explicit `PendingIntent`s, from the lock screen too (T2).
+- **The priority** (Q9) only orders this app's receiver among the other apps' receivers of the same broadcast. 999 is the highest an app may use; 1000 and above are the system's.
 - **No `android:process`**: DataStore works in one process only (P3).
 - **No `directBootAware`**: the data is in credential-encrypted storage, so nothing runs before the first unlock (`D-16`). `BOOT_COMPLETED` comes after it.
 - Every receiver calls `goAsync()` and finishes when its work ends (`Reminders.runAsync`). The work is short: one read and one write of a small file.
@@ -573,9 +583,9 @@ The §4.4 example on the phone, Monday 23 November 2026 (P4 SPEC §4.3.9 has the
 | P5-D1 | `PillsData.reminders` is stored in format version 1, as an optional `reminders` list, left out when empty. A new golden file holds it; `pills-v1.json` doesn't change. | P3 SPEC §4.3.6: a change that version-1 files still decode as keeps version 1, with a golden test of the new field. Leaving it out when empty keeps data without records byte for byte as before. |
 | P5-D2 | The reconcile runs on every change of the stored data, from an observer of `repository.data` started with the app. Receivers also call it and wait for it; `MainActivity.onStart` calls it too. Screens never need to. | Plan §2.2 draws the store's changes feeding the reconcile. An answer, an edit, an end or a delete from any screen then removes or updates its reminder (`RM-7`, `TR-9`, `TR-11`) with nothing for P6, P7 or P8 to wire. The observer only waits between changes (`NF-5`). |
 | P5-D3 | A reconcile writes, then sets the alarm, then removes, then posts. | P4's order (write first) keeps alerts from playing twice. Setting the alarm right after the write means that a process ended halfway still wakes up again, and shows the reminders silently. |
-| P5-D4 | The platform's notification and alarm APIs, with no AndroidX Core compat classes. | `minSdk` 33 has them all (`Notification.Builder.setSilent`, `Intent.setIdentifier`, channels). No new library to vet (plan §3). |
+| P5-D4 | The platform's notification and alarm APIs, with no AndroidX Core compat classes. | `minSdk` 33 has what is needed (`Intent.setIdentifier`, channels, group alert behaviour, `setAlarmClock`). The platform has no `setSilent()`; a silent post is a group child with `GROUP_ALERT_SUMMARY`, as `NotificationCompat` does it (Q8). No new library to vet (plan §3). |
 | P5-D5 | A silent reminder is posted only when it is missing from the shade or its text changed (a fingerprint in its extras). | Android drops updates above about 5 a second per app. Needless reposts at every reconcile could make it drop one that alerts. |
-| P5-D6 | One group for every reminder, with a summary, `GROUP_ALERT_CHILDREN`. | `RM-4`: Android groups them. Android 13 groups a single app's notifications by itself only from four on. The children alert; the summary never does. |
+| P5-D6 | One group for every reminder, with a summary. A reminder that alerts has `GROUP_ALERT_CHILDREN`, a silent one `GROUP_ALERT_SUMMARY`; the summary has `GROUP_ALERT_CHILDREN`, so it never alerts. | `RM-4`: Android groups them. Android 13 groups a single app's notifications by itself only from four on. The group alert behaviour is also how a post is made silent on the platform (Q8). |
 | P5-D7 | A reminder shows the time its take fell due. It stays after a tap. Its actions work from the lock screen without unlocking. | The planned time is what the user needs to see, also after a restart or a late alarm. `RM-5`: it stays until answered. `RM-11` shows the full content there, and answering from it is the natural next step; Android's default for broadcast actions. |
 | P5-D8 | `deleteTreatment` and `saveTreatment` drop the reminder records of the medicines they remove, in the same write. | `TR-9` deletes everything recorded for the treatment; the answers already go in the same write. The planner would drop them at the next reconcile anyway (P4-D4), but the file then never holds them. |
 | P5-D9 | Debug builds log reminder events, IDs and times only, to logcat and to a file in private storage. | The device runs need each alert's lateness over hours, longer than logcat keeps. Release builds don't log (plan §3). |
@@ -588,25 +598,31 @@ T1 and T2 measure on the devices what the design relies on, with throwaway probe
 
 **On the phone, stock settings first** (Autostart off, battery saver as HyperOS sets it), **then relaxed** (Autostart on, battery saver "No restrictions", and whatever the stock runs show is needed). The difference is the list for P7's check (`RM-9`).
 
-| # | What | Device | The design assumes until then |
-|---|---|---|---|
-| A1 | `USE_EXACT_ALARM` granted, and `canScheduleExactAlarms()` true | Phone, emulator | Yes on both (`D-8`). **Phone: yes** (T1). |
-| A2 | An alarm 2–3 minutes ahead: with the app in front; the screen off; forced deep Doze; the app swiped from Recents (by the user); the process ended (`end_process`). The delay of each. | Phone | On time, within seconds, in every case once the settings are relaxed. **Screen off, `setExactAndAllowWhileIdle()`: held until a 5-minute grid, up to 4 min 15 s late, with stock settings and with the battery saver at "No restrictions"** (Q5). The other cases are measured with `setAlarmClock()`. |
-| A3 | Alarms 10 minutes apart, each set from the last one's receiver, for an hour in forced Doze, and overnight in natural Doze with the phone unplugged; alarm clocks | Phone | No delay over 1 minute; the 10-minute repeats aren't throttled |
-| A4 | A restart: the alarm is gone; `BOOT_COMPLETED` reaches a receiver that isn't exported, after the first unlock; the time from the unlock to the receiver. With Autostart off, then on. | Phone | Delivered within a minute of the unlock, at least with Autostart on |
-| A5 | `adb install -r`: `MY_PACKAGE_REPLACED` reaches the receiver; whether the alarm and the notifications survive the update | Phone | Delivered; P5 sets everything again either way |
-| A6 | `TIME_SET` and `TIMEZONE_CHANGED` reach the receiver. `CurrentZoneClock` follows the new zone in the running process (P2's pending check). | Emulator only | Delivered; the zone followed |
-| A7 | A *Force stop* cancels the alarm | Phone | Yes (IAmOk) |
-| A8 | Only if A2 or A3 are late: the same with `setAlarmClock()` | Phone | **Done:** with the screen off and stock settings, three alarm clocks were 45–53 ms late (Q5). |
-| N1 | HyperOS's defaults for the debug app's notifications: heads-up ("floating"), lock screen, sound, badge | Phone | Heads-up and lock screen allowed; if not, they go on P7's list |
-| N2 | Sound without vibration, in normal, vibrate and silent modes, and in Do Not Disturb | Phone | Sound only in normal mode; never a vibration |
-| N3 | A repeat: an update of a notification already in the shade, posted with sound, sounds again and shows heads-up again; a silent update doesn't | Phone, emulator | Yes |
-| N4 | Two reminders posted together in the group: one sound or two, and how the shade shows the group | Phone, emulator | Either is fine (Q4) |
-| N5 | A tap opens `MainActivity`: with the app in the background, with its process ended, and from the lock screen | Phone | It opens; from the lock screen, after unlocking |
-| N6 | Taken, Snooze and Skip reach a receiver that isn't exported: from the shade, and from the lock screen without unlocking | Phone | Yes |
-| N7 | Swiping a reminder away: what remains, and whether a silent repost brings it back | Phone | It goes; a repost brings it back (Q2) |
+Measured on 2026-11-20 and 21. The handover records every run, with its times.
 
-If a result contradicts this SPEC, the session stops and asks the user, and changes the SPEC first (`phase-docs`, "SPEC change during implementation"). A2 and A8 did: the alarm is an alarm clock from v0.3 on (Q5). The handover records every run.
+| # | What | Device | Result |
+|---|---|---|---|
+| A1 | `USE_EXACT_ALARM` granted, and `canScheduleExactAlarms()` true | Phone, emulator | Yes on both. |
+| A2 | An alarm 2–3 minutes ahead: with the screen off; in forced deep Doze; after a swipe from Recents (by the user); after the process ended (`end_process`) | Phone | `setExactAndAllowWhileIdle()` with the screen off: **held until a 5-minute grid**, up to 4 min 15 s late, also with the battery saver at "No restrictions" (Q5). Alarm clocks, stock settings: on time in every case, 22 ms to 0.9 s late. Deep Doze can only be entered more than 30 minutes before an alarm clock: one 45 minutes ahead brought the phone out of deep Doze 5 minutes early and fired 41 ms late. |
+| A3 | Alarm clocks 10 minutes apart, for a night, unplugged | Phone | All 60 on time, 25 ms to 1.7 s late, in light Doze. Alarm clocks that close together keep the phone out of deep Doze; a night with reminders hours apart is part of T8 (M7). |
+| A4 | A restart: `BOOT_COMPLETED` reaches a receiver that isn't exported, after the first unlock, and how soon | Phone | With Autostart off: 59 s after the unlock, behind 215 other receivers; with the intent filter's priority at 999, **8.7 s** (Q9). |
+| A5 | `adb install -r`: `MY_PACKAGE_REPLACED`; whether the alarm and the notifications survive | Phone, emulator | The alarm survives. The notifications don't: all are removed (T2). `MY_PACKAGE_REPLACED` is **blocked by HyperOS with Autostart off**, and arrives with it on, and on the emulator (Q10). |
+| A6 | `TIME_SET` and `TIMEZONE_CHANGED` reach the receiver; `CurrentZoneClock` follows the new zone in the running process (P2's pending check) | Emulator | Both arrive in the running process, and `CurrentZoneClock` follows. The shell can change the emulator's time and zone with `cmd alarm set-time` and `set-timezone`. |
+| A7 | A *Force stop* cancels the alarm | Phone | Yes; the app then gets no broadcast until it is opened. |
+| A8 | Only if A2 or A3 are late: the same with `setAlarmClock()` | Phone | Three alarm clocks with the screen off: 45–53 ms late (Q5). |
+| N1 | HyperOS's defaults for the debug app's notifications | Phone | Floating (heads-up) and lock screen notifications on, sound on; the channel's vibration off. |
+| N2 | Sound and vibration in each ring mode and in Do Not Disturb | Phone | Normal: sound. HyperOS's Silent mode: a pop-up, no sound. Vibrate mode: **a vibration** instead of the sound (Q7). Do Not Disturb: **sound**, no pop-up, with the *reminder* category, which HyperOS lets through; none of it without a category (Q6). |
+| N3 | A repeat: an update with sound of a reminder in the shade; a silent update | Phone, emulator | The repeat sounds and pops up again; the silent post (`GROUP_ALERT_SUMMARY`) does nothing (Q8). |
+| N4 | Two reminders posted together in the group | Phone, emulator | Both pop up; one sound (Q4). |
+| N5 | A tap opens `MainActivity`: from the lock screen, and with the process ended | Phone | It opens; from the lock screen after the unlock. HyperOS doesn't block it. |
+| N6 | Taken, Snooze and Skip reach the receiver: from the lock screen without unlocking | Phone | Yes, with the phone locked. |
+| N7 | Swiping a reminder away | Phone | Android reports it (`REASON_CANCEL`); a silent repost brings it back, silently (Q2). |
+
+Also found: HyperOS keeps at most 10 notifications per app (§4.3.4), and the app can't set a channel's lock-screen visibility (Q8).
+
+**For P7's reminder check** (`RM-9`), on this phone: the notification permission is needed; `USE_EXACT_ALARM` is granted at install; battery optimisation and HyperOS's battery saver aren't needed, since alarm clocks were on time with both at their defaults; **Autostart** is needed so that reminders come back right after an app update; HyperOS's "Floating notifications" and "Lock screen notifications" for the app are on by default, and worth listing as steps to confirm.
+
+A2, A8, N2 and N3 contradicted the SPEC, which changed first, with the user (`phase-docs`, "SPEC change during implementation"): Q5 to Q10.
 
 ## 5. Security and privacy
 
@@ -636,8 +652,8 @@ Unit tests are JUnit Jupiter. `:core`'s run in `./gradlew build`; `:app`'s too (
 | `ReconcilerTest`, failures: Unreadable changes nothing; a failed write applies nothing and sets the retry 5 minutes later; any other exception is reported by class only; a write that changes nothing still applies the plan | Unit | Q1, §4.3.1 |
 | `RemindersTest`: `answer` Taken records now in whole minutes and removes the reminder; Skip; Snooze, and the reminder back 10 minutes later; a refused answer still reconciles; the observer reconciles on the first data and after a change made through the repository (an answer in the app removes the reminder); its own write leads to one more reconcile that writes nothing | Unit | `RM-3`, `RM-7`, `TK-2`, P5-D2 |
 | `TestSchedulesTest` (debug): the test treatment's drafts validate with minutes allowed; their first take, interval and IDs | Unit (`testDebug`) | `D-15` |
-| `ReminderChannelTest`: the channel exists with high importance, the default sound, no vibration, public lock-screen visibility and no Do Not Disturb bypass | Instrumented | `RM-2`, `RM-8`, `RM-11`, `D-10` |
-| `ReminderShadeTest`, with its own prefix and the permission granted through `UiAutomation`: a posted reminder's channel, category, visibility, group, time, title and text, three actions with their labels, and its content intent; `shown()` lists it and ignores other tags; `remove` removes it; a silent post of an unchanged reminder doesn't repost it; the summary; everything removed at the end | Instrumented | `RM-1`, `RM-3`, `RM-4`, `RM-11` |
+| `ReminderChannelTest`: the channel exists with high importance, the default sound, no vibration and no Do Not Disturb bypass | Instrumented | `RM-2`, `RM-8`, `D-10` |
+| `ReminderShadeTest`, with its own prefix and the permission granted through `UiAutomation`: a posted reminder's channel, no category, public visibility, group, group alert behaviour (children for an alert, summary for a silent post), time, title and text, three actions with their labels, and its content intent; `shown()` lists it and ignores other tags; `remove` removes it; a silent post of an unchanged reminder doesn't repost it; the summary; everything removed at the end | Instrumented | `RM-1`, `RM-3`, `RM-4`, `RM-11` |
 | `WakeUpAlarmTest`, with its own identifier: `set` puts one alarm clock at the instant, with its show intent to `MainActivity`, in `dumpsys alarm`; setting again replaces it; `cancel` removes it | Instrumented | `D-7`, `D-8` |
 | `OpenTakeTest`: `MainActivity` started with a reminder's content intent opens the Take screen; Back goes Home; a recreated activity doesn't open it again | Instrumented | `RM-6` |
 
@@ -652,12 +668,12 @@ Unit tests are JUnit Jupiter. `:core`'s run in `./gradlew build`; `:app`'s too (
 | M3 | Taken, Skip and Snooze, from the shade and from the lock screen | Taken and Skip remove it, and the debug screen shows the answer, Taken with the minute it was pressed; Snooze removes it, and it alerts again 10 minutes later with a new round | `RM-3`, `TK-2` |
 | M4 | Tap a reminder: app in front, in the background, process ended, phone locked | The app opens on the Take screen | `RM-6` |
 | M5 | Look at a reminder on the lock screen | Its full content | `RM-11` |
-| M6 | Do Not Disturb on; then silent mode; then vibrate mode | It appears without sound in the first two; it never vibrates | `RM-8`, `RM-2` |
-| M7 | Screen off, then forced Doze (`doze_on`, `doze_state` deep IDLE), then a night in natural Doze, unplugged, with a reminder every hour | Every alert within 1 minute | `NF-1` |
+| M6 | Do Not Disturb on; then HyperOS's Silent mode; then vibrate mode | Do Not Disturb: in the shade, no sound, no pop-up. Silent mode: a pop-up, no sound. Vibrate mode: a vibration instead of the sound, and a pop-up. Never a vibration in normal mode | `RM-8`, `RM-2` |
+| M7 | Screen off, then forced deep Doze (`doze_on` right after a reminder more than 30 minutes ahead is set; `doze_state` deep IDLE), then a night in natural Doze, unplugged, with reminders hours apart (every 3 hours), checking the idling history for `deep-idle` | Every alert within 1 minute | `NF-1` |
 | M8 | The user swipes the app away from Recents | The next reminder on time | `NF-1` |
 | M9 | `end_process`, checked with `pidof` | `alarms` still lists the alarm; the next reminder on time | `NF-2` |
-| M10 | Restart the phone before a take is due, unlock after it fell due | It alerts within a minute of the unlock; the alarm is set again (`alarms`) | `NF-1`, `NF-2`, `D-16` |
-| M11 | `gradle installDebug` (an update) between two takes | The alarm set again; the next reminder on time | `NF-2` |
+| M10 | Restart the phone before a take is due, unlock after it fell due | It alerts within a minute of the unlock (`BOOT_COMPLETED` came 8.7 s after it in T1); the alarm is set again (`alarms`) | `NF-1`, `NF-2`, `D-16` |
+| M11 | `gradle installDebug` (an update) between two takes, with a reminder in the shade; with Autostart on, then off | The alarm survives; the next reminder on time. The reminder in the shade goes at the update, and comes back silently at once with Autostart on; with it off, at the next alarm or when the app is opened | `NF-2` |
 | M12 | *Force stop* from Android's settings, then open the app | No alarm until it opens; then the alarm at once (`alarms`) | `NF-2` |
 | M13 | End, then delete, a test treatment with a reminder in the shade (debug screen) | Its reminder goes at once; no alarm left for it | `TR-11`, `TR-9` |
 | M14 | Between two reminders, and after every take is answered | `alarms` lists exactly one alarm clock, at the next wake-up, and the status bar shows its icon; none, and no icon, when nothing is left. Tapping the next alarm in quick settings opens the app. No service runs (`dumpsys activity services`) | `NF-5`, `D-7` |
@@ -677,7 +693,7 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 
 | ID | Task |
 |---|---|
-| T1 | **Measure alarms and broadcasts** (§4.6, A1–A8): a throwaway probe in the debug source set; the phone with stock settings, then relaxed; the emulator for A1 and A6. Record the numbers in the handover. If anything contradicts the SPEC, stop and ask. Delete the probe. Needs the user for the swipe, the restart and the night unplugged. |
+| T1 | **Measure alarms and broadcasts** (§4.6, A1–A8): a throwaway probe in the debug source set; the phone with stock settings, then relaxed; the emulator for A1 and A6. Record the numbers in the handover. If anything contradicts the SPEC, stop and ask. Delete the probe. Needs the user for the swipe, the restart and the night unplugged. The night in natural deep Doze, with reminders hours apart, moved to T8 (M7). |
 | T2 | **Measure notifications** (§4.6, N1–N7), the same way, on the phone and the emulator. Record HyperOS's defaults and the settings P7's check must name. Report T1 and T2 to the user, with what they mean for `D-8`, Q2 and Q4. |
 | T3 | **Reminder state in the store:** `PillsData.reminders`; the format's `reminders` field, its mapping and checks, and `pills-v1-reminders.json`; `PillsData.snooze` and its repository helper; `deleteTreatment` and `saveTreatment` drop records (P5-D8). Unit tests in both modules. |
 | T4 | **The reconcile on the JVM:** `Reconciler`, `ReminderShade`, `WakeUpAlarm`, `ReminderContent`, `TakeKeyCodec`, `ReminderLog`, and `Reminders` with its observer and `answer`. Unit tests with fakes. |
@@ -701,11 +717,11 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q6.
+None at the moment. New questions are numbered from Q11.
 
 ### Answered
 
-The review confirmed the four draft assumptions. Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3), which §2 now quotes.
+The review confirmed the four draft assumptions: Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3). Q5 to Q10 came from T1 and T2's measurements: they went into plan v0.5 and v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`), which §2 quotes.
 
 | # | Question | Decision |
 |---|---|---|
@@ -714,6 +730,11 @@ The review confirmed the four draft assumptions. Q2 and Q4 went into specificati
 | Q3 | How to open the debug screen in debug builds | A second launcher icon, "Pills debug", for a `DebugActivity` declared only in the debug manifest, and exported there, as launcher activities are. The release build has nothing of it. (Plan §3, §4.3.9) |
 | Q4 | Two reminders that alert at the same moment | Both appear, each in the group, each posted with sound; Android may play one sound or two, and either is fine. T2 records what the phone does. (`RM-4`, §4.3.4) |
 | Q5 | Found in T1: with the screen off and HyperOS's stock settings, `setExactAndAllowWhileIdle()` alarms were held until a 5-minute grid on `elapsedRealtime`, up to 4 min 15 s late, outside Doze too, and still with the battery saver at "No restrictions". Three `setAlarmClock()` alarms in the same conditions were 45–53 ms late. | The alarm is an alarm clock, `D-8`'s fallback, which PQ-2 accepted with its status-bar icon. The user agreed on 2026-11-20. Plan v0.5 (`D-8`); §4.3.3, §4.6, §5, §6. The rest of T1 measures alarm clocks. |
+| Q6 | Found in T2: HyperOS's Do Not Disturb lets notifications of the *reminder* category sound (`allowReminders=true`), and its settings show no list of exceptions to change it. Without a category, a reminder made no sound and didn't pop up in Do Not Disturb, and stayed in the shade. | The notifications have **no category**, so they are silent in Do Not Disturb, as `RM-8` says. Decided by the user on 2026-11-21. Plan v0.6 (`D-10`); §4.3.4, §6. |
+| Q7 | Found in T2: in vibrate mode, Android vibrates instead of playing a notification's sound when its channel has no vibration of its own. A channel vibration of 1 ms didn't stop it: the user still felt one. `RM-2` and the specification's Q20 said reminders never vibrate. | **In vibrate mode a reminder vibrates instead of sounding,** as Android does; it still pops up. Decided by the user on 2026-11-21. Specification v0.8 (`RM-2`, Q20); §4.3.4, §6 (M6). |
+| Q8 | Found in T2: the platform has no `Notification.Builder.setSilent()` (it is AndroidX's `NotificationCompat`), and Android ignores an app's channel lock-screen visibility (it stays `VISIBILITY_NO_OVERRIDE`). | A silent post is a group child with `GROUP_ALERT_SUMMARY`, as `NotificationCompat` does it: no sound, no vibration, no pop-up (T2). Each notification is `VISIBILITY_PUBLIC`, which the lock screen showed in full. §4.3.4, P5-D4, P5-D6, §6. |
+| Q9 | Found in T1: after a restart, `BOOT_COMPLETED` came 59 s after the unlock, behind 215 other receivers. | `android:priority="999"` on the receiver's intent filter: 8.7 s after the unlock. §4.3.2, §4.3.6. |
+| Q10 | Found in T1 and T2: an update removes the app's notifications, and with Autostart off HyperOS blocks `MY_PACKAGE_REPLACED` ("not permitted to auto start"). The alarm survives the update. | Nothing in the app changes: `PACKAGE_REPLACED` posts the reminders again when it arrives, and the next alarm or opening the app does otherwise. Autostart goes on P7's list. §4.3.2, §4.3.3, §4.6, §6 (M11). |
 
 ## 10. Change log
 
@@ -722,3 +743,4 @@ The review confirmed the four draft assumptions. Q2 and Q4 went into specificati
 | 0.1 | 2026-11-20 | First draft |
 | 0.2 | 2026-11-20 | Review: Q1–Q4 answered, confirming the draft assumptions. Q2 and Q4 went into specification v0.7 (`RM-4`, `RM-5`), and Q1 and Q3 into plan v0.4 (§2.4, §3); §2 quotes them. Ready. |
 | 0.3 | 2026-11-20 | From T1 (Q5): the alarm is an alarm clock, `setAlarmClock()`, because HyperOS held exact alarms for up to 5 minutes with the screen off. Plan v0.5 (`D-8`), which §2.1 quotes. §1, §2 (`RM-2`, `NF-1`), §3, §4.1–§4.3.3 (`AlarmClockWakeUp`), §4.6 (A1, A2, A8 results), §5 (the status-bar icon), §6 (`WakeUpAlarmTest`, M14). |
+| 0.4 | 2026-11-21 | From T1 and T2 (Q6–Q10), with the user. No category, so Do Not Disturb silences reminders (Q6; plan v0.6, `D-10`). In vibrate mode a reminder vibrates (Q7; specification v0.8, `RM-2`, which §2 quotes). Silent posts by group alert behaviour, and public visibility on each notification, not the channel (Q8). The boot receiver at priority 999 (Q9). Updates remove the notifications, and HyperOS blocks `MY_PACKAGE_REPLACED` with Autostart off (Q10). §4.6 holds the results and P7's list; M6, M7, M10, M11; T1's natural deep-Doze night moved to T8. |
