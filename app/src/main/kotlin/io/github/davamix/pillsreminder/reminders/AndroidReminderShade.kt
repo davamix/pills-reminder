@@ -14,7 +14,7 @@ import io.github.davamix.pillsreminder.core.model.TakeKey
  */
 class AndroidReminderShade(
     context: Context,
-    private val tagPrefix: String = "take",
+    private val tagPrefix: String = TAG_PREFIX,
 ) : ReminderShade {
     private val context = context.applicationContext
     private val manager = this.context.getSystemService(NotificationManager::class.java)
@@ -110,6 +110,9 @@ class AndroidReminderShade(
     private fun tag(key: TakeKey) = "$tagPrefix/${TakeKeyCodec.encode(key)}"
 
     companion object {
+        /** The app's own prefix; instrumented tests use another. */
+        const val TAG_PREFIX = "take"
+
         /** Every notification of the shade has this ID; the tag tells them apart. */
         const val ID = 1
         private const val EXTRA_FINGERPRINT = "io.github.davamix.pillsreminder.extra.FINGERPRINT"

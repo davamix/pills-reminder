@@ -47,7 +47,7 @@ class AppContainer(
 
     /** Reminder events, IDs and times only: logcat and `files/reminders-log.txt` in debug builds, nothing in release. */
     val reminderLog: ReminderLog =
-        if (BuildConfig.DEBUG) FileReminderLog(File(appContext.filesDir, REMINDER_LOG_FILE), clock) else ReminderLog.None
+        if (BuildConfig.DEBUG) FileReminderLog(File(appContext.filesDir, FileReminderLog.FILE_NAME), clock) else ReminderLog.None
 
     /** The reminders' scope: the data's observer and the receivers' work. It lasts as long as the process. */
     private val remindersScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -65,6 +65,5 @@ class AppContainer(
     private companion object {
         const val STORE_FILE = "pills.json"
         const val STORE_TAG = "PillsStore"
-        const val REMINDER_LOG_FILE = "reminders-log.txt"
     }
 }

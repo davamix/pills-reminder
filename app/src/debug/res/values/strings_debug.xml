@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The debug tools (D-15, P5 SPEC §4.3.9): debug builds only. The wording is a suggestion; this file holds the final one. -->
+<resources>
+    <string name="debug_app_name">Pills debug</string>
+    <string name="debug_title">Debug tools</string>
+
+    <string name="debug_section_test">Test treatment</string>
+    <string name="debug_every">Every (minutes)</string>
+    <string name="debug_first_in">First take in (minutes)</string>
+    <string name="debug_two_medicines">Two medicines</string>
+    <string name="debug_no_end">No end</string>
+    <string name="debug_create">Create test treatment</string>
+    <string name="debug_test_count">Test treatments: %d</string>
+    <string name="debug_end">End test treatments</string>
+    <string name="debug_delete">Delete test treatments</string>
+
+    <string name="debug_section_reminders">Reminders</string>
+    <string name="debug_next_wake_up">Next wake-up: %s</string>
+    <string name="debug_next_alarm_ours">Next alarm clock: %s, this app</string>
+    <string name="debug_next_alarm_other">Next alarm clock: %s, another app</string>
+    <string name="debug_in_shade">In the shade: %d</string>
+    <!-- A reminder record: the medicine, the take's planned time, then what the record says. -->
+    <string name="debug_record_alerted">%1$s at %2$s: alerted %3$d, last at %4$s</string>
+    <string name="debug_record_snoozed">%1$s at %2$s: snoozed until %3$s</string>
+    <string name="debug_none">none</string>
+    <string name="debug_reconcile">Reconcile now</string>
+
+    <string name="debug_section_depends">Reminders depend on</string>
+    <string name="debug_notifications_allowed">Notifications: allowed</string>
+    <string name="debug_notifications_not_allowed">Notifications: not allowed</string>
+    <string name="debug_exact_allowed">Exact alarms: allowed</string>
+    <string name="debug_exact_not_allowed">Exact alarms: not allowed</string>
+    <string name="debug_battery_on">Battery optimisation: on</string>
+    <string name="debug_battery_off">Battery optimisation: off</string>
+    <string name="debug_channel">Channel importance: %s</string>
+    <string name="debug_allow_notifications">Allow notifications</string>
+
+    <string name="debug_section_log">Log</string>
+    <string name="debug_log_empty">The log is empty.</string>
+    <string name="debug_clear_log">Clear log</string>
+
+    <string name="debug_unreadable">The stored data can\'t be read.</string>
+    <string name="debug_failed">Failed: %s</string>
+</resources>

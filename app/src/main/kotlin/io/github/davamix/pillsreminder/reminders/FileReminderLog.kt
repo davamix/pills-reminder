@@ -29,8 +29,10 @@ class FileReminderLog(
         }
     }
 
-    private companion object {
-        const val TAG = "PillsReminders"
-        const val MAX_BYTES = 1_000_000L
+    companion object {
+        /** The file's name in the app's `files` folder; the debug screen shows its last lines. */
+        const val FILE_NAME = "reminders-log.txt"
+        private const val TAG = "PillsReminders"
+        private const val MAX_BYTES = 1_000_000L
     }
 }
