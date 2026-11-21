@@ -7,9 +7,16 @@ import io.github.davamix.pillsreminder.BuildConfig
 import io.github.davamix.pillsreminder.core.model.TreatmentRepository
 import io.github.davamix.pillsreminder.core.time.CurrentZoneClock
 import io.github.davamix.pillsreminder.data.DataStoreTreatmentRepository
+import io.github.davamix.pillsreminder.reminders.AlarmClockWakeUp
+import io.github.davamix.pillsreminder.reminders.AndroidReminderShade
+import io.github.davamix.pillsreminder.reminders.FileReminderLog
+import io.github.davamix.pillsreminder.reminders.Reconciler
+import io.github.davamix.pillsreminder.reminders.ReminderLog
+import io.github.davamix.pillsreminder.reminders.Reminders
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.io.File
 import java.time.Clock
 
 /**
@@ -38,8 +45,26 @@ class AppContainer(
             onUnreadable = { reason -> if (BuildConfig.DEBUG) Log.e(STORE_TAG, "Stored data unreadable: $reason") },
         )
 
+    /** Reminder events, IDs and times only: logcat and `files/reminders-log.txt` in debug builds, nothing in release. */
+    val reminderLog: ReminderLog =
+        if (BuildConfig.DEBUG) FileReminderLog(File(appContext.filesDir, REMINDER_LOG_FILE), clock) else ReminderLog.None
+
+    /** The reminders' scope: the data's observer and the receivers' work. It lasts as long as the process. */
+    private val remindersScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    /**
+     * The reminders (P5): the reconcile on the real store, the notification shade and the alarm clock. `PillsReminderApp`
+     * starts them; the receivers and `MainActivity` call them.
+     */
+    val reminders: Reminders =
+        AndroidReminderShade(appContext).let { shade ->
+            val alarm = AlarmClockWakeUp(appContext, log = reminderLog)
+            Reminders(repository, clock, Reconciler(repository, clock, shade, alarm, reminderLog), shade, remindersScope, reminderLog)
+        }
+
     private companion object {
         const val STORE_FILE = "pills.json"
         const val STORE_TAG = "PillsStore"
+        const val REMINDER_LOG_FILE = "reminders-log.txt"
     }
 }

@@ -25,7 +25,13 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 
 ## Current state
 
-T1 to T4 are done. T3 put the reminder state into the store: `PillsData.reminders`, the snooze action and its repository helper, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file. T4 built the reconcile in `app/.../reminders/`, with no Android class yet: `Reconciler`, `Reminders` (the observer of the data, the answers, `runAsync`), the `ReminderShade`, `WakeUpAlarm` and `ReminderLog` interfaces, `ReminderContent` and `TakeKeyCodec`, all tested on the JVM with fakes. `./gradlew build` passes. Nothing calls them yet: T5 adds the Android side and wires them into `AppContainer`.
+T1 to T5 are done: **the app has real reminders.** A saved treatment sets an alarm clock; when it fires, the reconcile posts the reminder, with sound, its repeats, and Taken, Snooze and Skip, which record the answer and remove it. Checked end to end on the emulator (T5's session log). What is built:
+
+- T3, the reminder state in the store: `PillsData.reminders`, the snooze action, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file.
+- T4, the reconcile in `app/.../reminders/`: `Reconciler`, `Reminders` (the observer of the data, the answers, `runAsync`), and the interfaces it works on, tested on the JVM with fakes.
+- T5, the Android side: `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, the three receivers (`Receivers.kt`), `FileReminderLog`; the manifest's four permissions and three receivers; `AppContainer.reminders`, started by `PillsReminderApp`, and `MainActivity.onStart`'s reconcile.
+
+`./gradlew build` passes; every instrumented test passes on the emulator and the phone. No way yet to create a treatment in the app (P6) or from the debug screen (T6), and a tapped reminder opens the app but not yet the take (T7).
 
 T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
 
@@ -38,14 +44,11 @@ The probes are deleted, and their lines in `.git/info/exclude` removed. The phon
 
 ## Next steps
 
-1. **T5, the Android side** (SPEC §4.3.3, §4.3.4, §4.3.6, §4.3.10):
-   - `ReminderChannel` (D-10; no category, vibration off, no Do Not Disturb bypass);
-   - `AndroidReminderShade(context, tagPrefix)`: tags `<prefix>/<TakeKeyCodec>`; the fingerprint in each notification's extras, read back by `shown()`; `VISIBILITY_PUBLIC`; the group, with `GROUP_ALERT_CHILDREN` for an alert and `GROUP_ALERT_SUMMARY` for a silent post; the summary; Taken, Snooze and Skip; the tap to `MainActivity`;
-   - `AlarmClockWakeUp(context, identifier)` (`setAlarmClock`, the `retry` extra, `setAndAllowWhileIdle` without the permission);
-   - `ReminderIntents`; the three receivers, through `Reminders.runAsync`; the manifest (four permissions, three receivers, the boot receiver at `android:priority="999"`);
-   - `AppContainer.reminders`, `PillsReminderApp` calling `start()`, `MainActivity.onStart` reconciling (`APP_OPEN`); the debug `ReminderLog`, logcat and `files/reminders-log.txt`.
-   - Instrumented tests: `ReminderChannelTest`, `ReminderShadeTest`, `WakeUpAlarmTest`, with their own prefix and identifier (P5-D11).
-2. Then run every instrumented test, on the emulator and the phone: T3 changed the store's format (`data/`), which `DataStoreOnDeviceTest` reads on the device.
+1. **T6, the debug tools** (SPEC §4.3.9, Q3): `DebugActivity` with its own launcher icon, "Pills debug", in a new `app/src/debug/AndroidManifest.xml` (exported, as a launcher activity must be: plan §3 allows it in debug builds); `DebugScreen`, `DebugContent` and `DebugViewModel` (factory in the companion, CLAUDE.md "Screens"); `TestSchedules` (a "Test" treatment with ID prefix `debug-`, one or two medicines "Test A" and "Test B", "1 tablet", every N minutes, default 45, first take in M minutes, default 2, for 1 day or no end, validated with `allowMinutes = true`); `strings_debug.xml` in `app/src/debug/res/values/`; `TestSchedulesTest` in `app/src/testDebug/`.
+   - The screen shows the plan's next wake-up, whether the alarm is set (`ReminderIntents.wakeUp(…, FLAG_NO_CREATE)`), the records, the reminders in the shade, what reminders depend on (notifications allowed, `canScheduleExactAlarms()`, battery optimisation, the channel's importance), and the log's last lines (`files/reminders-log.txt`).
+   - Buttons: create, end and delete the test treatments (through P2's helpers, so the observer reconciles); Reconcile now (`DEBUG`); Allow notifications (the runtime request); Clear log.
+   - Draw every state in light and dark and at the largest font (`phone` skill, "Checking a screen in every state"); it must fit 392.7 × 796.4 dp, scrolling where it must.
+2. Then T7: a tapped reminder opens its take (`ReminderIntents.keyOf`, `MainActivity`, `AppNavHost`, `OpenTakeTest`).
 
 ## Tasks
 
@@ -57,7 +60,7 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | N1–N7 on the phone and the emulator, and two fix variants. Changed `D-10` and `RM-2` (SPEC v0.4, Q6–Q8). |
 | T3 | Done | `PillsData.reminders`; `PillsData.snooze` and `repository.snooze` (`core/actions/ReminderActions.kt`, `RepositoryActions.kt`); `deleteTreatment` and `saveTreatment` drop records (P5-D8); the format's `ReminderV1` and its strict mapping; `pills-v1-reminders.json`. Tests: `ReminderActionsTest`, new cases in `DeleteTreatmentTest` and `SaveTreatmentTest`; `ReminderFormatTest`, 15 damaged-record cases in `DamagedDataTest`, a restart in `DataStoreTreatmentRepositoryTest`. Eight deliberate bugs, each caught (session log). |
 | T4 | Done | `Reconciler`, `Reminders`, `ReminderShade`, `WakeUpAlarm`, `ReminderLog`, `ReminderContent`, `TakeKeyCodec` in `app/.../reminders/`. Tests: `ReconcilerTest` (the §4.3.11 timeline, the order, idempotence, silent reposts, removals, failures, the log), `RemindersTest` (answers, the observer, `runAsync`), `ReminderContentTest`, `TakeKeyCodecTest`, with `Fakes.kt`. Twelve deliberate bugs, each caught (session log). |
-| T5 | To do | Android: channel, shade, alarm, receivers, manifest |
+| T5 | Done | `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, `Receivers.kt`, `FileReminderLog`, `strings_reminders.xml`, `ic_notification`; the manifest; `AppContainer`, `PillsReminderApp`, `MainActivity`. Instrumented: `ReminderChannelTest` (1), `ReminderShadeTest` (7), `WakeUpAlarmTest` (3). A first reminder end to end on the emulator. Every instrumented test passes on both devices (19). |
 | T6 | To do | Debug tools |
 | T7 | To do | Opening a take |
 | T8 | To do | Device runs (phone, emulator) |
@@ -74,6 +77,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-21 | Reminders are silent in Do Not Disturb, so the notifications have no category; in vibrate mode they vibrate. Decided by the user; SPEC v0.4 (Q6, Q7), plan v0.6 (`D-10`), specification v0.8 (`RM-2`). | T2: HyperOS's Do Not Disturb lets the *reminder* category sound, with no setting to change it; Android's fallback vibration in vibrate mode can't be stopped without losing the pop-up. |
 | 2026-11-21 | Silent posts by group alert behaviour; public visibility on each notification; `android:priority="999"` on the boot receiver. SPEC v0.4 (Q8, Q9). | T2: the platform has no `setSilent()`, and ignores an app's channel lock-screen visibility. T1: the priority brought `BOOT_COMPLETED` from 59 s to 8.7 s after the unlock. |
 | 2026-11-21 | T4's shapes, where they differ from SPEC §4.2: `ReminderShade.shown()` returns each reminder's fingerprint by key, and the `Reconciler`, not the shade, decides that a silent post is needed (missing, or a different fingerprint, P5-D5). `ReminderShade.prepare()` creates the channel, called by `Reminders.start()`, which takes the shade. `WakeUpAlarm.set(at, retry)`, so the alarm receiver can say `RETRY`. `ReminderLog` is a `fun interface` with `event(line)`. `TakeKeyCodec` writes `<plannedAt>|<medicineId>`. A failure while applying the plan is also `Failed`, with the retry at the next wake-up when that comes sooner. To fold into the SPEC with T5–T7's, in T9. | The rule of P5-D5 then has JVM tests of its own, rather than living in a fake. The time first in the key means a medicine ID can hold any character. Same behaviour as the SPEC describes. |
+| 2026-11-21 | T5's details, where SPEC §4.1–§4.3 is silent or names them otherwise: the three receivers in one file, `Receivers.kt`; `AlarmClockWakeUp(context, action, log)` tells the test alarm apart by its action (`…WAKE_UP.TEST`), which `dumpsys alarm` shows as its tag, and `AlarmReceiver` takes any action starting with `…WAKE_UP`; the summary's tag is `<prefix>-summary` and the group is `…group.<prefix>`, so a test's notifications form a group of their own; a reminder with no dose has the medicine alone as its title; `MainActivity.onStart` reconciles through `Reminders.runAsync`, in the process's scope; `FileReminderLog` stamps its lines with the container's clock. To fold into the SPEC in T9, with T4's. | The tests' alarm must show in `dumpsys alarm` apart from the app's; a title "Minutes: " would be odd. |
+| 2026-11-21 | `@SuppressLint("MissingPermission")` on `setAlarmClock`. | Lint wants `SCHEDULE_EXACT_ALARM`; `USE_EXACT_ALARM` covers alarm clocks (D-8), and `canScheduleExactAlarms()` is checked first. Without the suppression Lint warned (checked in T5). |
 | 2026-11-21 | The natural deep-Doze night moved from T1 to T8 (M7). | Alarm clocks 10 minutes apart keep the phone out of deep Doze; the night needs reminders hours apart, which T8's test treatment gives. Forced deep Doze already passed. |
 
 ## Measurements (T1, T2)
@@ -207,11 +212,21 @@ The commands and manual steps that check the current state.
 
 **Checks at the end of 2026-11-21's second session:** no build was run. The branch's code is still the same as `main`'s (`git diff --stat origin/main..HEAD -- app/ core/ gradle/ '*.gradle.kts'` prints nothing), and CI passed on `main` at `cc80648`, whose last code change is P4's `ef7988e`; the commits since are documents. No instrumented run and no manifest comparison, since nothing in `app/` changed in git. The probes were built and installed only on the devices, then deleted.
 
-**Device state left behind:** the phone has this branch's clean debug build (installed with `gradle installDebug` after the probes were deleted), with no alarm and no notification. The debug app's notification permission went with the probe's manifest. HyperOS's battery saver is at its default; **Autostart is on**, as the user turned it for the last run. Normal ring mode, Do Not Disturb off, Doze not forced (`doze_off` ran after both forced runs). The phone was restarted twice, by the user. The emulator had its time and zone changed from the shell and put back (automatic time and zone stayed on), and is shut down.
+**Device state after T5:** the phone has this branch's debug build with T5 (no alarm, no notification, empty data), and the debug app has `POST_NOTIFICATIONS`, granted by `ReminderShadeTest`. The emulator has the same build, with empty data and the permission; it is shut down.
+
+**Device state left behind earlier:** the phone has this branch's clean debug build (installed with `gradle installDebug` after the probes were deleted), with no alarm and no notification. The debug app's notification permission went with the probe's manifest. HyperOS's battery saver is at its default; **Autostart is on**, as the user turned it for the last run. Normal ring mode, Do Not Disturb off, Doze not forced (`doze_off` ran after both forced runs). The phone was restarted twice, by the user. The emulator had its time and zone changed from the shell and put back (automatic time and zone stayed on), and is shut down.
 
 ## Session log
 
 Newest first.
+
+### 2026-11-21, evening: T5
+
+- Done: T5, the Android side. `./gradlew build` passes: `:app` 117 unit tests, `:core` 177, no failures; Lint "No issues found"; ktlint and the permission allowlist pass.
+- Instrumented tests: every one passes on the emulator (API 36) and on the phone (Android 13, HyperOS, unlocked; `instrument` granted op 10021 again after the update): `OK (19 tests)` on both, `StoreDeviceCheck`'s two skipped by their assumption. The shade test grants the debug app `POST_NOTIFICATIONS` through `UiAutomation` and posts only silent reminders.
+- A first reminder end to end on the emulator, with a throwaway instrumented test that saved a "Test" treatment (every 45 minutes, first take 2 minutes ahead) in the real store, then deleted it; the test is deleted. The observer reconciled and set the alarm clock for 16:03; at 16:03 the alarm started the process and the reconcile posted "Test A: 1 tablet / Test · with food", **433 ms late**, with the summary "1 take due" and the repeat's alarm at 16:13. Taken, tapped in the emulator's shade, reached `ReminderActionReceiver` ("action taken … applied"), removed the reminder, and moved the alarm to the next take at 16:48. Deleting the treatment cancelled the alarm and left the store's file as `{"schemaVersion":1,"treatments":[],"answers":[]}`. `MY_PACKAGE_REPLACED` reconciled at the install (the emulator has no HyperOS).
+- Manifests and libraries (`compare-manifests.sh`): debug and release each gain exactly `AlarmReceiver`, `ReminderActionReceiver`, `SystemEventReceiver` and the four permissions of plan §3; the release libraries are the same as `main`'s (120). In the merged release manifest the three receivers are `exported="false"`, the boot receiver's filter has `android:priority="999"`, and nothing sets `android:process`.
+- Notes: `dumpsys alarm` prints a pending alarm in more than one list; `WakeUpAlarmTest` counts distinct `Alarm{<hash>` objects. Its header line holds `origWhen <epoch ms>`, and an alarm clock has an `Alarm clock:` section with its `showIntent`.
 
 ### 2026-11-21, evening: T4
 

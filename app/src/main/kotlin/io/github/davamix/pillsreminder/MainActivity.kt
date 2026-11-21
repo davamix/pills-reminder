@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import io.github.davamix.pillsreminder.navigation.AppNavHost
+import io.github.davamix.pillsreminder.reminders.ReconcileTrigger
 import io.github.davamix.pillsreminder.ui.theme.PillsReminderTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,5 +19,13 @@ class MainActivity : ComponentActivity() {
                 AppNavHost()
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // The app comes to the front: for example after the notification permission was granted, the reminders the plan
+        // holds are posted, silently (P5 SPEC §4.3.2).
+        val reminders = (application as PillsReminderApp).container.reminders
+        reminders.runAsync(done = {}) { reminders.reconcile(ReconcileTrigger.APP_OPEN) }
     }
 }
