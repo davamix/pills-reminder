@@ -60,17 +60,24 @@ object ReminderIntents {
     fun openTake(
         context: Context,
         key: TakeKey,
-    ): PendingIntent {
+    ): PendingIntent = PendingIntent.getActivity(context, 0, openTakeIntent(context, key), FLAGS)
+
+    /** [openTake]'s intent, which `MainActivity` reads with [keyOf]. */
+    internal fun openTakeIntent(
+        context: Context,
+        key: TakeKey,
+    ): Intent {
         val text = TakeKeyCodec.encode(key)
-        val intent =
-            Intent(context, MainActivity::class.java)
-                .setIdentifier("open/$text")
-                .putExtra(EXTRA_TAKE_KEY, text)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        return PendingIntent.getActivity(context, 0, intent, FLAGS)
+        return Intent(context, MainActivity::class.java)
+            .setIdentifier("open/$text")
+            .putExtra(EXTRA_TAKE_KEY, text)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     }
 
-    /** Opens the app on Home: the summary's tap, and the alarm clock's in quick settings. */
+    /**
+     * Opens the app: the summary's tap, and the alarm clock's in quick settings. On Home when the app starts; an
+     * existing activity stays on the screen it was on.
+     */
     fun openApp(context: Context): PendingIntent {
         val intent =
             Intent(context, MainActivity::class.java)

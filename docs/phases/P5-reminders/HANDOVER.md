@@ -25,15 +25,16 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 
 ## Current state
 
-T1 to T6 are done: **the app has real reminders, and debug builds have the tools to try them.** A saved treatment sets an alarm clock; when it fires, the reconcile posts the reminder, with sound, its repeats, and Taken, Snooze and Skip, which record the answer and remove it. Checked end to end on the emulator (T5's session log). What is built:
+T1 to T7 are done: **the app has real reminders, debug builds have the tools to try them, and a tapped reminder opens its take.** A saved treatment sets an alarm clock; when it fires, the reconcile posts the reminder, with sound, its repeats, and Taken, Snooze and Skip, which record the answer and remove it. Checked end to end on the emulator (T5's session log). What is built:
 
 - T3, the reminder state in the store: `PillsData.reminders`, the snooze action, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file.
 - T4, the reconcile in `app/.../reminders/`: `Reconciler`, `Reminders` (the observer of the data, the answers, `runAsync`), and the interfaces it works on, tested on the JVM with fakes.
 - T5, the Android side: `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, the three receivers (`Receivers.kt`), `FileReminderLog`; the manifest's four permissions and three receivers; `AppContainer.reminders`, started by `PillsReminderApp`, and `MainActivity.onStart`'s reconcile.
 
 - T6, the debug tools, in debug builds only: a second launcher icon, "Pills debug" (`DebugActivity`), whose screen creates, ends and deletes test treatments in minutes, and shows the next wake-up, the next alarm clock, the records, the reminders in the shade, what reminders depend on, and the log's last lines.
+- T7, opening a take: `MainActivity` reads the take from a reminder's intent, at a new start and in `onNewIntent`, and `AppNavHost` opens `TakeRoute` once, right above Home. The Take screen is P1's placeholder until P6.
 
-`./gradlew build` passes; every instrumented test passes on the emulator and the phone. Treatments can't be created in the app itself yet (P6), and a tapped reminder opens the app but not yet the take (T7).
+`./gradlew build` passes; every instrumented test passes on the emulator and the phone. Treatments can't be created in the app itself yet (P6).
 
 T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
 
@@ -46,8 +47,8 @@ The probes are deleted, and their lines in `.git/info/exclude` removed. The phon
 
 ## Next steps
 
-1. **T7, opening a take** (SPEC §4.3.8, RM-6): `MainActivity` reads the take from a reminder's intent (`ReminderIntents.keyOf`) in `onCreate`, only when `savedInstanceState` is `null`, and in `onNewIntent`; it passes `TakeRoute(medicineId, plannedAt)` to `AppNavHost(openTake, onTakeOpened)`, which navigates once from a `LaunchedEffect`, after waiting for `RESUMED` (CLAUDE.md, "Navigation driven by a ViewModel state"), then clears it. Back goes Home. `OpenTakeTest` (instrumented): started with a reminder's content intent, the app shows the Take placeholder; Back goes Home; a recreated activity doesn't open it again. It goes through `MainActivity`, so it reconciles the real data (`APP_OPEN`), as opening the app does.
-2. Then T8, the device runs on the phone (SPEC §6, M1–M14) and the emulator (E1–E4), with the debug screen's test treatments; T8 includes the night in natural deep Doze (M7). Then T9.
+1. **T8, the device runs** on the phone (SPEC §6, M1–M14) and the emulator (E1–E4), with the debug screen's test treatments, and the user nearby. T8 includes the night in natural deep Doze (M7), and M4, a tapped reminder opening its take with the app in front, in the background, with its process ended and from the lock screen, which `OpenTakeTest` can't reach.
+2. Then **T9**: fold the decisions of T4–T7 into the SPEC (a new version on `main`, merged into the branch), CLAUDE.md, the manifest comparison, and the pull request.
 
 ## Tasks
 
@@ -61,7 +62,7 @@ The task IDs come from SPEC.md §7.
 | T4 | Done | `Reconciler`, `Reminders`, `ReminderShade`, `WakeUpAlarm`, `ReminderLog`, `ReminderContent`, `TakeKeyCodec` in `app/.../reminders/`. Tests: `ReconcilerTest` (the §4.3.11 timeline, the order, idempotence, silent reposts, removals, failures, the log), `RemindersTest` (answers, the observer, `runAsync`), `ReminderContentTest`, `TakeKeyCodecTest`, with `Fakes.kt`. Twelve deliberate bugs, each caught (session log). |
 | T5 | Done | `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, `Receivers.kt`, `FileReminderLog`, `strings_reminders.xml`, `ic_notification`; the manifest; `AppContainer`, `PillsReminderApp`, `MainActivity`. Instrumented: `ReminderChannelTest` (1), `ReminderShadeTest` (7), `WakeUpAlarmTest` (3). A first reminder end to end on the emulator. Every instrumented test passes on both devices (19). |
 | T6 | Done | `app/src/debug/`: `AndroidManifest.xml` (`DebugActivity`, "Pills debug"), `debug/DebugActivity.kt`, `DebugScreen.kt` (`DebugScreen`, stateless `DebugContent`, `DebugActions`), `DebugViewModel.kt`, `DebugDevice.kt` (`AndroidDebugDevice`), `TestSchedules.kt`, `res/values/strings_debug.xml`; `TestSchedulesTest` (6) in `app/src/testDebug/`. Drawn in four states, light and dark, at font scale 1 and 2, on the phone. Tried live on the phone. T5's two tests shown able to fail. |
-| T7 | To do | Opening a take |
+| T7 | Done | `MainActivity` (the take from `onCreate` and `onNewIntent`, `takeOf`), `AppNavHost(openTake, onTakeOpened)` with `OpenTake`, `ReminderIntents.openTakeIntent`. Instrumented: `OpenTakeTest` (8). Eight deliberate bugs (session log). |
 | T8 | To do | Device runs (phone, emulator) |
 | T9 | To do | Wrap-up and pull request |
 
@@ -78,6 +79,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-21 | T4's shapes, where they differ from SPEC §4.2: `ReminderShade.shown()` returns each reminder's fingerprint by key, and the `Reconciler`, not the shade, decides that a silent post is needed (missing, or a different fingerprint, P5-D5). `ReminderShade.prepare()` creates the channel, called by `Reminders.start()`, which takes the shade. `WakeUpAlarm.set(at, retry)`, so the alarm receiver can say `RETRY`. `ReminderLog` is a `fun interface` with `event(line)`. `TakeKeyCodec` writes `<plannedAt>|<medicineId>`. A failure while applying the plan is also `Failed`, with the retry at the next wake-up when that comes sooner. To fold into the SPEC with T5–T7's, in T9. | The rule of P5-D5 then has JVM tests of its own, rather than living in a fake. The time first in the key means a medicine ID can hold any character. Same behaviour as the SPEC describes. |
 | 2026-11-21 | T5's details, where SPEC §4.1–§4.3 is silent or names them otherwise: the three receivers in one file, `Receivers.kt`; `AlarmClockWakeUp(context, action, log)` tells the test alarm apart by its action (`…WAKE_UP.TEST`), which `dumpsys alarm` shows as its tag, and `AlarmReceiver` takes any action starting with `…WAKE_UP`; the summary's tag is `<prefix>-summary` and the group is `…group.<prefix>`, so a test's notifications form a group of their own; a reminder with no dose has the medicine alone as its title; `MainActivity.onStart` reconciles through `Reminders.runAsync`, in the process's scope; `FileReminderLog` stamps its lines with the container's clock. To fold into the SPEC in T9, with T4's. | The tests' alarm must show in `dumpsys alarm` apart from the app's; a title "Minutes: " would be odd. |
 | 2026-11-21 | T6's details, where SPEC §4.3.9 is silent or says otherwise: the screen shows **the next alarm clock** from `AlarmManager.getNextAlarmClock()`, with whether it is this app's, rather than whether the alarm's `PendingIntent` exists (a `PendingIntent` can outlive its alarm); what it reads from the device goes through a `DebugDevice` interface; it refreshes every 2 s and after each action **only while visible** (`WhileSubscribed`), so a debug screen left in the background never wakes the phone during a device run; End and Delete are full-width buttons, one under the other; `AndroidReminderShade.TAG_PREFIX` and `FileReminderLog.FILE_NAME` are shared constants. To fold into the SPEC in T9. | Side by side, the two buttons broke "treatments" mid-word at font scale 2 (the drawings). |
+| 2026-11-21 | T7's details, where SPEC §4.3.8 is silent: `MainActivity` also ignores the take of an intent **relaunched from Recents** (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`); the take opens **right above Home** (`popUpTo<HomeRoute>`, `launchSingleTop`), so whatever was open above Home closes; an intent with no take (the summary's tap, the alarm clock's) leaves an existing activity on the screen it was on, and opens Home only when the app starts; `ReminderIntents.openTakeIntent` and `takeOf(intent)` (in `MainActivity.kt`) are `internal`, for `OpenTakeTest`. To fold into the SPEC in T9. | A task relaunched from Recents after its activity was finished gets the intent that started it, which may be a tap from days ago. "Back returns to Home" holds whatever was open: as Navigation does with deep links. |
 | 2026-11-21 | `@SuppressLint("MissingPermission")` on `setAlarmClock`. | Lint wants `SCHEDULE_EXACT_ALARM`; `USE_EXACT_ALARM` covers alarm clocks (D-8), and `canScheduleExactAlarms()` is checked first. Without the suppression Lint warned (checked in T5). |
 | 2026-11-21 | The natural deep-Doze night moved from T1 to T8 (M7). | Alarm clocks 10 minutes apart keep the phone out of deep Doze; the night needs reminders hours apart, which T8's test treatment gives. Forced deep Doze already passed. |
 
@@ -198,7 +200,8 @@ Afterwards the probe's notifications and both channels were removed (`probe.CLEA
 
 Connections to other phases left for later.
 
-- **P6 (Take screen):** a tapped reminder opens `TakeRoute(medicineId, plannedAt)`, P1's placeholder until P6 replaces it. The route and its arguments stay as they are. An answer given on the Take screen removes its reminder by itself, through the reconcile on every change (SPEC P5-D2): nothing to wire.
+- **P6 (Take screen):** a tapped reminder opens `TakeRoute(medicineId, plannedAt)`, P1's placeholder until P6 replaces it, with `plannedAt` as `LocalDateTime.toString()` (`2026-11-23T16:00`). The route and its arguments stay as they are. An answer given on the Take screen removes its reminder by itself, through the reconcile on every change (SPEC P5-D2): nothing to wire. The take may no longer be Due, or no longer exist, by the time it opens (answered elsewhere, the treatment deleted): the Take screen should say so.
+- **P6 (editors):** a reminder tapped while an editor is open closes it, since the take opens right above Home (T7): its unsaved changes are lost. P6 decides whether that is acceptable, or whether the editor keeps its draft.
 - **P6 (minutes in debug builds):** the medicine editor offers the minutes unit in debug builds, with `validate(allowMinutes = BuildConfig.DEBUG)` (plan `D-15`).
 - **P7 (reminder check, `RM-9`):** what T1 and T2 found on this phone (SPEC §4.6): the notification permission is needed; `USE_EXACT_ALARM` is granted at install; battery optimisation and HyperOS's battery saver aren't needed for alarm clocks, though `RM-9` still asks the check to show battery optimisation; **Autostart** is needed so that reminders come back right after an app update (`MY_PACKAGE_REPLACED`), not for restarts; HyperOS's "Floating notifications" and "Lock screen notifications" are on by default, and worth listing as steps to confirm. P5 declares `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` for the check. Once the check gets the notification permission granted, `MainActivity.onStart`'s reconcile posts the reminders the plan holds. Taken on the home screen removes the reminder by itself (P5-D2).
 - **P8:** `NF-1` and `NF-2` again on the release build, which has no debug screen and no reminder log.
@@ -212,6 +215,8 @@ The commands and manual steps that check the current state.
 
 **Checks at the end of 2026-11-21's second session:** no build was run. The branch's code is still the same as `main`'s (`git diff --stat origin/main..HEAD -- app/ core/ gradle/ '*.gradle.kts'` prints nothing), and CI passed on `main` at `cc80648`, whose last code change is P4's `ef7988e`; the commits since are documents. No instrumented run and no manifest comparison, since nothing in `app/` changed in git. The probes were built and installed only on the devices, then deleted.
 
+**Device state after T7:** the phone has this branch's debug build with T7; no alarm, no notification, empty data (the tests only reconciled it). Its notification permission, `USE_EXACT_ALARM`, the battery saver at its default and Autostart on are as after T6. The emulator has the same build and still the stray "reminders-mutant" channel; it is shut down.
+
 **Device state after T6:** the phone has this branch's debug build with T6, and so the "Pills debug" launcher icon; no alarm, no notification, empty data (a test treatment was created and deleted). The emulator has the same build; its debug app also holds a stray notification channel, "reminders-mutant", left by the deliberate-bug run on the channel (it goes with an uninstall, or "Clear storage"); it is shut down.
 
 **Device state after T5:** the phone has this branch's debug build with T5 (no alarm, no notification, empty data), and the debug app has `POST_NOTIFICATIONS`, granted by `ReminderShadeTest`. The emulator has the same build, with empty data and the permission; it is shut down.
@@ -221,6 +226,15 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-21, night: T7
+
+- Done: T7, opening a take. `./gradlew build` passes: `:app` 123 unit tests, `:core` 177, no failures; Lint "No issues found"; ktlint and the permission allowlist pass. Every instrumented test passes on the emulator and on the phone (unlocked; `instrument` granted op 10021 again after the update): `OK (27 tests)` on both, with `OpenTakeTest`'s 8.
+- `OpenTakeTest` starts `MainActivity` through `ActivityScenario` with the content intent's `Intent` (`ReminderIntents.openTakeIntent`), without its task flags: with them, Android would bring forward the app's own task if the device has one, as the phone may. A tap while the app is open is delivered with `Instrumentation.callActivityOnNewIntent`. The navigation's own test draws `AppNavHost` in a bare `ComponentActivity`, with a `NavController` it can read, and checks the route's arguments and the back stack.
+- Tests that can fail, on the emulator, each bug one at a time, the file restored and checked with `cmp`:
+  - In `MainActivity`: no `savedInstanceState` check (caught by "a recreated activity"); no Recents check ("an old tap relaunched from Recents"); `onNewIntent` ignored ("tapped while the app is open", "tapped again"); the take never cleared ("tapped again"); `plannedAt` as a date only ("holds its take as the route").
+  - In `AppNavHost`: no `popUpTo<HomeRoute>` ("tapped while the app is open", where Back went to Settings); `onTakeOpened` never called ("tapped again", "the navigation opens the take").
+  - Not caught: no wait for `RESUMED`. Equivalent: `navigate()` itself works before the activity is resumed; the wait follows SPEC §4.3.8 and CLAUDE.md's pattern. No test can tell them apart.
 
 ### 2026-11-21, evening: T6
 
