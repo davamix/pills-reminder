@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | In progress |
-| **Spec** | [SPEC.md](SPEC.md), version v0.4 |
+| **Status** | In progress: all tasks done; pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is waiting for the user to merge it |
+| **Spec** | [SPEC.md](SPEC.md), version v0.5 |
 | **Branch** | `phase/p5-reminders` |
-| **Last session** | 2026-11-21 |
+| **Last session** | 2026-11-22 |
 
 This document tracks the phase as it's built. Update it at the end of every session, so the next one can continue from here.
 
@@ -19,36 +19,32 @@ Start or continue phase P5 (Reminders on Android) of the pills reminder.
 1. Use the phase-start skill for P5. Read only docs/phases/P5-reminders/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p5-reminders. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. T1 to T8 are done; next is T9, the wrap-up. T9 needs the phone only for the instrumented suite, with it unlocked: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks.
+4. All tasks are done, and pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is open. First check whether it is merged or has review comments: after the merge, use the phase-close skill instead. A change asked in review may need the phone, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks.
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-T1 to T8 are done: **the app has real reminders, debug builds have the tools to try them, a tapped reminder opens its take, and the device runs pass on the phone and the emulator.** A saved treatment sets an alarm clock; when it fires, the reconcile posts the reminder, with sound, its repeats, and Taken, Snooze and Skip, which record the answer and remove it. Checked end to end on the emulator (T5's session log). What is built:
+**All tasks are done; pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is open, waiting for the user to merge it.** CI passed on `ffa1c6f` (run 45015825166).
+
+The app has real reminders. A saved treatment sets one alarm clock. When it fires, the reconcile posts the reminder with sound, repeats it, and offers Taken, Snooze and Skip, which record the answer and remove it. A tapped reminder opens its take. The shade and the alarm follow every change of the data. Debug builds have a "Pills debug" screen that schedules test reminders in minutes. What is built, by task:
 
 - T3, the reminder state in the store: `PillsData.reminders`, the snooze action, records dropped with deleted or removed medicines, and the format's optional `reminders` list, with a new golden file.
 - T4, the reconcile in `app/.../reminders/`: `Reconciler`, `Reminders` (the observer of the data, the answers, `runAsync`), and the interfaces it works on, tested on the JVM with fakes.
 - T5, the Android side: `ReminderChannel`, `AndroidReminderShade`, `AlarmClockWakeUp`, `ReminderIntents`, the three receivers (`Receivers.kt`), `FileReminderLog`; the manifest's four permissions and three receivers; `AppContainer.reminders`, started by `PillsReminderApp`, and `MainActivity.onStart`'s reconcile.
+- T6, the debug tools (debug builds only): `DebugActivity` and its screen.
+- T7, opening a take: `MainActivity` and `AppNavHost(openTake, onTakeOpened)`.
+- T8, the device runs: M1–M14 on the phone, with stock settings (the timing runs and a night in natural deep Doze) and relaxed (all), and E1–E4 on the emulator. Every alert was on time whenever the app could run ("Device runs (T8)").
+- T9: SPEC v0.5 (T4–T8 folded in, Q11, Q12), KDoc, `CLAUDE.md`, the manifest comparison, the checks, the pull request.
 
-- T6, the debug tools, in debug builds only: a second launcher icon, "Pills debug" (`DebugActivity`), whose screen creates, ends and deletes test treatments in minutes, and shows the next wake-up, the next alarm clock, the records, the reminders in the shade, what reminders depend on, and the log's last lines.
-- T7, opening a take: `MainActivity` reads the take from a reminder's intent, at a new start and in `onNewIntent`, and `AppNavHost` opens `TakeRoute` once, right above Home. The Take screen is P1's placeholder until P6.
-- T8, the device runs: M1–M14 on the phone, with stock settings (the timing runs and a night in natural deep Doze) and relaxed (all), and E1–E4 on the emulator: every alert on time whenever the app could run ("Device runs (T8)").
+T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`): an alarm clock rather than an exact alarm; notifications with no category, public, and silent posts by group alert behaviour; the boot receiver at priority 999; Autostart on P7's list for updates.
 
-`./gradlew build` passes; every instrumented test passes on the emulator and the phone. Treatments can't be created in the app itself yet (P6).
-
-T1 and T2's measurements changed the design, with the user, in SPEC v0.4 (Q5–Q10), plan v0.6 (`D-8`, `D-10`) and specification v0.8 (`RM-2`):
-
-- **The alarm is an alarm clock** (`setAlarmClock()`): HyperOS holds exact alarms for up to 5 minutes with the screen off. Alarm clocks were on time in every case, with stock settings: screen off, light and deep Doze, a night, the process ended, a swipe from Recents, an update.
-- **Notifications:** no category, so Do Not Disturb silences them (HyperOS lets the *reminder* category through); public on each notification, since an app can't set the channel's lock-screen visibility; silent posts as group children with `GROUP_ALERT_SUMMARY` (the platform has no `setSilent()`). In vibrate mode, Android vibrates instead of sounding, now allowed by `RM-2`.
-- **Boot receiver** at `android:priority="999"`: `BOOT_COMPLETED` 8.7 s after the unlock, instead of 59 s.
-- **Updates** remove the notifications, and HyperOS blocks `MY_PACKAGE_REPLACED` while Autostart is off: Autostart goes on P7's list.
-
-The probes are deleted, and their lines in `.git/info/exclude` removed. The phone has this branch's clean debug build. The night in natural deep Doze, with reminders hours apart, moved to T8 (M7).
+Treatments can't be created in the app itself yet (P6).
 
 ## Next steps
 
-1. **T9, the wrap-up** (SPEC §7): fold into the SPEC (a new version on `main`, through `phase-docs`, then merged into the branch) the decisions of T4–T8 from "Decisions and deviations", and T8's HyperOS findings ("Device runs (T8)", **Result**), with §6's M5, M8 and M14 and the done criteria to match; check every row of §6 and rule of §4.3 against the tests; KDoc; `CLAUDE.md` (the `reminders` package, the reconcile on every change, `PillsData.reminders`, the debug tools and their Instructions switch, the test prefixes); the manifest comparison; `build`; the instrumented suite on the emulator and the phone; the pull request with CI green.
+1. **Pull request [#5](https://github.com/davamix/pills-reminder/pull/5):** deal with any review comments on the branch (build, and the instrumented suite if Android code changes), then push and wait for CI.
+2. **After the user merges it:** the `phase-close` skill, on `main`. It marks P5 `Done` in plan §5.1 and ticks SPEC §8. Then it reviews the skills: the "For the skills review" items in "Known issues" are its input. Also worth a look then: plan `D-8` says the alarm clock shows an icon in the status bar, which HyperOS doesn't (Q12).
 
 ## Tasks
 
@@ -64,7 +60,7 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | `app/src/debug/`: `AndroidManifest.xml` (`DebugActivity`, "Pills debug"), `debug/DebugActivity.kt`, `DebugScreen.kt` (`DebugScreen`, stateless `DebugContent`, `DebugActions`), `DebugViewModel.kt`, `DebugDevice.kt` (`AndroidDebugDevice`), `TestSchedules.kt`, `res/values/strings_debug.xml`; `TestSchedulesTest` (6) in `app/src/testDebug/`. Drawn in four states, light and dark, at font scale 1 and 2, on the phone. Tried live on the phone. T5's two tests shown able to fail. |
 | T7 | Done | `MainActivity` (the take from `onCreate` and `onNewIntent`, `takeOf`), `AppNavHost(openTake, onTakeOpened)` with `OpenTake`, `ReminderIntents.openTakeIntent`. Instrumented: `OpenTakeTest` (8). Eight deliberate bugs (session log). |
 | T8 | Done | M1–M14 on the phone, stock (timing runs, the night) and relaxed (all); E1–E4 on the emulator ("Device runs (T8)"). The debug screen's Instructions switch, for M1, with a test in `TestSchedulesTest` shown able to fail. The instrumented suite to run again on both devices in T9, after the SPEC's last changes. |
-| T9 | To do | Wrap-up and pull request |
+| T9 | In review | SPEC v0.5 on `main`, merged; KDoc; `CLAUDE.md`; manifests and libraries compared with `main`; `build`; the instrumented suite on both devices; pull request [#5](https://github.com/davamix/pills-reminder/pull/5). |
 
 ## Decisions and deviations
 
@@ -80,6 +76,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-21 | T5's details, where SPEC §4.1–§4.3 is silent or names them otherwise: the three receivers in one file, `Receivers.kt`; `AlarmClockWakeUp(context, action, log)` tells the test alarm apart by its action (`…WAKE_UP.TEST`), which `dumpsys alarm` shows as its tag, and `AlarmReceiver` takes any action starting with `…WAKE_UP`; the summary's tag is `<prefix>-summary` and the group is `…group.<prefix>`, so a test's notifications form a group of their own; a reminder with no dose has the medicine alone as its title; `MainActivity.onStart` reconciles through `Reminders.runAsync`, in the process's scope; `FileReminderLog` stamps its lines with the container's clock. To fold into the SPEC in T9, with T4's. | The tests' alarm must show in `dumpsys alarm` apart from the app's; a title "Minutes: " would be odd. |
 | 2026-11-21 | T6's details, where SPEC §4.3.9 is silent or says otherwise: the screen shows **the next alarm clock** from `AlarmManager.getNextAlarmClock()`, with whether it is this app's, rather than whether the alarm's `PendingIntent` exists (a `PendingIntent` can outlive its alarm); what it reads from the device goes through a `DebugDevice` interface; it refreshes every 2 s and after each action **only while visible** (`WhileSubscribed`), so a debug screen left in the background never wakes the phone during a device run; End and Delete are full-width buttons, one under the other; `AndroidReminderShade.TAG_PREFIX` and `FileReminderLog.FILE_NAME` are shared constants. To fold into the SPEC in T9. | Side by side, the two buttons broke "treatments" mid-word at font scale 2 (the drawings). |
 | 2026-11-21 | T7's details, where SPEC §4.3.8 is silent: `MainActivity` also ignores the take of an intent **relaunched from Recents** (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`); the take opens **right above Home** (`popUpTo<HomeRoute>`, `launchSingleTop`), so whatever was open above Home closes; an intent with no take (the summary's tap, the alarm clock's) leaves an existing activity on the screen it was on, and opens Home only when the app starts; `ReminderIntents.openTakeIntent` and `takeOf(intent)` (in `MainActivity.kt`) are `internal`, for `OpenTakeTest`. To fold into the SPEC in T9. | A task relaunched from Recents after its activity was finished gets the intent that started it, which may be a tap from days ago. "Back returns to Home" holds whatever was open: as Navigation does with deep links. |
+| 2026-11-22 | **SPEC v0.5** folds in every row above marked "to fold into the SPEC in T9", T7's and T8's included, with Q11 (the night with stock settings) and Q12 (HyperOS's alarm icon, lock screen and swipe). No change to the specification or the plan: `RM-11`'s full content still holds, and plan `D-8` states the icon as an accepted cost. | T9 (`phase-docs`, "SPEC change during implementation"). |
 | 2026-11-22 | T8: the debug screen gets an **Instructions** switch (`TestSettings.instructions`, "with food"), which SPEC §4.3.9 doesn't list. To fold into the SPEC in T9. | M1 checks a reminder with instructions, and test treatments had none. |
 | 2026-11-21 | T8: the night in natural deep Doze (M7) runs once, with **stock** settings, rather than relaxed as §6's done criterion reads. Decided by the user. To fold into the SPEC (§6, §8) in T9. | Stock settings are the stricter case, and how the phone will be used (battery saver at its default): alarm clocks on time then are on time with the settings relaxed too. |
 | 2026-11-21 | `@SuppressLint("MissingPermission")` on `setAlarmClock`. | Lint wants `SCHEDULE_EXACT_ALARM`; `USE_EXACT_ALARM` covers alarm clocks (D-8), and `canScheduleExactAlarms()` is checked first. Without the suppression Lint warned (checked in T5). |
@@ -278,7 +275,11 @@ The commands and manual steps that check the current state.
 - `./gradlew build` (CLAUDE.md shows how to keep its exit code and filter its output).
 - The measurements: "Measurements" above, and SPEC §4.6.
 
+**Checks at the end of T9 (2026-11-22), at `ffa1c6f`:** `ktlintFormat`, then `./gradlew build`: passes, `:app` 124 unit tests (7 in `testDebug`), `:core` 177, no failures; Lint "No issues found"; ktlint and the permission allowlist pass. Instrumented, with `gradle installDebug installDebugAndroidTest && instrument`: `OK (27 tests)` on the emulator (API 36) and on the phone (unlocked; op 10021 granted again after the install), `StoreDeviceCheck`'s two skipped by their assumption. Merged manifests and release libraries compared with `main`, built in a scratch worktree: release adds exactly `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, `USE_EXACT_ALARM` and the three receivers, all `exported=false`, no `android:process` (the one match is a comment); debug adds the same and `DebugActivity`; the release runtime libraries are the same as `main`'s.
+
 **Checks at the end of 2026-11-21's second session:** no build was run. The branch's code is still the same as `main`'s (`git diff --stat origin/main..HEAD -- app/ core/ gradle/ '*.gradle.kts'` prints nothing), and CI passed on `main` at `cc80648`, whose last code change is P4's `ef7988e`; the commits since are documents. No instrumented run and no manifest comparison, since nothing in `app/` changed in git. The probes were built and installed only on the devices, then deleted.
+
+**Device state after T9:** the phone and the emulator have this branch's debug build at `ffa1c6f`, with the test APK; no alarm, no notification, no test treatment. The phone's settings are as after T8 (Autostart on, kept by the user; the battery saver at its default). The emulator is shut down.
 
 **Device state after T8:** the phone has this branch's debug build from 09:29 on 2026-11-22 (with the Instructions switch, before its label's quote fix); no test treatment, no alarm, no notification. **Autostart is on**, which the user keeps; the battery saver is back at its default (battery optimisation on, standby bucket 10); normal ring mode, Do Not Disturb off, Doze not forced (`doze_off`, which also reset the battery state). The emulator has the build with the quote fix, font scale 1.0, light mode, automatic time and zone, Europe/Paris, no test data, its stray "reminders-mutant" channel; it is shut down.
 
@@ -293,6 +294,18 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22, midday: T9
+
+- SPEC v0.5 on `main` (`dd28e22`), merged into the branch: T4–T8's decisions folded into §4.1–§4.3, §6–§8, with Q11 and Q12 and a change-log row. No change to the specification or the plan.
+- KDoc on the public declarations that had none (`Reconciler.reconcile`, `Reminders.reconcile`, `ReminderIntents.isWakeUp` and `isRetry`, `ReminderChannel.ID`, `DebugDevice`, `AndroidDebugDevice`, `TestSchedules.PREFIX` and `isTest`). `CLAUDE.md`: the status's versions, `AppContainer.reminders`, a **Reminders** section (the reconcile, after every change, the receivers and `runAsync`, the notifications, HyperOS, the log), **Debug tools**, and the instrumented tests' prefix and action.
+- Checks: "How to verify". Pull request [#5](https://github.com/davamix/pills-reminder/pull/5) opened; CI passed on `ffa1c6f` (run 45015825166).
+
+### 2026-11-21 evening to 2026-11-22 morning: T8
+
+- The device runs, recorded in "Device runs (T8)": the stock timing runs on the evening of the 21st, the night in natural deep Doze, the relaxed runs on the morning of the 22nd, forced deep Doze, and E1–E4 on the emulator. The user chose the night with stock settings (Q11).
+- The debug screen got an Instructions switch, for M1 (`TestSchedulesTest`: a new case, caught by its one deliberate bug, instructions always empty). Its label lost its quotes in the resource; typographic quotes now.
+- Notes: the reminder log's `late=` and `logcat -b events`'s `notification_alert` gave every result, read with `run-as` and `adb shell`. A wait loop must quote a `|` for the device's shell (`"'…|'"`), and should measure time on the device, not with `bash`'s `SECONDS`, which jumped when the PC's clock was corrected. With the soft keyboard up, `input tap` on the debug screen typed into a field instead: close it with Back first. The events log holds other apps' notifications, with personal details: always filter it by the app's package.
 
 ### 2026-11-21, night: T7
 
