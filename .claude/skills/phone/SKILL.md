@@ -119,6 +119,8 @@ With no argument it takes the only device connected, and refuses when both the p
 | `wait_alert HH:MM [seconds] [lines]` | Waits until the reminder log has an alert for the take planned at that minute (default 420 s, on the device's clock), then prints the log's last lines. Run it in the background |
 | `debug_create INTERVAL FIRST [two] [noend] [instructions]` | On the debug screen ("Pills debug"): deletes the test treatments, then creates one, every INTERVAL minutes from FIRST minutes after now. Prints the form and the next wake-up |
 | `debug_open`, `keyboard_close`, `node_centre <pattern> [n]` | Opens the debug screen at its top; closes the soft keyboard if it is up; the centre of the Nth node matching a pattern |
+| `tap_desc <desc>` | Taps the first node with exactly that content description: an icon button ("Back"), or a time picker dial number ("15 hours") |
+| `type_field <n> <text>` | Taps the Nth text field on screen (in screen order) and types at its end; spaces allowed, no quotes or brackets. The keyboard stays up |
 
 **All checked.** On 2026-11-19, before the app existed, against system packages: `use_device` (with the phone and the emulator both connected), `texts`, `wait_for`, `tap_text`, `shot`, `notifications`, `reminder_health`, `doze_on`, `doze_off`, `doze_state`, `wait_boot` and `wait_for_log` on the emulator, and `alarms` on both, with the same format on Android 13 (HyperOS) and 16. On 2026-11-20 (P1 T8), with the app, on both devices: `gradle`, `instrument`, `launch`, `force_stop`, `end_process` and `allow_test_start`. The phone was on wireless debugging only. After P1's skills review: `instrument`'s permission check and deadline on the phone, and `with_dark_mode` and `with_landscape` on the emulator. After P2's skills review: `instrument`'s lock check on the unlocked phone (the locked case wasn't tried, to leave the phone alone), and `wait_emulator` with the phone on wireless debugging. After P3's skills review: `instrument` granting op 10021 by itself after an update on the phone. `connected_results` was moved unchanged from this file into `helpers.sh`, and not run, since `connectedDebugAndroidTest` uninstalls the app. P5's reminder helpers on 2026-11-22: `reminder_log`, `reminder_state`, `alert_events`, `doze_history` and `wait_until` on the phone; `debug_create`, `wait_alert` (its timeout) and `alert_events` on the emulator, whose events have more fields; `wait_alert`'s success path ran through T8's device runs.
 
@@ -173,15 +175,9 @@ The path assumes an `:app` module; P1 confirms it. The `awk` program is in `help
 
 ## Checking a screen in every state
 
-To see how a screen looks in each of its states, draw them in a throwaway test rather than driving the app to each one. In Workout Timer this caught a layout that didn't fit, and a text colour bug, before any manual check. This assumes Jetpack Compose; adapt it if the plan chooses otherwise.
+To see how a screen looks in each of its states, draw them in a throwaway test rather than driving the app to each one. Use the `screen-gallery` skill (since P6): its harness draws each state from the screen's `…Content` composable, dialogs and dropdowns included, in light and dark, and at the system's font scale 2 on the emulator; it composes 4-per-sheet PNGs to read, and keeps the test out of the repo.
 
-1. Write a JUnit 4 test in `app/src/androidTest/kotlin/io/github/davamix/pillsreminder/probe/<Name>Gallery.kt` with `createComposeRule()`. Hold the state in a `mutableStateOf`, and set the content once, inside the app's theme.
-2. For each state: set it, call `compose.waitForIdle()`, then save `compose.onRoot().captureToImage().asAndroidBitmap()` as a PNG in `targetContext.cacheDir`.
-3. Run it with `gradle installDebug installDebugAndroidTest && instrument probe.<Name>Gallery`.
-4. Copy each file with `$adb exec-out run-as $pkg cat cache/<file>.png > <scratchpad>/<file>.png`, and look at it with Read.
-5. Delete the test: it never goes in a commit.
-
-Draw each state in light and dark theme, and at the largest system font size the spec asks for (`NF-7`).
+Two things it relies on, worth knowing for any screenshot test: a `LocalDensity` with a larger font scale doesn't reach dialogs, which open in their own window, so set the system's `font_scale` instead (emulator: `$adb shell settings put system font_scale 2.0`, and back to `1.0`); and `captureToImage()` of `onAllNodes(isDialog()).onLast()` draws the topmost dialog.
 
 ## Measuring device behaviour
 
@@ -228,6 +224,13 @@ Found on this same phone by the IAmOk project ([device matrix](https://github.co
 - **HyperOS keeps at most 10 notifications per app,** and drops the oldest.
 - **Wireless debugging** reconnects by itself after a restart, sometimes a minute after the unlock. After a night it was off, and adb listed nothing (`adb mdns services` empty) until the user turned it off and on (P5 T8).
 - **MIUI optimisation** (developer options) changes permission and notification behaviour. Leave it as it is.
+
+Driving the app's screens (P6 T8):
+
+- **Compose through uiautomator:** a text field is an `android.widget.EditText` node whose `text` is empty until typed, with its label as a separate node: `type_field`. Icon buttons and the time picker's dial numbers are content descriptions (`"Back"`, `"15 hours"`; `"Select minutes"` switches the dial to minutes): `tap_desc`. The date picker's day cells have their whole date as text (`"Monday, November 23, 2026"`, in the picker's locale): `tap_text`.
+- **The back gesture can't be injected on the emulator:** `input swipe` and `input motionevent` from either edge do nothing. `input keyevent KEYCODE_BACK` reaches the app's back handling, but shows no predictive animation. To check the swipe or its animation, start the emulator without `-no-window` and ask the user to swipe.
+- **In the emulator's window, a mouse counts as a stylus:** after the user has used it, Gboard can open "Try out your stylus" or its handwriting toolbar, and `input text` then types into that, not into the app. uiautomator doesn't see the keyboard's window. For checks driven over adb, restart the emulator with `-no-window`.
+- **Dark theme and font size on the phone,** with the user's agreement: `$adb shell cmd uimode night yes` (and `no`), `$adb shell settings put system font_scale 1.5` (and `1.0`). Read both first, and put them back. On the emulator, `with_dark_mode` does the first.
 
 ## Notes
 

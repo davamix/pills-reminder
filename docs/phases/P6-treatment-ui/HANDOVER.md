@@ -101,6 +101,7 @@ Newest first.
 ### 2026-11-22 (close)
 
 - The user merged pull request #6. Every instrumented test passed on the phone on `main` at the merge (`68e6f35`, 37 tests), the one check left open in the pull request. P6 is closed: `Done` in plan §5.1, SPEC §8 ticked.
+- Skills review (plan `D-17`), all four proposals made, with the user's agreement: a new skill, `screen-gallery` (SK-9: `GalleryHarness.kt`, `gallery.sh`, checked on the emulator), from the gallery P6 built by hand; the `phone` skill's `tap_desc` and `type_field`, `node_centre` printing nothing when no node matches (it printed "0 0", a tap in the corner), its screen-drawing section pointing to `screen-gallery`, and pitfalls (Compose through uiautomator, the emulator's back gesture, its mouse as a stylus, the phone's dark theme and font size); `deliberate-bugs`: the stdin fix, the cost of instrumented bugs, a test reading too early; `phase-docs` points to `screen-gallery`; CLAUDE.md: `screen-gallery` in the skills list, and Android 14 APIs under `minSdk` 33.
 
 ### 2026-11-22 (later)
 

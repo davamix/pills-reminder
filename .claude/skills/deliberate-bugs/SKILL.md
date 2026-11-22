@@ -43,9 +43,12 @@ CLAUDE.md asks every new test that passes on its first run to be shown able to f
    ```
 
    Run it in the background when it takes minutes: each bug is one build and one test run. Instrumented runs belong on the emulator. On the phone the user must keep it unlocked, and every install resets HyperOS's op 10021, which `instrument` grants again.
+
+   - **Instrumented bugs cost about 1.5 minutes each** (a build, two installs, the run): keep them to what only the UI tests can see, such as navigation, dialogs and pickers, and leave the rest to JVM tests. Run only the test classes that can catch them.
+   - **A unit-test bug that would make a test wait forever,** such as dropping the ticks a test waits for, ends at `runTest`'s timeout, about a minute, and still counts as caught.
 4. **Read the result.** One line per bug, then the total:
    - `caught by Class > test; …`: the tests that failed.
-   - `NOT CAUGHT`: no test noticed. Add or sharpen a test, or explain why the bug can't be seen (P5 T7: dropping a wait for `RESUMED` changed nothing observable).
+   - `NOT CAUGHT`: no test noticed. Add or sharpen a test, or explain why the bug can't be seen (P5 T7: dropping a wait for `RESUMED` changed nothing observable). It can also mean a test read its result too early: in P6, a ViewModel test read a `stateIn` state right after a synchronous change, and got the old value whatever the code did (CLAUDE.md, "ViewModel tests").
    - `failed with no failing test`: most likely the bug doesn't compile. Its log, `<output folder>/<ID>.log`, says.
    - `not applied`: its `old` text isn't in the file exactly once.
 
@@ -58,3 +61,4 @@ CLAUDE.md asks every new test that passes on its first run to be shown able to f
 - **The runner** is [run.sh](run.sh), with [apply_bug.py](apply_bug.py) for the file format. They live in files because the skill loader replaces shell positional parameters in this text (the `handover` skill found it in P2).
 - **JVM tests** are read from the JUnit XML that Gradle writes during the run; **instrumented tests** from the runner's numbered failures (`1) name(Class)`). A Gradle run that stops at compilation writes no XML, hence "failed with no failing test".
 - **Ktlint** isn't run on the mutated code, so a bug may leave an odd blank line: the file is restored afterwards.
+- **The test command gets no stdin.** Before P6 it inherited the runner's own input, the list of bugs, and `adb` in an instrumented run read it: only the first bug ran, and the total said "caught 1 of 1". If a total ever counts fewer bugs than the file holds, check that first.

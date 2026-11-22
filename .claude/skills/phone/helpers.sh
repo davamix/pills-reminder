@@ -417,10 +417,35 @@ keyboard_close() {
     fi
 }
 
-# The centre "x y" of the Nth node (default 1) on screen whose attributes match the grep -E pattern.
+# The centre "x y" of the Nth node (default 1) on screen whose attributes match the grep -E pattern; nothing when no
+# node matches (it printed "0 0" before P6, and a tap there lands in the screen's corner).
 node_centre() {
     $adb exec-out uiautomator dump /dev/tty 2> /dev/null | grep -o '<node [^>]*>' | grep -E "$1" | sed -n "${2:-1}p" |
-        grep -o 'bounds="[^"]*"' | grep -o '[0-9]\+' | paste -sd' ' - | awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }'
+        grep -o 'bounds="[^"]*"' | grep -o '[0-9]\+' | paste -sd' ' - | awk 'NF == 4 { print int(($1 + $3) / 2), int(($2 + $4) / 2) }'
+}
+
+# Taps the first node whose content description is exactly DESC: an icon button ("Back", "Edit treatment"), or a
+# number on Material's time picker dial ("15 hours", "45 minutes"). Compose puts these in content-desc, not text.
+tap_desc() {
+    local c
+    c=$(node_centre "content-desc=\"$1\"")
+    [ -z "$c" ] && { echo "tap_desc: '$1' not on screen"; return 1; }
+    # shellcheck disable=SC2086
+    $adb shell input tap $c
+}
+
+# Types TEXT at the end of the Nth text field on screen (from 1, in screen order), after tapping it. Compose text fields
+# are EditText nodes whose text is empty until typed; their labels are separate nodes. Spaces go as %s, as `input text`
+# needs; avoid quotes and brackets, which the device's shell would read. The keyboard stays up: keyboard_close.
+type_field() {
+    local c
+    c=$(node_centre 'class="android.widget.EditText"' "$1")
+    [ -z "$c" ] && { echo "type_field: no text field $1 on screen"; return 1; }
+    # shellcheck disable=SC2086
+    $adb shell input tap $c
+    $adb shell sleep 0.5
+    $adb shell input keyevent KEYCODE_MOVE_END
+    $adb shell input text "$(printf '%s' "$2" | sed 's/ /%s/g')"
 }
 
 # Opens the debug screen (debug builds, "Pills debug"), scrolled to the top, with the keyboard closed.

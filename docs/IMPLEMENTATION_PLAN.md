@@ -491,6 +491,7 @@ Skills complement it. They are repeatable procedures, loaded only when used. The
 | SK-6 | `phone` | The phone and the emulator over adb, with helpers: install, launch, screen, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and HyperOS pitfalls. Its helpers that need the app are checked in P1. | Created 2026-11-19 |
 | SK-7 | `reminder-run` | A candidate for the skills review after P5, if the device runs turn out to repeat the same steps: set up a test schedule, put the phone through one event (Doze, swipe, restart, …), and record when each reminder alerted. | Not created: after P5, its helpers and steps went into `phone` ("Reminder device runs") |
 | SK-8 | `deliberate-bugs` | Shows that new tests can fail: applies each bug of a bugs file on its own, runs the given unit or instrumented tests, restores the file (checked with `cmp`), and says which tests caught each bug. | Created 2026-11-22, after P5 |
+| SK-9 | `screen-gallery` | Draws every state of a screen as screenshots: a reusable harness, the session's throwaway gallery of states (dialogs and dropdowns included), run in light and dark at font scale 1 and 2, pulled as 4-per-sheet PNGs, and kept out of the repo. | Created 2026-11-22, after P6 |
 
 **Skills review after each phase** (`D-17`). Once a phase is merged and closed, the `phase-close` skill looks back at the phase: its decisions and deviations, its known issues, and anything that cost time or had to be worked out twice. It proposes:
 

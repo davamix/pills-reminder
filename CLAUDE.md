@@ -35,6 +35,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - `phase-close`: after the user merges a phase's pull request, mark the phase `Done` on `main`, then review the skills: propose new skills, or changes to skills and to this file, from what the phase taught (plan `D-17`). The user decides which to make.
 - `phone`: the phone and the emulator over adb, with helpers: pick the device, start the emulator, install, launch, read the screen, screenshots, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and the HyperOS pitfalls found on this phone.
 - `deliberate-bugs`: show that new tests can fail. Each bug of a bugs file, on its own: applied, the tests run, the file put back and checked with `cmp`; it says which tests caught each.
+- `screen-gallery`: draw every state of a screen as screenshots: a throwaway gallery of the screen's `…Content` states, run light and dark at font scale 1 and 2 on the emulator, or on the phone; 4-per-sheet PNGs to read; kept out of the repo.
 
 ## Commands
 
@@ -117,6 +118,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - **Time:** `java.time`, with an injected `Clock`. Logic never reads the system clock itself (plan `D-6`).
 - **Versions:** pinned in `gradle/libs.versions.toml`. AGP must stay at 9.3 or lower while Android Studio 2026.1 is the installed IDE. The Compose BOM stays at 2026.09.00: 2026.11.01 (Compose 1.13) needs `compileSdk` 37.1, and only the `android-37.0` platform is installed.
 - **Kotlin style:** ktlint, official style (`.editorconfig`). Run `ktlintFormat` before committing.
+- **Android 14 APIs:** `minSdk` is 33, and some Java APIs arrived later on Android, such as `LocalDate.EPOCH` (API 34). Lint's `NewApi` check fails the build on them; never suppress it, since the phone, at API 33, would crash (P6 T6).
 - **Formatting numbers:** don't call `String.format` without a `Locale`. Lint warns (`DefaultLocale`), and the result would follow the phone's language. Pad with `padStart` instead.
 - **Tests:**
   - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
