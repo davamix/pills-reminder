@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | v0.9, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Status** | v0.10, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
 | **Last updated** | 2026-11-22 |
 | **Platform** | Android phone, single user, personal use |
 
@@ -226,7 +226,7 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | RM-6 | Tapping a reminder opens the app on that take. | Agreed |
 | RM-7 | When a take is answered in the app, or becomes Missed, its reminder is removed from the shade. | Agreed |
 | RM-8 | Reminders follow the phone's Do Not Disturb and silent mode settings: in either one, a reminder appears without sound. | Agreed |
-| RM-9 | **Reminder check:** the app checks what its reminders depend on: the notification permission, the exact-alarm permission, and Android's battery optimisation for the app. It shows what is missing, each with a button that opens the right settings screen. HyperOS's own settings (Autostart, battery saver), which the app can't read, are listed as steps for you to confirm. The check is shown on first launch and in Settings, and the home screen warns while something is missing. | Agreed |
+| RM-9 | **Reminder check:** the app checks what its reminders depend on: the notification permission; its Reminders notification category, which must be on and allowed to pop up and sound; the exact-alarm permission; and Android's battery optimisation for the app, which on HyperOS is the app's battery saver. It shows what is missing, each with a button that opens the right settings screen, or Android's own dialog for battery optimisation. On HyperOS, the settings the app can't read (Autostart, Floating notifications and Lock screen notifications) are listed as steps for you to confirm. The check is shown on first launch, where Android's dialog asks for the notification permission, and in Settings. The home screen warns while something is missing or a step isn't confirmed. | Agreed |
 | RM-11 | The lock screen shows a reminder's full content. | Agreed |
 
 ### 5.4 Takes
@@ -255,13 +255,13 @@ All screens are portrait.
 
 | Screen | Purpose | Main actions |
 |---|---|---|
-| **Home: next takes** | The next take of each medicine, due takes first (`HM-1` to `HM-5`) | Mark a take Taken, open a treatment, new treatment, all treatments, settings |
+| **Home: next takes** | The next take of each medicine, due takes first (`HM-1` to `HM-5`) | Mark a due take Taken, or a next take Taken early (`TK-4`, with confirmation); open a treatment, new treatment, all treatments, settings |
 | **Treatments** | Every treatment, grouped as Active, Upcoming and Finished | Open one, new treatment |
 | **Treatment** | One treatment: its medicines, with their schedule and progress, each medicine's next take, and its last answered take (`TK-5`) | Edit (not once ended early), end early (`TR-11`, with confirmation), delete (with confirmation), open a medicine's next take or its last answered take |
 | **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine (removing one that has started asks for confirmation); save; cancel (asks for confirmation if there are unsaved changes) |
 | **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Done: back to the treatment editor, whose Save stores the treatment; cancel (asks for confirmation if there are unsaved changes) |
 | **Take** | One take: planned time, state, and time taken | Taken, Skip, change the time taken, undo (`TK-2`, `TK-5`) |
-| **Settings** | The reminder check (`RM-9`) | Open Android's settings, back |
+| **Settings** | The reminder check (`RM-9`) | Open Android's settings, confirm HyperOS's steps, back |
 | **Reminder** (a notification, not a screen) | A due take (`RM-1`) | Taken, Snooze, Skip; tap to open the take |
 
 Sketches (low fidelity, layout only), from the example in §4.4.
@@ -399,3 +399,4 @@ Not planned for v1; listed so they are not lost.
 | 0.7 | 2026-11-20 | From the P5 spec review (P5 Q2 and Q4), confirming its draft assumptions. `RM-5`: swiping a reminder away doesn't answer or snooze its take, and the reminder comes back with its next repeat, or silently once its repeats are over. `RM-4`: reminders that alert at the same moment may play a single sound. |
 | 0.8 | 2026-11-21 | From P5's measurements on the phone (P5 Q7), decided by the user. `RM-2`: in vibrate mode a reminder vibrates instead of sounding, as Android does with every notification; Q20's decision notes the change. `RM-8` stays as it is: P5 keeps reminders silent in Do Not Disturb (P5 Q6). |
 | 0.9 | 2026-11-22 | From the P6 spec review (P6 Q1 and Q4–Q7), confirming its draft assumptions. `TR-11`: a treatment ended early can't be edited any more, only deleted. `NF-8`: times follow the phone's 24-hour clock setting, and day and month names are in the UI's language. §6: the medicine editor's button is Done, and only the treatment editor's Save stores the treatment; both editors confirm before discarding changes; End early, and removing a medicine that has started, ask for confirmation; the Treatment screen opens each medicine's next take and its last answered take. |
+| 0.10 | 2026-11-22 | From the P7 spec review (P7 Q2–Q6), confirming its draft assumptions. `RM-9`: the check also reads the app's Reminders notification category; battery optimisation counts, through Android's own dialog, and on HyperOS it is the app's battery saver; HyperOS's steps to confirm are Autostart, Floating notifications and Lock screen notifications; Android's dialog asks for the notification permission at the first launch; the home screen warns while a step isn't confirmed. §6: Home marks a next take Taken early, with a confirmation; Settings confirms HyperOS's steps. |
