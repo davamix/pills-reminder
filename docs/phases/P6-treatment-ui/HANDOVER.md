@@ -29,8 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T8`, E1: the back swipe and its predictive animation on the emulator, by the user at its window (start it without `-no-window`): in the treatment editor with no change, a swipe animates and leaves; with a change, it asks first.
-2. `T9`: the wrap-up (SPEC §7).
+1. `T9`: the wrap-up (SPEC §7): fold the decisions marked "to fold into SPEC" into SPEC v0.3 on `main`, CLAUDE.md, the checks and the pull request.
 
 ## Tasks
 
@@ -45,7 +44,7 @@ The task IDs come from SPEC.md §7.
 | T5 | Done | `TakeViewModel` (the actions offered by running P2's pure actions, P6-D5; `keyOf` reads the route), `TakeScreen`, and its destination. 18 unit tests; 15 deliberate bugs, all caught. `OpenTakeTest` passes with the real Take screen (its take doesn't exist, so it shows "This take no longer exists." under the title "Take"). |
 | T6 | Done | `EditorViewModel` (the draft, the medicine editor's working copy keyed by its back-stack entry, validation, preview, notes, save), `SavedEditor.kt` (the drafts as JSON in the `SavedStateHandle`, P6-D6), both editors' screens, and `EditorGraph.kt`: the nested graph on `TreatmentEditorRoute`, starting at the new `TreatmentFormRoute`. 21 unit tests; 28 deliberate bugs, all caught (one after a test fix). Lint caught `LocalDate.EPOCH`, which needs API 34. |
 | T7 | Done | Q3 in `OpenTake` (`AppNavHost`): while the editors are on the back stack, a tapped reminder's take opens on top, replacing a take already there; otherwise right above Home, as P5 did. UI tests with fakes in `androidTest/…/ui/`: `CreateTreatmentTest`, `EditorValidationTest`, `EditStartedTreatmentTest`, `EndAndDeleteTest`, `DiscardChangesTest`, `TakeScreenTest`, `ScreensNavigationTest` (with Q3's two tests), and their helpers `UiTesting.kt` (`FakeApp`, `showApp`, `dateTimeText()`, `pickDay`). `NavigationSmokeTest` keeps only what needs `MainActivity`. 11 deliberate bugs, all caught. Every instrumented test passes on the emulator and the phone (36). |
-| T8 | Doing | Every state drawn again on both devices. M1–M7 pass on the phone (results below); M1 found a medicine with no takes shown as "Last take: No end", fixed with a test. E1 on the emulator: the Back key passes; the back swipe and its predictive animation couldn't be injected over adb, so they wait for the user at the emulator's window. |
+| T8 | Done | Every state drawn again on both devices. M1–M7 pass on the phone, and E1 on the emulator (results below). M1 found a medicine with no takes shown as "Last take: No end", fixed with a test. |
 | T9 | To do | Wrap-up, CLAUDE.md, pull request |
 
 ## Decisions and deviations
@@ -92,7 +91,7 @@ On the phone (POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, Spanish, 24-hour
 | M5 | Pass. The "For" field, the lowest number field, stays visible above the number keyboard (the screen shrinks for it). The time picker is a 24-hour dial and fits. |
 | M6 | Pass. A new treatment with "M3 test" and a medicine editor with "Survivor"; Home, then `end_process` (`am kill`); relaunched: the medicine editor came back with "Survivor" and asked before discarding; the treatment editor had "M3 test". |
 | M7 | Pass. Dark theme (`cmd uimode night yes`) and font scale 1.5: the Treatment screen, the Take screen and the medicine editor (date and time stacked) fit and read well. Put back to night mode off and font scale 1.0. |
-| E1 | Partly. On the emulator (API 36, gesture navigation), the Back key asks with changes and leaves without them. The back swipe couldn't be injected (`input swipe` and `input motionevent` from either edge did nothing), so the swipe and its predictive animation wait for the user. |
+| E1 | Pass. On the emulator (API 36, gesture navigation): the Back key asks with changes and leaves without them. The back swipe couldn't be injected over adb (`input swipe` and `input motionevent` from either edge did nothing), so the user checked it at the emulator's window: with no change it animates (predictive back) and leaves; with a change it asks first. |
 
 ## How to verify
 
