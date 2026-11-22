@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress |
+| **Status** | In progress: all tasks done; pull request [#6](https://github.com/davamix/pills-reminder/pull/6) is waiting for the user to merge it |
 | **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p6-treatment-ui` |
 | **Last session** | 2026-11-22 |
@@ -19,17 +19,19 @@ Start or continue phase P6 (Treatment management UI) of the pills reminder.
 1. Use the phase-start skill for P6. Read only docs/phases/P6-treatment-ui/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p6-treatment-ui. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. The emulator is needed from T2 on, for the drawings and the UI tests, and the phone for the drawings' check, every instrumented run and the manual checks (T8). Use the phone skill for both. P2, P3 and P5 are merged: the screens use the real store, but every test uses fakes (SPEC P6-D2), never the real data. Show me the drawings of T2 and T3 before building on them. Ask me before creating anything on the phone: its reminders will alert.
+4. All tasks are done and pull request #6 is open. If it has been merged, use the phase-close skill instead. If it has review comments, deal with them on the branch. The full instrumented run on the phone, on the final code, still waits for the phone to be unlocked (gradle installDebug installDebugAndroidTest && instrument, phone skill); every test passes on the emulator. Every test uses fakes (SPEC P6-D2), never the real data.
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are still P1's placeholders.
+All tasks done; pull request [#6](https://github.com/davamix/pills-reminder/pull/6) is open; CI passed on `74f0aaa` (run 45036844021). The Treatments, Treatment, Take and editor screens replace P1's placeholders, on the real store, with SPEC v0.3. `./gradlew build` passes: unit tests `:app` 196, `:core` 177, none failing; 93 deliberate bugs against P6's new tests, all caught. Every instrumented test passes on the emulator (37); on the phone, the 36 of T7 and the new no-takes test passed, and the full run on the final code waits for the phone to be unlocked. Every state was drawn on both devices; M1–M7 pass on the phone and E1 on the emulator. The merged manifests and release dependencies are the same as `main`'s.
 
 ## Next steps
 
-1. `T9`: the wrap-up (SPEC §7): fold the decisions marked "to fold into SPEC" into SPEC v0.3 on `main`, CLAUDE.md, the checks and the pull request.
+1. Run every instrumented test on the phone, unlocked, on the branch's final code, and note the result here and in the pull request.
+2. Deal with any review comments on pull request #6.
+3. After the user merges it, the `phase-close` skill: mark P6 `Done` on `main`, tick SPEC §8, and review the skills (see "Known issues" for the items gathered for it).
 
 ## Tasks
 
@@ -45,7 +47,7 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | `EditorViewModel` (the draft, the medicine editor's working copy keyed by its back-stack entry, validation, preview, notes, save), `SavedEditor.kt` (the drafts as JSON in the `SavedStateHandle`, P6-D6), both editors' screens, and `EditorGraph.kt`: the nested graph on `TreatmentEditorRoute`, starting at the new `TreatmentFormRoute`. 21 unit tests; 28 deliberate bugs, all caught (one after a test fix). Lint caught `LocalDate.EPOCH`, which needs API 34. |
 | T7 | Done | Q3 in `OpenTake` (`AppNavHost`): while the editors are on the back stack, a tapped reminder's take opens on top, replacing a take already there; otherwise right above Home, as P5 did. UI tests with fakes in `androidTest/…/ui/`: `CreateTreatmentTest`, `EditorValidationTest`, `EditStartedTreatmentTest`, `EndAndDeleteTest`, `DiscardChangesTest`, `TakeScreenTest`, `ScreensNavigationTest` (with Q3's two tests), and their helpers `UiTesting.kt` (`FakeApp`, `showApp`, `dateTimeText()`, `pickDay`). `NavigationSmokeTest` keeps only what needs `MainActivity`. 11 deliberate bugs, all caught. Every instrumented test passes on the emulator and the phone (36). |
 | T8 | Done | Every state drawn again on both devices. M1–M7 pass on the phone, and E1 on the emulator (results below). M1 found a medicine with no takes shown as "Last take: No end", fixed with a test. |
-| T9 | To do | Wrap-up, CLAUDE.md, pull request |
+| T9 | In review | SPEC v0.3 on `main` (decisions folded in, Q8 and Q9), merged into the branch; CLAUDE.md; build and checks; pull request [#6](https://github.com/davamix/pills-reminder/pull/6). |
 
 ## Decisions and deviations
 
@@ -71,6 +73,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 ## Known issues
 
 - **For the skills review** (`phase-close`), from T2's drawings: a `LocalDensity` with a larger font scale, set around the content, doesn't reach dialogs, which open in their own window; dialogs drawn that way keep font scale 1. Setting the emulator's own `settings put system font_scale 2.0` scales everything, dialogs and pickers included, with Android 14's non-linear scaling (put it back to `1.0` afterwards). `captureToImage()` of `onAllNodes(isDialog()).onLast()` draws the topmost dialog. The `phone` skill's "Checking a screen in every state" could say both.
+- **For the skills review**, from T7 and T8: the `deliberate-bugs` skill's `run.sh` gave its test command the bug list as stdin, and `adb` read it, so an instrumented run did only the first bug; fixed on this branch (`< /dev/null`), for the review to confirm and to say in the skill. On the emulator, neither `input swipe` nor `input motionevent` triggers the back gesture, from either edge: a check of the back swipe or its predictive animation needs the user at the emulator's window (started without `-no-window`). The `phone` skill could say so. The time picker's dial numbers are content descriptions (`content-desc="15 hours"`), and the date picker's days have their whole date as text (`Monday, November 23, 2026`), for `node_centre` and `tap_text`.
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
 
 ## Pending wiring
@@ -98,11 +101,22 @@ On the phone (POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, Spanish, 24-hour
 
 The commands and manual steps that check the current state.
 
-- `./gradlew build` (CLAUDE.md, "Commands").
+- `./gradlew build` (CLAUDE.md, "Commands"): unit tests `:app` 196, `:core` 177.
+- Every instrumented test: `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill), on the emulator and the unlocked phone; 37 tests. The UI flow tests alone: `instrument ui.CreateTreatmentTest,ui.EditorValidationTest,ui.EditStartedTreatmentTest,ui.EndAndDeleteTest,ui.DiscardChangesTest,ui.TakeScreenTest,ui.ScreensNavigationTest`.
+- The merged manifests and dependencies: `bash .claude/skills/handover/compare-manifests.sh <scratchpad>`: same as `main`.
+- By hand on the phone, the debug build: Home, All treatments, New treatment; create a treatment, open it, edit, end early, delete (M1); a treatment in minutes with a take due at once, its reminder tapped, answered on the Take screen (M2). The manual checks table above has the rest.
 
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (later)
+
+- Done: T4–T9. The ViewModels and destinations of every screen (T4–T6), the UI flow tests with fakes and Q3 (T7), the drawings again and the manual checks (T8), SPEC v0.3, CLAUDE.md and pull request #6 (T9).
+- Found and fixed: `LocalDate.EPOCH` needs API 34 (lint, T6); `ExtendedFloatingActionButton`'s `text` overload hides its label (T4); a medicine with no takes shown as "Last take: No end" (M1, T8); the `deliberate-bugs` runner's stdin (T7).
+- Pull request [#6](https://github.com/davamix/pills-reminder/pull/6); CI passed on `74f0aaa` (run 45036844021).
+- Checks: build passes, `:app` 196 and `:core` 177 unit tests; 37 instrumented tests on the emulator on the final code; on the phone, 36 at `dff0de3` and the new test at `e819390`, the full final run waiting for an unlock; manifests and release dependencies the same as `main`.
+- Device state left behind: the phone has no treatments, alarms or notifications from the checks; its dark theme and font scale are back to off and 1.0. The emulator's font scale is back to 1.0; it now runs with its window (started for E1).
 
 ### 2026-11-22
 
