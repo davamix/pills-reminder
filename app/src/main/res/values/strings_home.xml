@@ -1,8 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Home (P7 SPEC §4.3.2–§4.3.6). The wording is a suggestion; this file holds the final one. -->
 <resources>
     <string name="home_title">Next takes</string>
+    <!-- Home's two buttons. P6's flow tests tap them by these texts. -->
     <string name="home_all_treatments">All treatments</string>
     <string name="home_new_treatment">New treatment</string>
+    <!-- The settings icon's description, for TalkBack and tests. -->
+    <string name="home_settings">Settings</string>
+    <!-- P1's placeholder, until T4 replaces it. -->
     <string name="home_open_settings">Open settings</string>
     <string name="home_sample_take">Sample take</string>
+
+    <!-- The sections (HM-2, HM-4). -->
+    <string name="home_due">Due</string>
+    <string name="home_next">Next</string>
+    <string name="home_upcoming">Upcoming</string>
+
+    <!-- A row's second line: its planned time, then the time left, such as "Today 16:00 · in 5 h 30 min" (HM-1). -->
+    <string name="home_row_when">%1$s · %2$s</string>
+    <!-- A row's third line: the treatment and the progress, "Example · 1 of 21" (HM-3), or with no end (SC-5). -->
+    <string name="home_row_progress">%1$s · %2$s of %3$s</string>
+    <string name="home_row_progress_no_end">%1$s · %2$s answered · No\u00A0end</string>
+    <!-- An Upcoming treatment's start (HM-4): "Starts: Tomorrow 08:00 · in 21 h 30 min". -->
+    <string name="home_upcoming_starts">Starts: %1$s · %2$s</string>
+
+    <!-- The time left (HM-1): "in 5 h 30 min", "5 min ago", "now". Non-breaking spaces keep each one on one line. -->
+    <string name="home_time_in">in\u00A0%1$s</string>
+    <string name="home_time_ago">%1$s\u00A0ago</string>
+    <string name="home_time_now">now</string>
+    <string name="home_minutes">%1$d\u00A0min</string>
+    <string name="home_hours">%1$d\u00A0h</string>
+    <string name="home_hours_minutes">%1$d\u00A0h\u00A0%2$d\u00A0min</string>
+    <plurals name="home_days">
+        <item quantity="one">%d\u00A0day</item>
+        <item quantity="other">%d\u00A0days</item>
+    </plurals>
+    <!-- Days, then hours: "1 day 7 h". -->
+    <string name="home_days_hours">%1$s\u00A0%2$d\u00A0h</string>
+
+    <!-- Taken on a Due row (HM-2, TK-2), and on a Next row before it is due (TK-4). -->
+    <string name="home_taken">Taken</string>
+    <string name="home_taken_early">Taken early</string>
+    <string name="home_taken_early_title">Mark as taken now?</string>
+    <!-- %1$s is the medicine and dose, such as "Atrovent · 3 puffs"; %2$s its planned time, "Today 16:00". -->
+    <string name="home_taken_early_confirm">%1$s, planned for %2$s. Its reminder won\'t alert.</string>
+
+    <!-- The reminder check's warning (RM-9). -->
+    <plurals name="home_check_warning">
+        <item quantity="one">Reminders may not work: %d setting to check.</item>
+        <item quantity="other">Reminders may not work: %d settings to check.</item>
+    </plurals>
+    <string name="home_check_open">Check</string>
+
+    <!-- No treatment Active or Upcoming (HM-4). The floating button New treatment is the offer. -->
+    <string name="home_empty_title">No treatments active or upcoming.</string>
+    <string name="home_empty_text">Create one with New treatment.</string>
 </resources>

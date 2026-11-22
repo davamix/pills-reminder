@@ -25,11 +25,14 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-In progress. T1 is done ("Measurements (T1)"). Its results are in SPEC v0.3 (Q7), agreed by the user, with specification v0.11 and plan v0.9 (`RM-9`'s battery saver wording), merged into the branch. No code yet: Home and Settings are still P1's placeholders.
+In progress. T1 is done ("Measurements (T1)"), and its results are in SPEC v0.3 (Q7). T2's layouts are built: `HomeContent` and `SettingsContent` with their state types, `TimeLeft`, the check's types (`check/ReminderCheck.kt`) and both strings files, drawn in every state on the emulator and the phone. They wait for the user's agreement. The app still shows P1's placeholders: no ViewModel or destination yet.
 
 ## Next steps
 
-1. T2: the layouts of Home and Settings: their state types, stateless `…Content` composables, `TimeLeft` and strings, drawn from fixed states with the `screen-gallery` skill (SPEC §7 lists the states), light and dark, font scale 1 and 2, on the emulator and the phone. Show the user the drawings before T4.
+1. The user looks at T2's drawings (in the session's scratchpad, not kept: draw them again with the gallery below if needed) and agrees, or asks for changes.
+2. T3: the check's logic (`reminderCheck()`), `DeviceChecks` and `AndroidReminderCheckDevice` with SPEC v0.3's intents, `CheckRecord` and its stores, `ScreenDependencies`' entries and `AppContainer.checkStore`, the fakes; unit tests (`ReminderCheckTest`, `DataStoreCheckStoreTest`, `TimeLeftTest`), shown able to fail.
+
+To draw again: a gallery like T2's (`screen-gallery` skill) with one `@Test` for `HomeContent` and one for `SettingsContent`, and these shots. Home: loading; empty; empty with the warning; upcoming only (Sun 22 Nov 10:30); Mon 10:30 (two Next rows with Taken early); Mon 16:00 (both Due, "now"); Mon 16:05 (the spec's sketch); Mon 16:10 after Taken early; the warning with Due and Next; a long list (2 Due, 5 Next, 2 Upcoming, one with no end, one 6 days ahead), and its end (`performScrollToIndex`); unreadable with the warning; the Taken early dialog; a problem's snackbar; a take due 2 days ago. Settings: loading; stock Android all OK; battery missing; the phone's first launch (battery missing, steps to confirm), and its end; all set with the steps confirmed, and its end; notifications not allowed; the channel off; no pop-up; everything missing, and its end; a problem's snackbar.
 
 ## Tasks
 
@@ -38,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | C1–C6 on the phone and the emulator, with a throwaway probe (a debug-only activity, deleted, never committed); results in "Measurements (T1)". The clean debug build is installed again on both devices. |
-| T2 | To do | Layouts and drawings of Home and Settings |
+| T2 | Doing | `ui/home/HomeContent.kt` (`HomeRow`, `UpcomingRow`, `HomeData`, `HomeState`, `HomeContent`), `ui/home/TimeLeft.kt` (`TimeLeft.between`, `timeLeftText`), `ui/settings/SettingsContent.kt` (`SettingsState`, `SettingsContent`), `check/ReminderCheck.kt` (the check's types), `strings_home.xml`, `strings_settings.xml`. Drawn on the emulator (light, dark, font scale 2) and the phone (light, dark): everything fits, no word broken. Waiting for the user's agreement. |
 | T3 | To do | The check: device, logic, store |
 | T4 | To do | Home's ViewModel and destination |
 | T5 | To do | Settings' ViewModel and destination |
@@ -53,6 +56,9 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | Date | Decision | Reason |
 |---|---|---|
 | 2026-11-22 | **SPEC v0.3** (Q7), agreed by the user: the battery button names `com.android.settings`; the exact-alarm line's button opens the app's details; Autostart's opens HyperOS's Autostart list. Specification v0.11 and plan v0.9: HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being the same setting. | T1, C1 and C2 ("Measurements (T1)"). |
+| 2026-11-22 | T2's types, where SPEC §4.2 differs: `CheckLine(item, status, problem: NotificationsProblem?)`, the reason the Notifications line is missing (`NOT_ALLOWED`, `CHANNEL_OFF`, `NO_POP_UP`), rather than `channel: ChannelState?`; `ReminderCheck` also has `hyperOs`, which the battery line's HyperOS sentence needs; `CheckItem` carries its `step`. To fold into the SPEC in T8. | A permission refused and a channel off show different texts and open different screens; one field says which. |
+| 2026-11-22 | T2's layout, where SPEC §4.3 leaves it open: a row's button goes under its texts, full width, from font scale 1.5 (`STACKED_FONT_SCALE`); the time left and "No end" are kept on one line by non-breaking spaces in `strings_home.xml`; Due rows are cards in `primaryContainer`, Next and Upcoming rows plain cards, the warning a card in `errorContainer`; the check's lines are cards with a status icon (check, warning, info for a step to confirm), their text in the error colour when missing, their buttons under them. To fold into the SPEC in T8. | The drawings: at font scale 1 on the emulator (12-hour), "in 7 h 55 min" broke after "55"; side by side at font scale 2, a row's button would leave its text too narrow. |
+| 2026-11-22 | The Taken early confirmation has a title, "Mark as taken now?", and the text "Atrovent · 3 puffs, planned for Today 16:00. Its reminder won't alert." UI text, so no SPEC change; SPEC §4.3.4 quotes the draft's wording, to update in T8. | "Mark Atrovent's take at Today 4:00 PM as taken now?" read awkwardly ("at Today"). |
 
 ## Measurements (T1)
 
