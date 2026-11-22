@@ -29,8 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T3`: the editors' layouts, drawn in every state like T2's.
-2. Then draw T2's and T3's states on the phone (unlocked), and show the user both sets of drawings before T4. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`); a new session writes it again from the `phone` skill.
+1. Draw T2's and T3's states on the phone (unlocked), and show the user both sets of drawings before T4. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`); a new session writes it again from the `phone` skill.
 
 ## Tasks
 
@@ -40,7 +39,7 @@ The task IDs come from SPEC.md §7.
 |---|---|---|
 | T1 | Done | `ui/common`: `ScreenDependencies` (with `rememberAppDependencies`), `minuteTicks`, `DateTimeText` (with `number()` for counts), `ChangeProblem` with `attempt {}` and `UnreadableMessage`, `ConfirmDialog`; `strings_common.xml`. 15 unit tests; 18 deliberate bugs, all caught (session log). |
 | T2 | Doing | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator: light and dark at font scale 1, and at the system's font scale 2; all fit. Left: the same drawings on the phone (it was locked), then shown to the user with T3's. |
-| T3 | To do | Layouts of the editors, drawn |
+| T3 | Doing | `TreatmentEditorContent`, `MedicineEditorContent` (with `MedicineFieldActions`), their states in `EditorState.kt`, the discard and remove confirmations; `strings_editor.xml`. Every state drawn on the emulator, light and dark at font scale 1 and at the system's 2: a number field's error under the narrow field broke words at font scale 2, so each amount's error now goes under its whole row. Left: the phone's drawings, then shown to the user with T2's. |
 | T4 | To do | Treatments and Treatment screens |
 | T5 | To do | Take screen |
 | T6 | To do | Editors |

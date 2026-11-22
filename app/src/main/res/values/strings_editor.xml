@@ -1,5 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The treatment and medicine editors (P6 SPEC §4.3.6–§4.3.9). The wording is a suggestion; this file holds the final
+     one. -->
 <resources>
+    <!-- The treatment editor. -->
+    <string name="editor_new_treatment">New treatment</string>
+    <string name="editor_edit_treatment">Edit treatment</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_treatment_name">Name</string>
+    <string name="editor_treatment_notes">Notes (optional)</string>
+    <string name="editor_medicines">Medicines</string>
+    <string name="editor_add_medicine">Add medicine</string>
+    <!-- A medicine's first take in the list. %1$s is a day and a time. -->
+    <string name="editor_first_take_line">First take: %1$s</string>
+    <!-- The remove button's description, for TalkBack. %1$s is the medicine's name. -->
+    <string name="editor_remove_medicine">Remove %1$s</string>
+    <string name="editor_remove_confirm">Remove %1$s? When you save, its recorded takes are deleted.</string>
+    <string name="editor_remove_action">Remove</string>
+
+    <!-- The medicine editor. -->
+    <string name="editor_new_medicine">New medicine</string>
+    <string name="editor_edit_medicine">Edit medicine</string>
+    <!-- Puts the medicine into the treatment; the treatment editor's Save stores it (P6 Q1). -->
+    <string name="editor_done">Done</string>
+    <string name="editor_medicine_name">Name</string>
+    <string name="editor_dose">Dose (optional)</string>
+    <string name="editor_dose_hint">1 capsule</string>
+    <string name="editor_instructions">Instructions (optional)</string>
+    <string name="editor_instructions_hint">with food</string>
+    <string name="editor_every">Every</string>
+    <string name="editor_for">For</string>
+    <string name="editor_unit">Unit</string>
+    <string name="editor_no_end">No end</string>
+    <string name="editor_first_take">First take</string>
+    <string name="editor_first_take_date">Date</string>
+    <string name="editor_first_take_time">Time</string>
+    <plurals name="unit_minutes">
+        <item quantity="one">minute</item>
+        <item quantity="other">minutes</item>
+    </plurals>
+    <plurals name="unit_hours">
+        <item quantity="one">hour</item>
+        <item quantity="other">hours</item>
+    </plurals>
+    <plurals name="unit_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <plurals name="unit_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weeks</item>
+    </plurals>
+
+    <!-- The number of takes and the last one (SC-2). %1$s is the count, with grouping; %2$s a date; %3$s a time. -->
+    <plurals name="editor_preview">
+        <item quantity="one">%1$s take, on %2$s at %3$s.</item>
+        <item quantity="other">%1$s takes. The last one is on %2$s at %3$s.</item>
+    </plurals>
+    <string name="editor_preview_no_end">No end: takes carry on until the treatment is ended or this medicine is removed.</string>
+    <string name="editor_preview_missing">Fill in the interval and the duration to see the takes.</string>
+    <string name="editor_note_past">The first take is in the past. Its takes before now will be missed, apart from the latest while it is due.</string>
+    <string name="editor_note_started">Changes apply to takes from now on. Takes already due or answered keep their state.</string>
+
+    <!-- Validation (TR-8). -->
+    <string name="editor_error_treatment_name">Enter a name for the treatment.</string>
+    <string name="editor_error_no_medicine">Add at least one medicine.</string>
+    <string name="editor_error_medicine_name">Enter a name for the medicine.</string>
+    <string name="editor_error_amount">Enter a whole number, 1 or more.</string>
+    <string name="editor_error_duration">Enter a whole number, 1 or more, or choose No end.</string>
+    <string name="editor_error_minutes">Minutes are only for debug builds.</string>
+
+    <!-- Leaving with unsaved changes (TR-13). -->
+    <string name="editor_discard">Discard your changes?</string>
+    <string name="editor_discard_action">Discard</string>
+    <string name="editor_keep_editing">Keep editing</string>
+
+    <!-- P1's placeholders, until T6 replaces them. -->
     <string name="treatment_editor_title">Treatment editor</string>
     <string name="treatment_editor_add_medicine">Add medicine</string>
     <string name="medicine_editor_title">Medicine editor</string>

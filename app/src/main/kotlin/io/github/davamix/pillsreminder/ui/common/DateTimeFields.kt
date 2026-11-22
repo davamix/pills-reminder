@@ -65,7 +65,7 @@ fun DateField(
     LabelledButton(label = label, value = text.date(date, today), onClick = { open = true }, modifier = modifier, icon = true)
     if (!open) return
     val locale = pickerLocale()
-    val large = largeFont()
+    val large = isLargeFont()
     val state =
         remember(locale) {
             DatePickerState(
@@ -107,7 +107,7 @@ fun TimeField(
             initialMinute = time.minute,
             is24Hour = DateFormat.is24HourFormat(LocalContext.current),
         )
-    val large = largeFont()
+    val large = isLargeFont()
     TimePickerDialog(
         onDismissRequest = { open = false },
         confirmButton = {
@@ -144,8 +144,9 @@ private fun LabelledButton(
     }
 }
 
+/** Whether the font scale is large enough that pickers open in their input mode, and fields side by side stack (NF-7). */
 @Composable
-private fun largeFont(): Boolean = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
+fun isLargeFont(): Boolean = LocalDensity.current.fontScale >= LARGE_FONT_SCALE
 
 /** The UI's language, from the resources (P6 Q5), with the phone's region. */
 @Composable
