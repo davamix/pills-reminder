@@ -10,5 +10,8 @@ class PillsReminderApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        // The channel, then a reconcile on the stored data and after each change (P5-D2). This also runs when the
+        // system starts the process for a receiver, and sets the alarm again after a Force stop (NF-2).
+        container.reminders.start()
     }
 }

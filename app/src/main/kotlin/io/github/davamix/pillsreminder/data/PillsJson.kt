@@ -12,10 +12,14 @@ import io.github.davamix.pillsreminder.core.model.Schedule
 import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.Treatment
 import io.github.davamix.pillsreminder.core.model.TreatmentId
+import io.github.davamix.pillsreminder.core.reminders.ReminderPlanner
+import io.github.davamix.pillsreminder.core.reminders.ReminderState
+import io.github.davamix.pillsreminder.core.reminders.TakeReminder
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.intOrNull
+import java.time.Instant
 import java.time.LocalDateTime
 
 // The JSON format of the store (P3 SPEC §4.3.1, §4.3.2). Privacy: kotlinx.serialization's exception messages quote the
@@ -100,6 +104,10 @@ private fun PillsData.toDocument() =
             answers.entries
                 .sortedWith(compareBy({ it.key.medicineId.value }, { it.key.plannedAt }))
                 .map { (key, answer) -> answer.toDocument(key) },
+        reminders =
+            reminders.takes.entries
+                .sortedWith(compareBy({ it.key.medicineId.value }, { it.key.plannedAt }))
+                .map { (key, record) -> record.toDocument(key) },
     )
 
 private fun Treatment.toDocument() =
@@ -147,8 +155,22 @@ private fun Answer.toDocument(key: TakeKey) =
         Answer.Skipped -> AnswerV1(key.medicineId.value, writeTime(key.plannedAt), AnswerKindV1.SKIPPED)
     }
 
+private fun TakeReminder.toDocument(key: TakeKey) =
+    when (this) {
+        is TakeReminder.Snoozed -> {
+            ReminderV1(key.medicineId.value, writeTime(key.plannedAt), snoozedUntil = writeInstant(until))
+        }
+
+        is TakeReminder.Alerted -> {
+            ReminderV1(key.medicineId.value, writeTime(key.plannedAt), alerts = count, lastAlertAt = writeInstant(lastAt))
+        }
+    }
+
 /** `2026-11-23T08:00` for a whole minute. A time with seconds is written with them, and then refused when read. */
 private fun writeTime(time: LocalDateTime): String = time.toString()
+
+/** `2026-11-23T15:10:00Z`: UTC, in whole seconds, as P4's records hold them (P4-D5). */
+private fun writeInstant(instant: Instant): String = instant.toString()
 
 // Reading. P2's constructors check amounts, counts, whole-minute first takes and the order of earlier schedules.
 
@@ -159,7 +181,9 @@ private fun PillsDocumentV1.toPillsData(): PillsData {
     ensure(medicineIds.isUnique(), "two medicines have the same ID")
     val answers = answers.map { it.toKey() to it.toAnswer() }
     ensure(answers.map { it.first }.isUnique(), "two answers for the same take")
-    return PillsData(treatments, answers.toMap())
+    val records = reminders.map { it.toKey() to it.toRecord() }
+    ensure(records.map { it.first }.isUnique(), "two reminder records for the same take")
+    return PillsData(treatments, answers.toMap(), ReminderState(records.toMap()))
 }
 
 private fun <T> List<T>.isUnique(): Boolean = size == toSet().size
@@ -219,6 +243,19 @@ private fun AnswerV1.toAnswer(): Answer =
         }
     }
 
+private fun ReminderV1.toKey() = TakeKey(MedicineId(medicineId), readTime(plannedAt))
+
+/** Snoozed, with only `snoozedUntil`; or alerted, with only `alerts` and `lastAlertAt` (P5 SPEC §4.3.7). */
+private fun ReminderV1.toRecord(): TakeReminder {
+    val snoozed = snoozedUntil != null
+    val alerted = alerts != null || lastAlertAt != null
+    ensure(snoozed != alerted, "a reminder record isn't either snoozed or alerted")
+    if (snoozedUntil != null) return TakeReminder.Snoozed(readInstant(snoozedUntil))
+    val count = ensureNotNull(alerts, "an alerted reminder record has no count")
+    ensure(count in 1..ReminderPlanner.ALERTS_PER_ROUND, "an alerted reminder record's count is out of range")
+    return TakeReminder.Alerted(count, readInstant(ensureNotNull(lastAlertAt, "an alerted reminder record has no time")))
+}
+
 private fun <T : Any> ensureNotNull(
     value: T?,
     message: String,
@@ -229,4 +266,11 @@ private fun readTime(text: String): LocalDateTime {
     val time = LocalDateTime.parse(text)
     ensure(time.second == 0 && time.nano == 0 && time.toString() == text, "a time isn't written in whole minutes")
     return time
+}
+
+/** Only the form [writeInstant] writes: UTC with `Z`, in whole seconds, the seconds written even when 0. */
+private fun readInstant(text: String): Instant {
+    val instant = Instant.parse(text)
+    ensure(instant.nano == 0 && instant.toString() == text, "an instant isn't written in UTC in whole seconds")
+    return instant
 }

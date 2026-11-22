@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <!-- The debug tools (D-15, P5 Q3): their own launcher icon, in debug builds only. Exported, as a launcher activity
+             must be: plan §3 allows it in debug builds. Their own task, so they show apart from the app in Recents. -->
+        <activity
+            android:name=".debug.DebugActivity"
+            android:exported="true"
+            android:label="@string/debug_app_name"
+            android:screenOrientation="portrait"
+            android:taskAffinity="io.github.davamix.pillsreminder.debugtools"
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="LockedOrientationActivity,DiscouragedApi">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

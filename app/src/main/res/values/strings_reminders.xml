@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The reminders: their notification channel and the notifications (P5 SPEC §4.3.4). The wording is a suggestion; this
+     file holds the final one. -->
+<resources>
+    <!-- The notification channel, as Android's settings show it (D-10). -->
+    <string name="reminders_channel_name">Reminders</string>
+    <string name="reminders_channel_description">A reminder when a take is due</string>
+
+    <!-- A reminder's title: the medicine, then the dose (RM-1), such as "Amoxicillin: 1 capsule". Without a dose, the
+         title is the medicine alone. -->
+    <string name="reminder_title">%1$s: %2$s</string>
+    <!-- A reminder's text: the treatment, then the medicine's instructions (RM-1, TR-6), such as "Example · with food".
+         Without instructions, the text is the treatment alone. -->
+    <string name="reminder_text">%1$s · %2$s</string>
+
+    <!-- The reminder's actions (RM-3). -->
+    <string name="reminder_action_taken">Taken</string>
+    <string name="reminder_action_snooze">Snooze</string>
+    <string name="reminder_action_skip">Skip</string>
+
+    <!-- The group's summary: how many takes are due. -->
+    <plurals name="reminders_summary">
+        <item quantity="one">%d take due</item>
+        <item quantity="other">%d takes due</item>
+    </plurals>
+</resources>

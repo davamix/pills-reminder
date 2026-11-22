@@ -7,8 +7,9 @@ import kotlinx.serialization.Serializable
 // types on purpose (P2-D2, P3-D4). Never change them in a way that version-1 files can't be decoded as: the golden file
 // app/src/test/resources/data/pills-v1.json must always decode (SPEC §4.3.6).
 //
-// Fields are written in the order declared here. Only the nullable ones have a default, so every other field is
-// written, and is required when reading.
+// Fields are written in the order declared here. Only the nullable ones and `reminders` have a default, so every other
+// field is written, and is required when reading. `reminders` was added in P5 (P5 SPEC §4.3.7): left out when empty, so
+// data without records is written exactly as before, and version-1 files without it still decode (P3 SPEC §4.3.6).
 
 /** The version these types read and write. */
 internal const val SCHEMA_VERSION = 1
@@ -19,6 +20,8 @@ internal data class PillsDocumentV1(
     val treatments: List<TreatmentV1>,
     /** Sorted by medicine ID, then planned time. */
     val answers: List<AnswerV1>,
+    /** The reminder records (P4), sorted like the answers. Left out when there are none. */
+    val reminders: List<ReminderV1> = emptyList(),
 )
 
 @Serializable
@@ -103,6 +106,20 @@ internal data class AnswerV1(
     val answer: AnswerKindV1,
     /** For taken; absent for skipped. */
     val takenAt: String? = null,
+)
+
+/**
+ * A Due take's reminder record (P4's `TakeReminder`): snoozed, with [snoozedUntil] only, or alerted, with [alerts] and
+ * [lastAlertAt] only. Instants in UTC, in whole seconds: `2026-11-23T15:10:00Z`.
+ */
+@Serializable
+internal data class ReminderV1(
+    val medicineId: String,
+    val plannedAt: String,
+    val snoozedUntil: String? = null,
+    /** 1 to 4: the alerts played in the current round. */
+    val alerts: Int? = null,
+    val lastAlertAt: String? = null,
 )
 
 @Serializable

@@ -12,7 +12,10 @@ import io.github.davamix.pillsreminder.core.model.Schedule
 import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.Treatment
 import io.github.davamix.pillsreminder.core.model.TreatmentId
+import io.github.davamix.pillsreminder.core.reminders.ReminderState
+import io.github.davamix.pillsreminder.core.reminders.TakeReminder
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -128,6 +131,22 @@ object StoreExample {
                         TakeKey(minutesId, nov(24, 7, 15)) to Answer.Skipped,
                         TakeKey(minutesId, nov(24, 7, 45)) to Answer.Taken(nov(24, 7, 50)),
                     ),
+        )
+
+    /**
+     * The example on Monday at 16:10 in Madrid, with both kinds of reminder record (P5 SPEC §4.3.7): Amoxicillin's
+     * 16:00 reminder has alerted twice, the last time at 16:10; Atrovent's was snoozed at 16:05. `pills-v1-reminders.json`
+     * holds exactly this.
+     */
+    val reminded =
+        example.copy(
+            reminders =
+                ReminderState(
+                    mapOf(
+                        TakeKey(amoxicillinId, nov(23, 16)) to TakeReminder.Alerted(2, Instant.parse("2026-11-23T15:10:00Z")),
+                        TakeKey(atroventId, nov(23, 16)) to TakeReminder.Snoozed(Instant.parse("2026-11-23T15:15:00Z")),
+                    ),
+                ),
         )
 
     /** The names, doses, instructions and notes in [full], none of which may appear in a log or a reason. */

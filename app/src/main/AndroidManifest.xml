@@ -2,8 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- No permission of the app's own yet: P5 adds the reminder permissions. Every permission must be in the allowlist
-         of plan §3, which the build checks (P1-D6). INTERNET is never allowed (NF-3). -->
+    <!-- The reminder permissions (P5). Every permission must be in the allowlist of plan §3, which the build checks
+         (P1-D6). INTERNET is never allowed (NF-3). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Granted at install, and can't be revoked; it lets the app set its alarm clock (D-8). -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Used by P7's reminder check (RM-9). -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:name=".PillsReminderApp"
@@ -27,6 +33,28 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- The reminders' receivers (P5 SPEC §4.3.6). None is exported: the alarm and the actions reach theirs through
+             explicit PendingIntents, and the system delivers its own broadcasts. No android:process: the store works in
+             one process only (P3). -->
+        <receiver
+            android:name=".reminders.AlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminders.ReminderActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminders.SystemEventReceiver"
+            android:exported="false">
+            <!-- BOOT_COMPLETED goes to every app's receivers in turn, in priority order: 999, the highest an app may
+                 use, brought it from 59 s to 8.7 s after the unlock (P5 Q9). -->
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
