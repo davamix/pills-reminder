@@ -83,8 +83,12 @@ fun AppNavHost(
                 onBack = dropUnlessResumed { navController.popBackStack() },
             )
         }
-        composable<SettingsRoute> {
-            SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        composable<SettingsRoute> { entry ->
+            SettingsScreen(
+                deps = dependencies,
+                firstLaunch = entry.toRoute<SettingsRoute>().firstLaunch,
+                onBack = dropUnlessResumed { navController.popBackStack() },
+            )
         }
     }
 }
