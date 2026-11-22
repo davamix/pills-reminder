@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 |
+| **Status** | In progress |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p6-treatment-ui` |
-| **Last session** | — |
+| **Last session** | 2026-11-22 |
 
 This document tracks the phase as it's built. Update it at the end of every session, so the next one can continue from here.
 
@@ -25,11 +25,11 @@ Start or continue phase P6 (Treatment management UI) of the pills reminder.
 
 ## Current state
 
-Not started. SPEC v0.1 is a draft, waiting for review. The screens are still P1's placeholders.
+Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are still P1's placeholders.
 
 ## Next steps
 
-1. Once SPEC.md is reviewed and `Ready`, start with `T1`: the shared pieces in `ui/common` and their unit tests.
+1. `T1`: the shared pieces in `ui/common` (`ScreenDependencies`, `minuteTicks`, `DateTimeText`, `ChangeProblem`, `ConfirmDialog`), `strings_common.xml`, and their unit tests.
 
 ## Tasks
 
