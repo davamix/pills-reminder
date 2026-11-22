@@ -4,6 +4,7 @@ import android.text.format.DateFormat
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -84,7 +85,19 @@ fun DateField(
         },
         dismissButton = { TextButton(onClick = { open = false }) { Text(stringResource(R.string.action_cancel)) } },
     ) {
-        DatePicker(state = state)
+        // The picker's own title and headline would follow the phone's locale, not the UI's (P6 Q5): these are the app's.
+        DatePicker(
+            state = state,
+            title = { Text(label, modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)) },
+            headline = {
+                val selected = state.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                Text(
+                    text = selected?.let { text.date(it, today) } ?: "",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp),
+                )
+            },
+        )
     }
 }
 

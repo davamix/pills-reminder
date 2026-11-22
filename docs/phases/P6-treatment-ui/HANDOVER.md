@@ -29,7 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. Draw T2's and T3's states on the phone (unlocked), and show the user both sets of drawings before T4. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`); a new session writes it again from the `phone` skill.
+1. `T4`: the Treatments and Treatment screens' ViewModels and destinations, with End early and Delete. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`), for T8's drawings; a new session writes it again from the `phone` skill.
 
 ## Tasks
 
@@ -38,8 +38,8 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | `ui/common`: `ScreenDependencies` (with `rememberAppDependencies`), `minuteTicks`, `DateTimeText` (with `number()` for counts), `ChangeProblem` with `attempt {}` and `UnreadableMessage`, `ConfirmDialog`; `strings_common.xml`. 15 unit tests; 18 deliberate bugs, all caught (session log). |
-| T2 | Doing | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator: light and dark at font scale 1, and at the system's font scale 2; all fit. Left: the same drawings on the phone (it was locked), then shown to the user with T3's. |
-| T3 | Doing | `TreatmentEditorContent`, `MedicineEditorContent` (with `MedicineFieldActions`), their states in `EditorState.kt`, the discard and remove confirmations; `strings_editor.xml`. Every state drawn on the emulator, light and dark at font scale 1 and at the system's 2: a number field's error under the narrow field broke words at font scale 2, so each amount's error now goes under its whole row. Left: the phone's drawings, then shown to the user with T2's. |
+| T2 | Done | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator (light and dark at font scale 1, and at the system's font scale 2) and on the phone (light and dark); all fit. Shown to the user, who agreed. |
+| T3 | Done | `TreatmentEditorContent`, `MedicineEditorContent` (with `MedicineFieldActions`), their states in `EditorState.kt`, the discard and remove confirmations; `strings_editor.xml`. Drawn like T2's. A number field's error under the narrow field broke words at font scale 2, so each amount's error goes under its whole row. Shown to the user, who agreed. |
 | T4 | To do | Treatments and Treatment screens |
 | T5 | To do | Take screen |
 | T6 | To do | Editors |
@@ -55,6 +55,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 |---|---|---|
 | 2026-11-22 | The date and time fields (`DateField`, `TimeField`) are in `ui/common/DateTimeFields.kt`, not `ui/editor/`, with `BackButton.kt` and `CommonTexts.kt` (schedule, state and status texts) beside them. To fold into SPEC §4.1 in T9. | The Take screen's Change time uses the same fields as the medicine editor; the Treatment and Take screens write schedules and states the same way. |
 | 2026-11-22 | The date picker writes in the UI's language (`date_locale`) with the phone's region: English names, and on the phone (Spain) weeks from Monday. Material 3 1.4's `DatePickerState(locale, …)`. To fold into SPEC §4.3.11 in T9. | By default it follows the phone's locale, so on the phone it would be in Spanish while the rest of the app is in English (Q5). |
+| 2026-11-22 | `androidResources.localeFilters += "en"` in `app/build.gradle.kts` (a shared file: P6's entry). A translation adds its language there. To fold into SPEC §4.1 and §4.3.11 in T9. | On the phone, Material's own texts followed the phone's language: the date picker's title read "Seleccionar fecha" in an English app, and its input mode's labels would too. With only English resources kept, library texts fall back to English (NF-8, Q5). |
+| 2026-11-22 | The date picker has the app's own title (the field's label) and headline ("Mon 23 Nov", from `DateTimeText`). To fold into SPEC §4.3.11 in T9. | Its default headline formats with the phone's locale whatever the resources hold: "23 nov 2026" on the phone. |
 | 2026-11-22 | Labels before a day take a colon: "Starts: Tomorrow 08:00", "Ended: …", "Next: …", "Last answered: …", "Taken: Yesterday 23:50". UI text, so no SPEC change. | "Today", "Tomorrow" and "Yesterday" are capitalised, which reads wrongly mid-sentence ("Starts Tomorrow"). |
 
 ## Known issues
