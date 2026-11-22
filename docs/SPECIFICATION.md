@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | v0.8, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
-| **Last updated** | 2026-11-21 |
+| **Status** | v0.9, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Last updated** | 2026-11-22 |
 | **Platform** | Android phone, single user, personal use |
 
 This document describes *what* the app does. Once it is agreed, it is the base for the implementation plan.
@@ -200,7 +200,7 @@ At 16:00 two reminders alert, "Amoxicillin: 1 capsule" and "Atrovent: 3 puffs", 
 | TR-8 | Validation: the treatment and each medicine need a name, and a treatment has at least one medicine. The interval is a whole number of hours, days or weeks, and the duration a whole number of days or weeks, each at least 1, with no upper limit; or the duration is set to no end. | Agreed |
 | TR-9 | Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment. | Agreed |
 | TR-10 | Editing a treatment that has already started changes only what is still to come. Takes that are due or answered keep their state; takes not yet due are worked out again from the new values. | Agreed |
-| TR-11 | A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer. | Agreed |
+| TR-11 | A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer. A treatment ended early can't be edited any more, only deleted. | Agreed |
 | TR-12 | Finished treatments stay in the app until you delete them. | Agreed |
 | TR-13 | Leaving the editor with unsaved changes asks for confirmation before discarding them. | Agreed |
 
@@ -257,9 +257,9 @@ All screens are portrait.
 |---|---|---|
 | **Home: next takes** | The next take of each medicine, due takes first (`HM-1` to `HM-5`) | Mark a take Taken, open a treatment, new treatment, all treatments, settings |
 | **Treatments** | Every treatment, grouped as Active, Upcoming and Finished | Open one, new treatment |
-| **Treatment** | One treatment: its medicines, with their schedule and progress, and each medicine's last answered take (`TK-5`) | Edit, end early (`TR-11`), delete (with confirmation), open a take |
-| **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine; save; cancel (asks for confirmation if there are unsaved changes) |
-| **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Save, cancel |
+| **Treatment** | One treatment: its medicines, with their schedule and progress, each medicine's next take, and its last answered take (`TK-5`) | Edit (not once ended early), end early (`TR-11`, with confirmation), delete (with confirmation), open a medicine's next take or its last answered take |
+| **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine (removing one that has started asks for confirmation); save; cancel (asks for confirmation if there are unsaved changes) |
+| **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Done: back to the treatment editor, whose Save stores the treatment; cancel (asks for confirmation if there are unsaved changes) |
 | **Take** | One take: planned time, state, and time taken | Taken, Skip, change the time taken, undo (`TK-2`, `TK-5`) |
 | **Settings** | The reminder check (`RM-9`) | Open Android's settings, back |
 | **Reminder** (a notification, not a screen) | A due take (`RM-1`) | Taken, Snooze, Skip; tap to open the take |
@@ -291,7 +291,7 @@ Medicine editor:
 
 ```
 +------------------------------------------+
-| ←  Medicine                      [ Save ]|
+| ←  Medicine                      [ Done ]|
 |                                          |
 |  Name          [ Amoxicillin          ]  |
 |  Dose          [ 1 capsule            ]  |
@@ -328,7 +328,7 @@ Reminder:
 | NF-5 | **Battery:** nothing runs in the background between reminders. The app wakes only to alert. | Agreed |
 | NF-6 | **Compatibility:** runs on Android 13 (API 33) on the target phone, and keeps working if the phone is updated to a later Android version. The lowest version supported is set in the implementation plan. | Agreed |
 | NF-7 | **Phone layout:** portrait only, for a screen about 393 dp wide. Touch targets are at least 48 dp. Text stays usable with the system's larger font sizes. | Agreed |
-| NF-8 | **Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Dates and times follow the phone's settings, such as its 24-hour clock. | Agreed |
+| NF-8 | **Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Times follow the phone's 24-hour clock setting. Day and month names are in the UI's language, such as "Mon 23 Nov", so a translation brings its own. | Agreed |
 | NF-9 | **Distribution:** installed as an APK from the development machine (`adb` or Android Studio). It is never published on Google Play. | Agreed |
 | NF-10 | **Theme:** follows the system's light or dark setting. | Agreed |
 
@@ -398,3 +398,4 @@ Not planned for v1; listed so they are not lost.
 | 0.6 | 2026-11-20 | From the P4 spec review (P4 Q1–Q3), confirming its draft assumptions. `RM-3`: after a snooze, the reminder repeats as in `RM-5`, and can be snoozed again. `RM-5`: each repeat comes 10 minutes after the alert before it, also when the first alert came late. `TK-5`: a take set back to unanswered that is Due again gets its reminder back, which alerts at once. |
 | 0.7 | 2026-11-20 | From the P5 spec review (P5 Q2 and Q4), confirming its draft assumptions. `RM-5`: swiping a reminder away doesn't answer or snooze its take, and the reminder comes back with its next repeat, or silently once its repeats are over. `RM-4`: reminders that alert at the same moment may play a single sound. |
 | 0.8 | 2026-11-21 | From P5's measurements on the phone (P5 Q7), decided by the user. `RM-2`: in vibrate mode a reminder vibrates instead of sounding, as Android does with every notification; Q20's decision notes the change. `RM-8` stays as it is: P5 keeps reminders silent in Do Not Disturb (P5 Q6). |
+| 0.9 | 2026-11-22 | From the P6 spec review (P6 Q1 and Q4–Q7), confirming its draft assumptions. `TR-11`: a treatment ended early can't be edited any more, only deleted. `NF-8`: times follow the phone's 24-hour clock setting, and day and month names are in the UI's language. §6: the medicine editor's button is Done, and only the treatment editor's Save stores the treatment; both editors confirm before discarding changes; End early, and removing a medicine that has started, ask for confirmation; the Treatment screen opens each medicine's next take and its last answered take. |
