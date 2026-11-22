@@ -16,8 +16,6 @@ import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.TreatmentId
 import io.github.davamix.pillsreminder.ui.common.ScreenDependencies
 import io.github.davamix.pillsreminder.ui.common.rememberAppDependencies
-import io.github.davamix.pillsreminder.ui.editor.MedicineEditorScreen
-import io.github.davamix.pillsreminder.ui.editor.TreatmentEditorScreen
 import io.github.davamix.pillsreminder.ui.home.HomeScreen
 import io.github.davamix.pillsreminder.ui.settings.SettingsScreen
 import io.github.davamix.pillsreminder.ui.take.TakeScreen
@@ -74,15 +72,7 @@ fun AppNavHost(
                 onDeleted = { navController.popBackStack() },
             )
         }
-        composable<TreatmentEditorRoute> {
-            TreatmentEditorScreen(
-                onBack = dropUnlessResumed { navController.popBackStack() },
-                onAddMedicine = dropUnlessResumed { navController.navigate(MedicineEditorRoute()) },
-            )
-        }
-        composable<MedicineEditorRoute> {
-            MedicineEditorScreen(onBack = dropUnlessResumed { navController.popBackStack() })
-        }
+        editorGraph(navController, dependencies)
         composable<TakeRoute> { entry ->
             val route = entry.toRoute<TakeRoute>()
             TakeScreen(

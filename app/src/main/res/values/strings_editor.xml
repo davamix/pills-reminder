@@ -73,9 +73,4 @@
     <string name="editor_discard">Discard your changes?</string>
     <string name="editor_discard_action">Discard</string>
     <string name="editor_keep_editing">Keep editing</string>
-
-    <!-- P1's placeholders, until T6 replaces them. -->
-    <string name="treatment_editor_title">Treatment editor</string>
-    <string name="treatment_editor_add_medicine">Add medicine</string>
-    <string name="medicine_editor_title">Medicine editor</string>
 </resources>

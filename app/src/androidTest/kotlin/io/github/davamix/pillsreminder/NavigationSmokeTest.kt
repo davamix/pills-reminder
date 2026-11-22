@@ -64,11 +64,11 @@ class NavigationSmokeTest {
     @Test
     fun `the editors open from home and Back returns through each`() {
         tap(R.string.home_new_treatment)
-        assertOn(R.string.treatment_editor_title)
-        tap(R.string.treatment_editor_add_medicine)
-        assertOn(R.string.medicine_editor_title)
+        assertOn(R.string.editor_new_treatment)
+        tap(R.string.editor_add_medicine)
+        assertOn(R.string.editor_new_medicine)
         pressBack()
-        assertOn(R.string.treatment_editor_title)
+        assertOn(R.string.editor_new_treatment)
         tapBackArrow()
         assertOn(R.string.home_title)
     }
@@ -80,7 +80,7 @@ class NavigationSmokeTest {
         tap(R.string.home_all_treatments)
         assertOn(R.string.treatments_title)
         tap(R.string.treatments_new)
-        assertOn(R.string.treatment_editor_title)
+        assertOn(R.string.editor_new_treatment)
         pressBack()
         assertOn(R.string.treatments_title)
         tapBackArrow()
