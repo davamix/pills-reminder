@@ -722,15 +722,15 @@ Put every setting back as it was afterwards: automatic time and zone on the emul
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `./gradlew build` passes locally and in CI, with the unit test totals recorded in the handover
-- [ ] Unit tests cover every row of §6, and every new test was shown able to fail (CLAUDE.md)
-- [ ] Every instrumented test passes on the emulator and the phone
-- [ ] T1 and T2's measurements are recorded, `D-8` is settled, and the handover lists the HyperOS settings P7's check must name
-- [ ] The device runs M1–M14 pass on the phone with the settings relaxed, and the timing runs with stock settings, with the night in natural deep Doze (Q11), recorded with the Android and HyperOS versions, the settings, and each alert's lateness
-- [ ] E1–E4 pass on the emulator
-- [ ] The merged release manifest adds exactly the four permissions and the three receivers, none exported, and nothing has `android:process`; the debug manifest adds only `DebugActivity`; no new library
-- [ ] HANDOVER.md is up to date, with the pending wiring for P6, P7 and P8, and the plan's status table is updated
+- [x] All tasks done
+- [x] `./gradlew build` passes locally and in CI, with the unit test totals recorded in the handover
+- [x] Unit tests cover every row of §6, and every new test was shown able to fail (CLAUDE.md)
+- [x] Every instrumented test passes on the emulator and the phone
+- [x] T1 and T2's measurements are recorded, `D-8` is settled, and the handover lists the HyperOS settings P7's check must name
+- [x] The device runs M1–M14 pass on the phone with the settings relaxed, and the timing runs with stock settings, with the night in natural deep Doze (Q11), recorded with the Android and HyperOS versions, the settings, and each alert's lateness
+- [x] E1–E4 pass on the emulator
+- [x] The merged release manifest adds exactly the four permissions and the three receivers, none exported, and nothing has `android:process`; the debug manifest adds only `DebugActivity`; no new library
+- [x] HANDOVER.md is up to date, with the pending wiring for P6, P7 and P8, and the plan's status table is updated
 
 ## 9. Open questions
 

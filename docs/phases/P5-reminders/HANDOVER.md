@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#5](https://github.com/davamix/pills-reminder/pull/5) on 2026-11-22. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.5 |
 | **Branch** | `phase/p5-reminders` |
 | **Last session** | 2026-11-22 |
@@ -11,21 +11,11 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P5 (Reminders on Android) of the pills reminder.
-
-1. Use the phase-start skill for P5. Read only docs/phases/P5-reminders/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p5-reminders. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. All tasks are done, and pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is open. First check whether it is merged or has review comments: after the merge, use the phase-close skill instead. A change asked in review may need the phone, with me nearby: I swipe the app away, restart the phone and unlock it, listen for the sound, and look at the lock screen. Ask before changing a setting on the phone, forcing Doze, restarting it or granting a permission, and put things back; never change its clock or time zone. The emulator is needed from T5 on, for instrumented tests and the time and zone checks.
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-**All tasks are done; pull request [#5](https://github.com/davamix/pills-reminder/pull/5) is open, waiting for the user to merge it.** CI passed on `ffa1c6f` (run 45015825166).
+**Merged into `main`** in pull request [#5](https://github.com/davamix/pills-reminder/pull/5) on 2026-11-22, with CI green.
 
 The app has real reminders. A saved treatment sets one alarm clock. When it fires, the reconcile posts the reminder with sound, repeats it, and offers Taken, Snooze and Skip, which record the answer and remove it. A tapped reminder opens its take. The shade and the alarm follow every change of the data. Debug builds have a "Pills debug" screen that schedules test reminders in minutes. What is built, by task:
 
@@ -43,8 +33,9 @@ Treatments can't be created in the app itself yet (P6).
 
 ## Next steps
 
-1. **Pull request [#5](https://github.com/davamix/pills-reminder/pull/5):** deal with any review comments on the branch (build, and the instrumented suite if Android code changes), then push and wait for CI.
-2. **After the user merges it:** the `phase-close` skill, on `main`. It marks P5 `Done` in plan §5.1 and ticks SPEC §8. Then it reviews the skills: the "For the skills review" items in "Known issues" are its input. Also worth a look then: plan `D-8` says the alarm clock shows an icon in the status bar, which HyperOS doesn't (Q12).
+None for P5.
+
+Phases that can start now (plan §5.1, all dependencies `Done`): **P6** (Treatment management UI, needs P2) and **P7** (Home screen and reminder check, needs P2). Neither has its SPEC.md and HANDOVER.md yet: the `phase-docs` skill writes them. P8 waits for P6 and P7.
 
 ## Tasks
 
@@ -60,7 +51,7 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | `app/src/debug/`: `AndroidManifest.xml` (`DebugActivity`, "Pills debug"), `debug/DebugActivity.kt`, `DebugScreen.kt` (`DebugScreen`, stateless `DebugContent`, `DebugActions`), `DebugViewModel.kt`, `DebugDevice.kt` (`AndroidDebugDevice`), `TestSchedules.kt`, `res/values/strings_debug.xml`; `TestSchedulesTest` (6) in `app/src/testDebug/`. Drawn in four states, light and dark, at font scale 1 and 2, on the phone. Tried live on the phone. T5's two tests shown able to fail. |
 | T7 | Done | `MainActivity` (the take from `onCreate` and `onNewIntent`, `takeOf`), `AppNavHost(openTake, onTakeOpened)` with `OpenTake`, `ReminderIntents.openTakeIntent`. Instrumented: `OpenTakeTest` (8). Eight deliberate bugs (session log). |
 | T8 | Done | M1–M14 on the phone, stock (timing runs, the night) and relaxed (all); E1–E4 on the emulator ("Device runs (T8)"). The debug screen's Instructions switch, for M1, with a test in `TestSchedulesTest` shown able to fail. The instrumented suite to run again on both devices in T9, after the SPEC's last changes. |
-| T9 | In review | SPEC v0.5 on `main`, merged; KDoc; `CLAUDE.md`; manifests and libraries compared with `main`; `build`; the instrumented suite on both devices; pull request [#5](https://github.com/davamix/pills-reminder/pull/5). |
+| T9 | Done | SPEC v0.5 on `main`, merged; KDoc; `CLAUDE.md`; manifests and libraries compared with `main`; `build`; the instrumented suite on both devices; pull request [#5](https://github.com/davamix/pills-reminder/pull/5). |
 
 ## Decisions and deviations
 
@@ -294,6 +285,10 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (close)
+
+- The user merged pull request [#5](https://github.com/davamix/pills-reminder/pull/5); P5 is closed: `Done` in plan §5.1, SPEC §8 ticked.
 
 ### 2026-11-22, midday: T9
 
