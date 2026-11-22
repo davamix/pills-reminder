@@ -7,9 +7,6 @@
     <string name="home_new_treatment">New treatment</string>
     <!-- The settings icon's description, for TalkBack and tests. -->
     <string name="home_settings">Settings</string>
-    <!-- P1's placeholder, until T4 replaces it. -->
-    <string name="home_open_settings">Open settings</string>
-    <string name="home_sample_take">Sample take</string>
 
     <!-- The sections (HM-2, HM-4). -->
     <string name="home_due">Due</string>

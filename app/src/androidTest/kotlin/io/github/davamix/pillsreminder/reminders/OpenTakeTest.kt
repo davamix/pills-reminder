@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -92,7 +93,7 @@ class OpenTakeTest {
     fun `a reminder tapped while the app is open opens its take above Home`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             assertOn(R.string.home_title)
-            compose.onNodeWithText(text(R.string.home_open_settings)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.home_settings)).performClick()
             assertOn(R.string.settings_title)
 
             scenario.onActivity { InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(it, reminderIntent()) }
@@ -117,7 +118,7 @@ class OpenTakeTest {
     @Test
     fun `another intent while the app is open leaves it where it was`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            compose.onNodeWithText(text(R.string.home_open_settings)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.home_settings)).performClick()
             assertOn(R.string.settings_title)
 
             val summaryTap = Intent(context, MainActivity::class.java)

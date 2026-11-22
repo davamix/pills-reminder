@@ -25,11 +25,13 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-In progress. T1–T3 are done: the measurements (SPEC v0.3), the layouts of Home and Settings (agreed by the user), and the check's logic, device and record, wired into `ScreenDependencies` and `AppContainer`. The app still shows P1's placeholders: no ViewModel or destination yet.
+In progress. T1–T4 are done: the measurements (SPEC v0.3), the layouts of Home and Settings (agreed by the user), the check's logic, device and record, and Home, the real screen, with its ViewModel and destination. Settings is still P1's placeholder, which the first launch opens above Home.
+
+**Until T6,** the instrumented tests that go through `MainActivity` (`NavigationSmokeTest`, `OpenTakeTest`) open the check at the first launch on a device whose check record is empty: run them only after T6's first-launch rule, or with the record's `firstLaunchDone` set.
 
 ## Next steps
 
-1. T4: `HomeViewModel`, its factory and destination in `AppNavHost`: the rows (Due, Next, Upcoming, in SPEC §4.3.2's order), Taken, Taken early through the content's confirmation, the warning's count from `reminderCheck(checkDevice.read(), record)` read again on resume, and the first launch's `openCheck` (`SettingsRoute(firstLaunch = true)`, which T4 adds to `Routes.kt`). Unit tests, shown able to fail.
+1. T5: `SettingsViewModel(deps, firstLaunch, saved)`, its factory with `createSavedStateHandle()`, and Settings' destination in `AppNavHost` with `SettingsRoute(firstLaunch)`: the lines from `reminderCheck(checkDevice.read(), record)`, `refresh()` on resume, `setConfirmed` with a failed write's problem, `askNotifications` (first launch, notifications not allowed, once, "asked" kept in the `SavedStateHandle`), Android's dialog through `rememberLauncherForActivityResult(RequestPermission)`, `notificationsAsked(granted)` calling `deps.reconcile()` when granted; each button calls `checkDevice.open(activity, item)`. Unit tests (`SettingsViewModelTest`), shown able to fail.
 
 To draw again: a gallery like T2's (`screen-gallery` skill) with one `@Test` for `HomeContent` and one for `SettingsContent`, and these shots. Home: loading; empty; empty with the warning; upcoming only (Sun 22 Nov 10:30); Mon 10:30 (two Next rows with Taken early); Mon 16:00 (both Due, "now"); Mon 16:05 (the spec's sketch); Mon 16:10 after Taken early; the warning with Due and Next; a long list (2 Due, 5 Next, 2 Upcoming, one with no end, one 6 days ahead), and its end (`performScrollToIndex`); unreadable with the warning; the Taken early dialog; a problem's snackbar; a take due 2 days ago. Settings: loading; stock Android all OK; battery missing; the phone's first launch (battery missing, steps to confirm), and its end; all set with the steps confirmed, and its end; notifications not allowed; the channel off; no pop-up; everything missing, and its end; a problem's snackbar.
 
@@ -40,9 +42,9 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | C1–C6 on the phone and the emulator, with a throwaway probe (a debug-only activity, deleted, never committed); results in "Measurements (T1)". The clean debug build is installed again on both devices. |
-| T2 | Doing | `ui/home/HomeContent.kt` (`HomeRow`, `UpcomingRow`, `HomeData`, `HomeState`, `HomeContent`), `ui/home/TimeLeft.kt` (`TimeLeft.between`, `timeLeftText`), `ui/settings/SettingsContent.kt` (`SettingsState`, `SettingsContent`), `check/ReminderCheck.kt` (the check's types), `strings_home.xml`, `strings_settings.xml`. Drawn on the emulator (light, dark, font scale 2) and the phone (light, dark): everything fits, no word broken. Agreed by the user. |
+| T2 | Done | `ui/home/HomeContent.kt` (`HomeRow`, `UpcomingRow`, `HomeData`, `HomeState`, `HomeContent`), `ui/home/TimeLeft.kt` (`TimeLeft.between`, `timeLeftText`), `ui/settings/SettingsContent.kt` (`SettingsState`, `SettingsContent`), `check/ReminderCheck.kt` (the check's types), `strings_home.xml`, `strings_settings.xml`. Drawn on the emulator (light, dark, font scale 2) and the phone (light, dark): everything fits, no word broken. Agreed by the user. |
 | T3 | Done | `check/ReminderCheck.kt` (`reminderCheck()`, `channelStateOf`, `isHyperOs`, `SettingsScreen`, `settingsScreens()`), `check/ReminderCheckDevice.kt` (`DeviceChecks`, `ReminderCheckDevice`, `AndroidReminderCheckDevice`), `check/CheckStore.kt` (`CheckRecord`, `CheckStore`, `InMemoryCheckStore`), `check/DataStoreCheckStore.kt`; `ScreenDependencies`' `checkDevice`, `checkStore`, `reconcile`; `AppContainer.checkStore`; `FakeCheckDevice` in `ViewModelTesting.kt` and `UiTesting.kt`, `FakeApp`'s record and `reconciles`. Tests: `ReminderCheckTest` (14), `DataStoreCheckStoreTest` (8), `TimeLeftTest` (8). 30 deliberate bugs, all caught (session log). |
-| T4 | To do | Home's ViewModel and destination |
+| T4 | Done | `ui/home/HomeViewModel.kt` (`HomeViewModel`, its factory, the pure `build(stored, now, disabled)`), `ui/home/HomeScreen.kt` (P1's placeholder replaced: `LifecycleResumeEffect` calls `refreshCheck()`, `LeaveWhen(openCheck)` calls `checkOpened()` and opens the check); `SettingsRoute(firstLaunch)` in `Routes.kt`; Home's destination in `AppNavHost` (a row opens `TreatmentRoute`, the settings button and the warning's Check open `SettingsRoute()`, the first launch `SettingsRoute(firstLaunch = true)`), `sampleTake` gone; `home_open_settings` and `home_sample_take` gone, so `NavigationSmokeTest` lost its sample take step and it and `OpenTakeTest` open Settings by its icon. `HomeViewModelTest` (17). 30 deliberate bugs, 29 caught, the other not observable (session log). Settings' destination is still the placeholder (T5). |
 | T5 | To do | Settings' ViewModel and destination |
 | T6 | To do | UI flow tests, shared test helpers |
 | T7 | To do | Drawings again, manual checks |
@@ -58,6 +60,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-22 | T2's types, where SPEC §4.2 differs: `CheckLine(item, status, problem: NotificationsProblem?)`, the reason the Notifications line is missing (`NOT_ALLOWED`, `CHANNEL_OFF`, `NO_POP_UP`), rather than `channel: ChannelState?`; `ReminderCheck` also has `hyperOs`, which the battery line's HyperOS sentence needs; `CheckItem` carries its `step`. To fold into the SPEC in T8. | A permission refused and a channel off show different texts and open different screens; one field says which. |
 | 2026-11-22 | T2's layout, where SPEC §4.3 leaves it open: a row's button goes under its texts, full width, from font scale 1.5 (`STACKED_FONT_SCALE`); the time left and "No end" are kept on one line by non-breaking spaces in `strings_home.xml`; Due rows are cards in `primaryContainer`, Next and Upcoming rows plain cards, the warning a card in `errorContainer`; the check's lines are cards with a status icon (check, warning, info for a step to confirm), their text in the error colour when missing, their buttons under them. To fold into the SPEC in T8. | The drawings: at font scale 1 on the emulator (12-hour), "in 7 h 55 min" broke after "55"; side by side at font scale 2, a row's button would leave its text too narrow. |
 | 2026-11-22 | T3's shapes, where SPEC §4.1 and §4.2 are silent: the screens each line opens are a pure function, `settingsScreens(item, device)`, returning `SettingsScreen`s in the order to try, which `AndroidReminderCheckDevice` turns into intents; the Notifications line opens the channel's screen only when the permission is granted and the channel is wrong. `channelStateOf(importance)` and `isHyperOs(manufacturer)` are pure functions too. The record's file holds `schemaVersion` 1; another version, a damaged file or one that can't be opened reads as empty, and step names it doesn't know are left out. `FakeCheckDevice` is written twice, in the unit tests' and the instrumented tests' helpers, which share no source set. To fold into the SPEC in T8. | The rules then have JVM tests: an `Intent` can't be built in a JVM unit test. |
+| 2026-11-22 | T4's details, where SPEC §4.3 is silent: until the check's record is read, Home shows no warning and doesn't open the check (with an empty record, every HyperOS step would count for a moment); a double tap marks once because each take being marked is kept with the data it changed, and its Taken stays disabled until the rows show other data, then follows P2 again (so a take answered and cleared elsewhere can be marked again); the warning's Check and the settings button both open `SettingsRoute()`. To fold into the SPEC in T8. | The SPEC's "disabled from the tap until the data changes", made exact: the store's flow may show the change after `update` returns. |
 | 2026-11-22 | The Taken early confirmation has a title, "Mark as taken now?", and the text "Atrovent · 3 puffs, planned for Today 16:00. Its reminder won't alert." UI text, so no SPEC change; SPEC §4.3.4 quotes the draft's wording, to update in T8. | "Mark Atrovent's take at Today 4:00 PM as taken now?" read awkwardly ("at Today"). |
 
 ## Measurements (T1)
@@ -101,11 +104,20 @@ Connections to other phases left for later.
 
 The commands and manual steps that check the current state.
 
-- Not yet: nothing is built.
+- `./gradlew build` (unit tests, Lint, ktlint) and `./gradlew :app:compileDebugAndroidTestKotlin`.
+- On the emulator: `gradle installDebug` and `launch` (`phone` skill). With no check record, the check (still the placeholder) opens above Home; Back shows Home, with the warning while battery optimisation is on.
 
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (T4)
+
+- Done: T4, Home's ViewModel, screen and destination.
+- T4's deliberate bugs, 29 of 30 caught: every row in Next, by six tests; no order by time, the treatment name compared case-sensitively, the medicines' order reversed, Upcoming unsorted, by the order and Upcoming tests (the order also by the example); Upcoming treatments given rows, or swapped with Finished ones, by the Upcoming and Finished tests; planned instants in UTC, by the example, no-end and Taken tests; Taken early always offered, by the example; the marks ignored, applied marks not disabling Taken, marks never cleaned, no guard against a second tap, by the double tap test; a failed write keeping its mark, by the failed write test; no answered count, no count, the wrong today, no ticks, by the example and others; no state until the data is read, by its test; no problem set, or never cleared, by the problem tests; the device not read again, by the warning test; an empty record before the real one is read, or waiting for the record, by the record-not-read test; only MISSING lines counted, by the warning and confirmed-step tests; the local "opened" flag ignored, the record's `firstLaunchDone` ignored, not written, or its write error thrown, by the first launch tests.
+- Not caught: Finished treatments given rows (`finished-as-active`). It can't be seen: P2's status is Finished only when no medicine has a next take, or after an early end, which makes every take before the end Missed at the end; so `nextTake` gives no row either way.
+- Unit totals: `:app` 243, `:core` 177, none failing.
+- Device state: the emulator has this build, and its check record now exists (`firstLaunchDone` true, from the run above; E2 removes it). The phone is unchanged since T1.
 
 ### 2026-11-22 (T2, T3)
 

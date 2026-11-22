@@ -15,7 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * What needs `MainActivity`: the start screen, portrait, and P1's placeholders that remain (P7's Home and Settings).
+ * What needs `MainActivity`: the start screen, portrait, and Settings from Home's settings button (P7).
  * P6's screens are walked with fakes in `ui.ScreensNavigationTest` (P6-D2). The test names are
  * sentences, which D8 accepts because minSdk is 33 (P1-D7). DEX names can't hold ASCII punctuation other than `$`, `-`
  * and `_`, so they have no commas.
@@ -29,15 +29,9 @@ class NavigationSmokeTest {
         @StringRes id: Int,
     ) = compose.activity.getString(id)
 
-    private fun tap(
-        @StringRes label: Int,
-    ) = compose.onNodeWithText(text(label)).performClick()
-
     private fun assertOn(
         @StringRes title: Int,
     ) = compose.onNodeWithText(text(title)).assertIsDisplayed()
-
-    private fun tapBackArrow() = compose.onNodeWithContentDescription(text(R.string.navigate_back)).performClick()
 
     @Test
     fun `the app starts on the home screen`() {
@@ -50,15 +44,10 @@ class NavigationSmokeTest {
     }
 
     @Test
-    fun `settings and the sample take open from home and Back returns`() {
-        tap(R.string.home_open_settings)
+    fun `settings open from home and Back returns`() {
+        compose.onNodeWithContentDescription(text(R.string.home_settings)).performClick()
         assertOn(R.string.settings_title)
         pressBack()
-        assertOn(R.string.home_title)
-
-        tap(R.string.home_sample_take)
-        assertOn(R.string.take_title)
-        tapBackArrow()
         assertOn(R.string.home_title)
     }
 }
