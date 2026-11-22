@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
+| **Status** | In progress |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p7-home` |
 | **Last session** | 2026-11-22 |
@@ -25,11 +25,11 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-Not started. SPEC.md v0.2 is `Ready`: the review confirmed every draft assumption (Q1–Q6). Home and Settings are still P1's placeholders.
+In progress: branch `phase/p7-home` created. SPEC.md v0.2 is `Ready`: the review confirmed every draft assumption (Q1–Q6). Home and Settings are still P1's placeholders.
 
 ## Next steps
 
-1. Once the SPEC is `Ready`: create the branch (`phase-start`), then T1, the measurements of SPEC §4.6, with the phone connected and unlocked.
+1. T1, the measurements of SPEC §4.6, with the phone connected and unlocked.
 
 ## Tasks
 
