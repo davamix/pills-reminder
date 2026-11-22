@@ -45,7 +45,7 @@ The task IDs come from SPEC.md §7.
 | T4 | Done | `ui/home/HomeViewModel.kt` (`HomeViewModel`, its factory, the pure `build(stored, now, disabled)`), `ui/home/HomeScreen.kt` (P1's placeholder replaced: `LifecycleResumeEffect` calls `refreshCheck()`, `LeaveWhen(openCheck)` calls `checkOpened()` and opens the check); `SettingsRoute(firstLaunch)` in `Routes.kt`; Home's destination in `AppNavHost` (a row opens `TreatmentRoute`, the settings button and the warning's Check open `SettingsRoute()`, the first launch `SettingsRoute(firstLaunch = true)`), `sampleTake` gone; `home_open_settings` and `home_sample_take` gone, so `NavigationSmokeTest` lost its sample take step and it and `OpenTakeTest` open Settings by its icon. `HomeViewModelTest` (17). 30 deliberate bugs, 29 caught, the other not observable (session log). Settings' destination is still the placeholder (T5). |
 | T5 | Done | `ui/settings/SettingsViewModel.kt` (`SettingsViewModel(deps, firstLaunch, saved)`, its factory with `createSavedStateHandle()`), `ui/settings/SettingsScreen.kt` (P1's placeholder replaced: `LifecycleResumeEffect` calls `refresh()`; at the first launch, `LeaveWhen(askNotifications)` calls `notificationsRequested()` and launches Android's dialog through `rememberLauncherForActivityResult(RequestPermission)`, whose answer goes to `notificationsAsked(granted)`; each button calls `checkDevice.open(activity, item)` through `dropUnlessResumedWith`); Settings' destination in `AppNavHost` with `SettingsRoute(firstLaunch)`. `SettingsViewModelTest` (9). 16 deliberate bugs, all caught (session log). The first launch checked on the emulator, with Android's real dialog. |
 | T6 | Done | `androidTest/…/ui/HomeScreenTest.kt` (7) and `ReminderCheckScreenTest.kt` (4), with `FakeApp`; `FakeApp(unreadable = …)`, `quantity()` and `assertTouchHeightIsAtLeast()` in `UiTesting.kt`; `androidTest/…/FirstLaunchDone.kt`, the rule for `NavigationSmokeTest` and `OpenTakeTest`; `ui/common/PlaceholderScreen.kt` and `placeholder_note` deleted. The whole instrumented suite, 48 tests, passes on the emulator and the phone. Deliberate bugs in the session log. |
-| T7 | To do | Drawings again, manual checks |
+| T7 | Doing | Drawn again from the finished code: the emulator (light, dark, font scale 2) and the phone (light, dark), every state as in T2, nothing cut off, no word broken. E1 and E2 passed on the emulator (session log). M1–M5 on the phone: to do, with the user. |
 | T8 | To do | Wrap-up and pull request |
 
 ## Decisions and deviations
@@ -111,6 +111,19 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (T7, part 1)
+
+- Drawings from the finished code, with T2's gallery: the emulator, light and dark at font scale 1, and at font scale 2; the phone, light and dark (24-hour times). Every state of both screens as T2 drew them: everything fits the content area, no word broken, readable in dark theme.
+- **E1 (emulator), passed.** From notifications granted, the category at importance 4, battery optimisation on (1 setting to check):
+  - `pm revoke` the permission, then open the app: Home "2 settings to check", the check "Not allowed: no reminder can appear."; `pm grant`, then back to the front: "Allowed.", Home 1.
+  - The Reminders category off with its switch in the app's notification settings (opened by the check's button): importance 0, "The Reminders category is off…", and the button then opens the category's own page; on again, importance 4.
+  - Its "Pop on screen" off: importance 3, "Reminders don't pop up or sound…", Home 2; on again: importance 4, `mUserLockedFields` 4 as found, "Allowed.".
+  - Battery: `dumpsys deviceidle whitelist +` then back to the front: "Off for this app.", "Everything reminders need is set."; `-`: missing again; Turn off, Android's dialog, Allow: OK, and Home's warning gone. Put back with `whitelist -`.
+  - Exact alarms: `appops … SCHEDULE_EXACT_ALARM deny` changes nothing, the line stays "Allowed." (T1, C5); set back to `default`.
+  - No HyperOS step on the emulator.
+- **E2 (emulator), passed.** The permission revoked, the check's file removed, a debug test treatment (every 10 minutes, first take a minute later): its alert at 21:53:00 ran 8 ms late but posted nothing, the permission being revoked. Opening the app opened the check above Home and Android's dialog at once; after Allow, a reconcile (`app_open`) at the grant posted the take's reminder (silently, since it had already alerted), and the shade showed "1 take due" and the take. Home showed it under Due, "Today 9:53 PM · now", with Taken; Taken on Home moved it to Next ("in 10 min", Taken early) and took its reminder off the shade (RM-7). Test treatment deleted: no alarm, no notification, the data's hash as before.
+- Emulator state afterwards: as found (the permission granted with its flags as before, the category at importance 4, battery optimised, the appop at default), and its check record with the first launch done.
 
 ### 2026-11-22 (T6)
 
