@@ -48,6 +48,7 @@ class Reminders(
         }
     }
 
+    /** Reconciles now: for the receivers, `MainActivity` and the debug screen. */
     suspend fun reconcile(trigger: ReconcileTrigger): ReconcileResult = reconciler.reconcile(trigger)
 
     /**

@@ -60,6 +60,7 @@ class Reconciler(
 ) {
     private val lock = Mutex()
 
+    /** Runs the reconcile for [trigger], after any other that is running, and says what it did. */
     suspend fun reconcile(trigger: ReconcileTrigger): ReconcileResult =
         lock.withLock {
             val now = ZonedDateTime.now(clock)

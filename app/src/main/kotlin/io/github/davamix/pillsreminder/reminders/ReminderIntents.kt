@@ -34,8 +34,10 @@ object ReminderIntents {
         return PendingIntent.getBroadcast(context, 0, intent, flags)
     }
 
+    /** Whether [intent] is the alarm's, the app's or a test's (any action starting with [ACTION_WAKE_UP]). */
     fun isWakeUp(intent: Intent): Boolean = intent.action?.startsWith(ACTION_WAKE_UP) == true
 
+    /** Whether the alarm was set as a retry after a failed write (Q1). */
     fun isRetry(intent: Intent): Boolean = intent.getBooleanExtra(EXTRA_RETRY, false)
 
     /** Taken, Snooze or Skip on the take's reminder, to [ReminderActionReceiver] (RM-3). */

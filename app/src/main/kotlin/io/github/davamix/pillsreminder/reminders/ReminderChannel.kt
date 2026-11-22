@@ -11,6 +11,7 @@ import io.github.davamix.pillsreminder.R
  * the user's changes to them: changing them needs a new [ID], with the old channel deleted.
  */
 object ReminderChannel {
+    /** The channel's ID. Changing a setting Android keeps needs a new one. */
     const val ID = "reminders"
 
     /** Creates it, or updates its name and description; changes nothing else once it exists. */

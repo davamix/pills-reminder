@@ -29,11 +29,14 @@ data class DeviceSnapshot(
 
 /** Reads the device for the debug screen, and clears the reminder log. */
 interface DebugDevice {
+    /** What the device says now. Reads files and system services: call it off the main thread. */
     fun read(): DeviceSnapshot
 
+    /** Empties the reminder log file. */
     fun clearLog()
 }
 
+/** [DebugDevice] on Android's services and the app's log file. */
 class AndroidDebugDevice(
     context: Context,
 ) : DebugDevice {

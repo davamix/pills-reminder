@@ -30,11 +30,13 @@ data class TestSettings(
  * each, in minutes. Their IDs start with [PREFIX], so the debug screen ends or deletes only its own. Debug builds only.
  */
 object TestSchedules {
+    /** The start of every test treatment's and test medicine's ID. */
     const val PREFIX = "debug-"
 
     /** The test medicines' instructions, when asked for: `TR-6`'s example. */
     const val INSTRUCTIONS = "with food"
 
+    /** Whether [treatment] is one of the debug screen's. */
     fun isTest(treatment: Treatment): Boolean = treatment.id.value.startsWith(PREFIX)
 
     /** A new test treatment, with new IDs, whose first take is [TestSettings.firstInMinutes] whole minutes after [now]. */
