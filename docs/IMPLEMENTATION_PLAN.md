@@ -212,7 +212,7 @@ Rules:
 | P4 | Reminder planner | `docs/phases/P4-reminder-planner/` | P2 | Done |
 | P5 | Reminders on Android | `docs/phases/P5-reminders/` | P3, P4 | Done |
 | P6 | Treatment management UI | `docs/phases/P6-treatment-ui/` | P2 | Done |
-| P7 | Home screen and reminder check | `docs/phases/P7-home/` | P2 | Planned |
+| P7 | Home screen and reminder check | `docs/phases/P7-home/` | P2 | Spec draft |
 | P8 | Integration and v1.0 | `docs/phases/P8-integration/` | P5, P6, P7 | Planned |
 
 ```mermaid
