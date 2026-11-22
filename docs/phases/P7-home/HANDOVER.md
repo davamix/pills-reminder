@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 (draft, under review) |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p7-home` |
 | **Last session** | 2026-11-22 |
 
@@ -25,7 +25,7 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-Not started. SPEC.md v0.1 is a draft under review: its questions Q1–Q6 wait for the user's answers. Home and Settings are still P1's placeholders.
+Not started. SPEC.md v0.2 is `Ready`: the review confirmed every draft assumption (Q1–Q6). Home and Settings are still P1's placeholders.
 
 ## Next steps
 
@@ -77,4 +77,4 @@ Newest first.
 ### 2026-11-22
 
 - Done: SPEC.md v0.1 and this handover, from plan v0.7 and specification v0.9, with what P3, P5 and P6 left for P7.
-- Notes: questions Q1–Q6 in SPEC §9 wait for the review.
+- Review: every draft assumption accepted (Q1–Q6). Specification v0.10 took Q2–Q6 into `RM-9` and §6; plan v0.8 took Q1 into `D-4` and §2.4. SPEC v0.2, `Ready`.

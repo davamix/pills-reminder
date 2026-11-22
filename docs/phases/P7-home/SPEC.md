@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P7, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 (done). P3, P5 and P6 are merged too, so Home uses the real store, the reminders follow every answer given on it, and its rows open P6's screens. |
 | **Branch** | `phase/p7-home` |
@@ -21,7 +21,7 @@ After P7, every screen of spec §6 exists. P8 then wires and accepts the whole a
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.9), so this document stands on its own. P2 implemented the rules; P7 shows them and calls them.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.10), so this document stands on its own. P2 implemented the rules; P7 shows them and calls them.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
@@ -32,7 +32,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | HM-5 | "While the home screen is open, the times left and the states stay current, without leaving and coming back." | The state is worked out again at each whole minute and at each change of the data (§4.3.1). The reminder check is read again each time the screen comes back to the front (§4.3.9). |
 | TK-2 | "Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20"." | Taken on a Due row records now, through P2's `markTaken`. Correcting the time stays on P6's Take screen. |
 | TK-4 | "A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. The next take is the medicine's Due take, if it has one, or else its first unanswered take still to come. Only one take of a medicine can be marked ahead of its time: the one after it can be marked early once the marked take's planned time has passed." | "Taken early" on a Next row whenever P2's `markTaken` would apply, after a confirmation (Q5, §4.3.4). P5's reconcile then never alerts for it. |
-| RM-9 | "**Reminder check:** the app checks what its reminders depend on: the notification permission, the exact-alarm permission, and Android's battery optimisation for the app. It shows what is missing, each with a button that opens the right settings screen. HyperOS's own settings (Autostart, battery saver), which the app can't read, are listed as steps for you to confirm. The check is shown on first launch and in Settings, and the home screen warns while something is missing." | The check in Settings (§4.3.7–§4.3.9), opened at the first launch (§4.3.10), and Home's warning (§4.3.6). Q2–Q4 and T1 settle what it lists on this phone. |
+| RM-9 | "**Reminder check:** the app checks what its reminders depend on: the notification permission; its Reminders notification category, which must be on and allowed to pop up and sound; the exact-alarm permission; and Android's battery optimisation for the app, which on HyperOS is the app's battery saver. It shows what is missing, each with a button that opens the right settings screen, or Android's own dialog for battery optimisation. On HyperOS, the settings the app can't read (Autostart, Floating notifications and Lock screen notifications) are listed as steps for you to confirm. The check is shown on first launch, where Android's dialog asks for the notification permission, and in Settings. The home screen warns while something is missing or a step isn't confirmed." | The check in Settings (§4.3.7–§4.3.9), opened at the first launch (§4.3.10), and Home's warning (§4.3.6). T1 settles each button's screen on this phone (§4.6). |
 | NF-7 | "**Phone layout:** portrait only, for a screen about 393 dp wide. Touch targets are at least 48 dp. Text stays usable with the system's larger font sizes." | Both screens fit the phone's content area, with 48 dp targets, and are drawn at font scale 2 (§4.3.11, T2, T7). |
 | NF-8 | "**Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Times follow the phone's 24-hour clock setting. Day and month names are in the UI's language, such as "Mon 23 Nov", so a translation brings its own." | Every text in `strings_home.xml` and `strings_settings.xml`, the time left's units included; dates and times through P6's `DateTimeText`. |
 | NF-10 | "**Theme:** follows the system's light or dark setting." | P1's theme; every state is drawn in both. |
@@ -51,8 +51,8 @@ Spec §6, the screens this phase builds:
 
 | Screen | Purpose | Main actions |
 |---|---|---|
-| **Home: next takes** | The next take of each medicine, due takes first (`HM-1` to `HM-5`) | Mark a take Taken, open a treatment, new treatment, all treatments, settings |
-| **Settings** | The reminder check (`RM-9`) | Open Android's settings, back |
+| **Home: next takes** | The next take of each medicine, due takes first (`HM-1` to `HM-5`) | Mark a due take Taken, or a next take Taken early (`TK-4`, with confirmation); open a treatment, new treatment, all treatments, settings |
+| **Settings** | The reminder check (`RM-9`) | Open Android's settings, confirm HyperOS's steps, back |
 
 Spec §6's sketch of Home (low fidelity, layout only), on Monday at 16:05: Amoxicillin's 16:00 take is due, and Atrovent's was taken at 16:01.
 
@@ -99,7 +99,11 @@ Plan §3, the permissions the app may declare, among them "`REQUEST_IGNORE_BATTE
 
 Plan §2.3: "The home screen (P7) reads the same schedule and take states as the planner, and works them out again each minute while it is open (`HM-5`)."
 
-Plan §5.2, P7's scope for the check: "the notification permission, asked at first launch; exact alarms; battery optimisation, with Android's own request dialog; HyperOS's Autostart and battery saver, plus anything P5's measurements add, as steps for the user to confirm, each with a button to its settings screen where one can be opened; a warning on the home screen while something is missing." Its done criteria: "Compose UI tests cover the home screen's order, a due take, a take marked early and the empty state; on the emulator (API 36), the reminder check follows each permission being revoked and granted again; on the phone, each of the check's buttons opens the right screen."
+Plan §5.2 (v0.8), P7's scope for the check: "the notification permission, asked with Android's dialog at first launch, when the check opens once above Home; afterwards its button opens Android's settings (P7 Q6); the app's Reminders channel: on, and allowed to pop up and sound (P7 Q3); exact alarms; battery optimisation, with Android's own request dialog; on HyperOS it is the app's battery saver, which P5 found (P7 Q2); on a Xiaomi phone, HyperOS's Autostart, Floating notifications and Lock screen notifications, which P5's measurements named, as steps for the user to confirm, each with a button to its settings screen (P7 Q4); its own record, in a second, small file (§2.4, P7 Q1); a warning on the home screen while something is missing or a step isn't confirmed."
+
+Plan §2.4 (v0.8): "**The reminder check's record** is a second, small file beside it, also written by DataStore as JSON: whether the first launch is done, and which HyperOS steps the user has confirmed. It holds no treatment content. A missing or damaged one reads as empty, and the next write replaces it: the check then shows again (P7 Q1)."
+
+P7's done criteria in plan §5.2: "Compose UI tests cover the home screen's order, a due take, a take marked early and the empty state; on the emulator (API 36), the reminder check follows each permission being revoked and granted again; on the phone, each of the check's buttons opens the right screen."
 
 ### 2.2 What earlier phases left for P7
 
@@ -563,21 +567,24 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
-|---|---|---|
-| Q1 | Where the check keeps what it must remember: that the first launch is done, and which HyperOS steps the user has confirmed. Plan `D-4` says all data is one JSON document; these aren't treatment data. | A second DataStore file, `reminder-check.json`, with the libraries already in the build (P7-D1). A damaged one reads as empty and is replaced: the check then shows again. The plan's `D-4` and §2.4 would say so. The other choices: a new field in the treatments' document (a format change, blocked while that file can't be read), or Android's `SharedPreferences`. |
-| Q2 | Whether battery optimisation counts as missing, so Home warns until it is off. P5 found reminders on time with it on; `RM-9` lists it among what reminders depend on. | It counts, as `RM-9` says: one tap in Android's dialog turns it off, which costs no battery since the app runs only to alert (`NF-5`). On HyperOS it is the app's battery saver too (P5), so there is no separate battery saver step. |
-| Q3 | Whether the check also reads the app's Reminders channel. With the permission granted, the channel can still be turned off, or lowered so that reminders don't pop up or sound, in Android's settings; `RM-9` doesn't name it. | Yes, as part of the Notifications line: the channel off, or below high importance, is missing, with a button to the channel's settings (§4.3.7). `RM-9` would name it. |
-| Q4 | Which HyperOS steps the check lists, on which phones, and whether Home warns until they are confirmed | Autostart (needed after an update, P5), Floating notifications and Lock screen notifications (on by default, P5), on a Xiaomi phone only (T1, C6). Each is "to confirm" until the user ticks Done, and Home warns until all are; unticking brings the warning back. `RM-9`'s "battery saver" is the battery optimisation line (Q2). |
-| Q5 | How Home marks a next take early (`TK-4`): spec §6 gives Home "Mark a take Taken", and `HM-2` a Taken button for due takes only | An outlined "Taken early" button on each Next row that P2 allows, with a confirmation ("Its reminder won't alert"). The Take screen, reached through the treatment, also offers it (P6 Q7). |
-| Q6 | What the first launch shows, and how the notification permission is asked | The check opens once, above Home, and asks with Android's dialog at once; Back returns to Home. Afterwards, the Notifications line's button opens Android's settings, as `RM-9` says, rather than the dialog, which Android stops showing after two refusals. A phone updated from an earlier build sees the check once too. |
+None at the moment. New questions are numbered from Q7.
 
 ### Answered
 
-None yet.
+The review confirmed every draft assumption. Q1 went into plan v0.8 (`D-4`, §2.4), and Q2–Q6 into specification v0.10 (`RM-9`, §6), which §2 quotes.
+
+| # | Question | Decision |
+|---|---|---|
+| Q1 | Where the check keeps what it must remember: that the first launch is done, and which HyperOS steps the user has confirmed. Plan `D-4` said all data is one JSON document; these aren't treatment data. | A second DataStore file, `reminder-check.json`, with the libraries already in the build (P7-D1). A missing or damaged one reads as empty and is replaced: the check then shows again. Not a field of the treatments' document (a format change, blocked while that file can't be read), nor `SharedPreferences`. In plan v0.8 (`D-4`, §2.4). |
+| Q2 | Whether battery optimisation counts as missing, so Home warns until it is off, though P5 found reminders on time with it on | It counts, as `RM-9` says: one tap in Android's dialog turns it off, which costs no battery since the app runs only to alert (`NF-5`). On HyperOS it is the app's battery saver too (P5), so there is no separate battery saver step; T1 checks it both ways (C2). In specification v0.10 (`RM-9`). |
+| Q3 | Whether the check also reads the app's Reminders channel, which can be turned off or lowered with the permission granted | Yes, as part of the Notifications line: the channel off, or below high importance, is missing, with a button to the channel's settings (§4.3.7). In specification v0.10 (`RM-9`). |
+| Q4 | Which HyperOS steps the check lists, on which phones, and whether Home warns until they are confirmed | Autostart (needed after an update, P5), Floating notifications and Lock screen notifications (on by default, P5), on a Xiaomi phone only (T1, C6). Each is to confirm until the user ticks Done, and Home warns until all are; unticking brings the warning back (P7-D3). In specification v0.10 (`RM-9`). |
+| Q5 | How Home marks a next take early (`TK-4`), with `HM-2`'s Taken button for due takes only | An outlined "Taken early" button on each Next row that P2 allows, with a confirmation ("Its reminder won't alert", P7-D4). The Take screen, reached through the treatment, also offers it (P6 Q7). In specification v0.10 (§6). |
+| Q6 | What the first launch shows, and how the notification permission is asked | The check opens once, above Home, and asks with Android's dialog at once; Back returns to Home. Afterwards, the Notifications line's button opens Android's settings, rather than the dialog, which Android stops showing after two refusals (P7-D5). A phone updated from an earlier build sees the check once too. In specification v0.10 (`RM-9`). |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-22 | First draft, from plan v0.7 and specification v0.9 |
+| 0.2 | 2026-11-22 | Review: Q1–Q6 answered, confirming every draft assumption. Now quotes specification v0.10, which took Q2–Q6 into `RM-9` and §6, and plan v0.8, which took Q1 into `D-4` and §2.4. Ready. |
