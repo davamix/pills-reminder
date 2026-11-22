@@ -338,4 +338,147 @@ wait_for_log() {
     return $rc
 }
 
+# --- Reminders (P5): the reminder log, alerts, Doze, and the debug screen ---
+
+# The last N lines (default 12) of the reminder log that debug builds keep: triggers, take keys, instants, each alert's
+# lateness (late=…ms). Its times are UTC.
+reminder_log() {
+    $adb shell run-as $pkg tail -n "${1:-12}" files/reminders-log.txt | tr -d '\r'
+}
+
+# Waits until the device's clock reaches HHMMSS (local, 24-hour, such as 101730), checking every 10 s. It reads the
+# device's clock: the PC's jumps when Windows corrects it. Run a wait of minutes in the background.
+wait_until() {
+    until [ "$($adb shell date +%H%M%S | tr -d '\r')" -ge "$1" ]; do sleep 10; done
+}
+
+# Waits until the reminder log has an alert for a take planned at HH:MM (local, as in the take's key), for at most
+# SECONDS on the device's clock (default 420), then prints the log's last LINES lines (default 8). Run it in the
+# background. The pattern is quoted twice, because the device's shell reads the `|` again.
+wait_alert() {
+    local hm=$1 end
+    end=$(($($adb shell date +%s | tr -d '\r') + ${2:-420}))
+    until $adb shell run-as $pkg grep -q "'alert [0-9-]*T$hm|'" files/reminders-log.txt 2> /dev/null; do
+        if [ "$($adb shell date +%s | tr -d '\r')" -ge "$end" ]; then
+            echo "wait_alert: no alert for $hm after ${2:-420} s"
+            reminder_log "${3:-8}"
+            return 1
+        fi
+        sleep 10
+    done
+    reminder_log "${3:-8}"
+}
+
+# The app's last N notification alerts (default 5), from logcat's events buffer: local time, the notification's tag, and
+# whether Android asked for a vibration (buzz), a sound (beep) and the light (blink). beep=1 doesn't prove the sound
+# played: the ring mode may mute it. Filtered to the app, since the buffer holds other apps' notifications, with
+# personal data.
+alert_events() {
+    $adb logcat -d -b events -v time | tr -d '\r' | grep 'notification_alert' | grep "|$pkg|" | tail -n "${1:-5}" |
+        sed -E "s/^([0-9-]+ [0-9:.]+) .*\|$pkg\|-?[0-9]+\|(.*)\|[0-9]+,([01]),([01]),([01])(,[0-9]+)*\]$/\1 \2 buzz=\3 beep=\4 blink=\5/"
+}
+
+# One line about the app's reminders now: the device's time, the screen (Awake, or Dozing when it is off), the process,
+# the app's alarms, its reminders in the shade (tags take/…, the summary not counted), and the Doze states.
+reminder_state() {
+    local pid screen alarm_count shade
+    pid=$($adb shell pidof $pkg | tr -d '\r')
+    screen=$($adb shell dumpsys power | tr -d '\r' | grep -o 'mWakefulness=[A-Za-z]*' | head -1)
+    alarm_count=$(alarms | grep -o 'Alarm{[0-9a-f]*' | sort -u | wc -l)
+    shade=$($adb shell dumpsys notification --noredact | tr -d '\r' | grep -c "NotificationRecord(.*pkg=$pkg .*tag=take/")
+    echo "$($adb shell date +%T | tr -d '\r') ${screen#mWakefulness=} pid=${pid:-none} alarms=$alarm_count shade=$shade $(doze_state)"
+}
+
+# The last N entries (default 20) of Android's idling history, deep Doze and the returns to normal (light Doze left out),
+# with the device's local times instead of "-1h2m3s ago". An alarm that fired while the phone never reached deep-idle
+# proves nothing about deep Doze.
+doze_history() {
+    local now z offset
+    now=$($adb shell date +%s | tr -d '\r')
+    z=$($adb shell date +%z | tr -d '\r')
+    offset=$(( (10#${z:1:2} * 3600 + 10#${z:3:2} * 60) * (${z:0:1}1) ))
+    $adb shell dumpsys deviceidle | tr -d '\r' | sed -n '/Idling history/,/^  [A-Z]/p' | grep -E 'deep-|normal' |
+        tail -n "${1:-20}" | awk -v now="$now" -v off="$offset" '{
+            s = $2; sub(/^-/, "", s); t = 0
+            if (match(s, /[0-9]+h/)) t += substr(s, RSTART, RLENGTH - 1) * 3600
+            if (match(s, /[0-9]+m[0-9]/)) t += substr(s, RSTART, RLENGTH - 2) * 60
+            else if (match(s, /[0-9]+m$/)) t += substr(s, RSTART, RLENGTH - 1) * 60
+            if (match(s, /[0-9]+s/)) t += substr(s, RSTART, RLENGTH - 1)
+            printf "%s %s %s\n", strftime("%H:%M:%S", now - t + off, 1), $1, $3
+        }'
+}
+
+# Closes the soft keyboard if it is up. A raised keyboard swallows taps on the lower half of the screen; Back with no
+# keyboard would leave the activity instead, so it checks first.
+keyboard_close() {
+    if $adb shell dumpsys input_method | tr -d '\r' | grep -q 'mInputShown=true'; then
+        $adb shell input keyevent KEYCODE_BACK
+        $adb shell sleep 1
+    fi
+}
+
+# The centre "x y" of the Nth node (default 1) on screen whose attributes match the grep -E pattern.
+node_centre() {
+    $adb exec-out uiautomator dump /dev/tty 2> /dev/null | grep -o '<node [^>]*>' | grep -E "$1" | sed -n "${2:-1}p" |
+        grep -o 'bounds="[^"]*"' | grep -o '[0-9]\+' | paste -sd' ' - | awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }'
+}
+
+# Opens the debug screen (debug builds, "Pills debug"), scrolled to the top, with the keyboard closed.
+debug_open() {
+    $adb shell am start -n $pkg/$app_id.debug.DebugActivity > /dev/null 2>&1
+    $adb shell sleep 2
+    keyboard_close
+    $adb shell input swipe 540 600 540 2000 200
+    $adb shell input swipe 540 600 540 2000 200
+    $adb shell sleep 1
+}
+
+# Creates a test treatment on the debug screen: every INTERVAL minutes, its first take in FIRST minutes, with any of the
+# words two (two medicines), noend and instructions. It deletes the test treatments first. It prints the form as filled,
+# then the screen's count and next wake-up. Its first take is FIRST whole minutes after now: create it early in a minute.
+debug_create() {
+    local interval=$1 first=$2 word two=off noend=off instructions=off
+    for word in "${@:3}"; do
+        case $word in
+            two) two=on ;;
+            noend) noend=on ;;
+            instructions) instructions=on ;;
+            *) echo "debug_create: unknown option '$word'"; return 1 ;;
+        esac
+    done
+    debug_open
+    tap_text "Delete test treatments" > /dev/null 2>&1
+    $adb shell sleep 1
+    debug_field 1 "$interval"
+    debug_field 2 "$first"
+    debug_switch 1 $two
+    debug_switch 2 $noend
+    debug_switch 3 $instructions
+    $adb exec-out uiautomator dump /dev/tty 2> /dev/null | grep -o '<node [^>]*>' | grep -E 'EditText|checkable="true"' |
+        grep -o 'text="[^"]*"\|checked="[a-z]*"' | paste -sd' ' -
+    tap_text "Create test treatment"
+    $adb shell sleep 2
+    texts | grep -o '"Test treatments: [0-9]*"\|"Next wake-up: [^"]*"' | paste -sd' ' -
+}
+
+# Types VALUE into the Nth text field of the debug screen, replacing what it held, then closes the keyboard.
+debug_field() {
+    $adb shell input tap $(node_centre 'class="android.widget.EditText"' "$1")
+    $adb shell sleep 1
+    $adb shell input keyevent KEYCODE_MOVE_END KEYCODE_DEL KEYCODE_DEL KEYCODE_DEL KEYCODE_DEL
+    $adb shell input text "$2"
+    keyboard_close
+}
+
+# Sets the Nth switch of the debug screen (1 two medicines, 2 no end, 3 instructions) to on or off.
+debug_switch() {
+    local line
+    line=$($adb exec-out uiautomator dump /dev/tty 2> /dev/null | grep -o '<node [^>]*>' | grep 'checkable="true"' | sed -n "${1}p")
+    if { [ "$2" = on ] && echo "$line" | grep -q 'checked="false"'; } || { [ "$2" = off ] && echo "$line" | grep -q 'checked="true"'; }; then
+        $adb shell input tap $(echo "$line" | grep -o 'bounds="[^"]*"' | grep -o '[0-9]\+' | paste -sd' ' - |
+            awk '{ print int(($1 + $3) / 2), int(($2 + $4) / 2) }')
+        $adb shell sleep 1
+    fi
+}
+
 use_device "$@"
