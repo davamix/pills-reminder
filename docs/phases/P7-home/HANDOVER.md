@@ -92,6 +92,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 ## Known issues
 
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
+- **A reminder can lose its sound (P5's reconciler, found in M3).** After an alert, the reconciler stores the take's record; that data change starts a second reconcile within a millisecond (P5-D2). It reads the shade (`activeNotifications`) before Android has registered the alerting post, finds the reminder missing, and posts it again silently (`Reconciler.apply`, "post … silently"); the silent update replaces the alerting post before its sound plays. On the phone at 22:05 the log shows `alert … late=64ms` at 21:05:00.098Z, then `post … silently` at .111Z, and the system logged no `notification_alert`; at 22:00 and 22:10 no silent repost followed, and the system beeped. Not caused by P7, and outside its packages: waiting for the user's decision.
 - The emulator's debug app keeps two notification categories from earlier probes, "Probe reminders" (`probe_reminders`) and `reminders-mutant`, and a `files/probe.log` dated 21 Nov (P5). They show in its notification settings; the check reads only the Reminders category, so they change nothing. Uninstalling the debug app on the emulator would remove them (its data holds no treatment). On the phone those categories are deleted.
 
 ## Pending wiring
@@ -111,6 +112,15 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (T7, part 2: the phone)
+
+- From: notifications granted, the Reminders category at importance 4, battery optimised, no check record, Autostart on (the user keeps it).
+- **M1, passed.** The first launch opened the check ("4 settings to check": battery and the three steps; no dialog, notifications being allowed). Each button opened the screen T1 settled (only the activity's name read, since the Autostart list shows the user's apps): Notifications `Settings$AppNotificationSettingsActivity`; Turn off `fuelgauge.RequestIgnoreBatteryOptimizations`, Android's dialog, dismissed with Back; Autostart `com.miui.securitycenter/…AutoStartManagementActivity`; Floating and Lock screen `Settings$AppNotificationSettingsActivity`. Back returned to the check each time. Then Turn off and Allow ("PERMITIR"): "Off for this app.", 3 to check; put back with `dumpsys deviceidle whitelist -`: optimised again, 4.
+- **M2, passed.** The check's file removed and the permission revoked: opening the app opened the check and Android's dialog at once; after Allow, "Allowed.", the record written, a reconcile (`app_open`) at the grant; Back: Home "4 settings to check". A cold start (force stop, no alarm being set) opened Home, not the check. The `USER_SET` flag cleared, as found.
+- **M3, passed, with one finding.** A debug test treatment, two medicines every 5 minutes, first take at 22:00 (due at once): Home showed both under Due, "Today 22:00 · now"; Taken on Test A moved it to Next ("22:05 · in 4 min", Taken early) and took its reminder off the shade (`RM-7`); Taken early on its 22:05 take, confirmed: its row showed 22:10 without Taken early (`TK-4`), and at 22:05 only Test B's take alerted. The time left moved each minute with Home open. At 22:05 the user tapped Taken on Test B's reminder in the shade: Home showed it at once (`action taken … applied`, the reminder removed, `HM-5`). At 22:10 both rows turned Due without leaving Home, and the alert sounded. **But at 22:05 no sound was played** (Known issues). Test treatment deleted: no alarm, no notification, the data's hash as before.
+- **M4, passed.** Done on the three steps: the record holds them, Home "1 setting to check" (battery); Floating notifications unticked: Home 2.
+- Left on the phone: the check's record with the first launch done, and Autostart and Lock screen notifications confirmed (Floating not, from M4); everything else as found.
 
 ### 2026-11-22 (T7, part 1)
 
