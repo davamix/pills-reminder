@@ -26,6 +26,20 @@ class EndAndDeleteTest {
     private fun scrollTo(value: String) = compose.onNodeWithTag(TREATMENT_LIST_TAG).performScrollToNode(hasText(value))
 
     @Test
+    fun `a treatment ended before its first take shows its medicines have no takes and not No end`() {
+        compose.showApp(FakeApp(DeviceExample.example.copy(answers = emptyMap()), now = nov(22, 10)))
+        compose.tap(R.string.home_all_treatments)
+        compose.tapText("Example")
+        scrollTo(text(R.string.treatment_end))
+        compose.tap(R.string.treatment_end)
+        compose.tap(R.string.treatment_end_action)
+
+        scrollTo(text(R.string.treatment_no_takes))
+        compose.onNodeWithText(text(R.string.treatment_medicine_last_take, text(R.string.no_end))).assertDoesNotExist()
+        compose.onNodeWithText(text(R.string.treatment_progress, "0", "0")).assertDoesNotExist()
+    }
+
+    @Test
     fun `End early asks first and then ends the treatment and Delete asks first and then deletes it`() {
         val app = FakeApp(DeviceExample.example, now = nov(23, 10, 30))
         val dates = dateTimeText()

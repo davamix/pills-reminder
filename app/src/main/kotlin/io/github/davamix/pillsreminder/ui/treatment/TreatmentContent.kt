@@ -277,9 +277,14 @@ private fun MedicineCardView(
             Text(medicineAndDose(medicine.name, medicine.dose), style = MaterialTheme.typography.titleMedium)
             if (medicine.instructions.isNotBlank()) Text(medicine.instructions, style = MaterialTheme.typography.bodyMedium)
             Text(scheduleText(medicine.interval, medicine.duration), style = MaterialTheme.typography.bodyMedium)
-            Text(progress(medicine, text), style = MaterialTheme.typography.bodyMedium)
-            val last = medicine.last?.let { text.dateTime(it, today) } ?: stringResource(R.string.no_end)
-            Text(stringResource(R.string.treatment_medicine_last_take, last), style = MaterialTheme.typography.bodyMedium)
+            if (medicine.count == 0L) {
+                // Ended before its first take: no takes at all, which isn't "no end" (P6 T8, M1).
+                Text(stringResource(R.string.treatment_no_takes), style = MaterialTheme.typography.bodyMedium)
+            } else {
+                Text(progress(medicine, text), style = MaterialTheme.typography.bodyMedium)
+                val last = medicine.last?.let { text.dateTime(it, today) } ?: stringResource(R.string.no_end)
+                Text(stringResource(R.string.treatment_medicine_last_take, last), style = MaterialTheme.typography.bodyMedium)
+            }
             if (medicine.next != null || medicine.lastAnswered != null) HorizontalDivider(Modifier.padding(vertical = 4.dp))
             medicine.next?.let { take ->
                 TakeLink(

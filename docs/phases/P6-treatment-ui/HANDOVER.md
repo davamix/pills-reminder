@@ -29,7 +29,8 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T8`: the manual checks M1–M7 on the phone and E1 on the emulator (SPEC §6), with the user. M1, M2 and M6 create test treatments in the debug app on the phone, whose reminders alert: ask first, and delete them at the end.
+1. `T8`, E1: the back swipe and its predictive animation on the emulator, by the user at its window (start it without `-no-window`): in the treatment editor with no change, a swipe animates and leaves; with a change, it asks first.
+2. `T9`: the wrap-up (SPEC §7).
 
 ## Tasks
 
@@ -44,7 +45,7 @@ The task IDs come from SPEC.md §7.
 | T5 | Done | `TakeViewModel` (the actions offered by running P2's pure actions, P6-D5; `keyOf` reads the route), `TakeScreen`, and its destination. 18 unit tests; 15 deliberate bugs, all caught. `OpenTakeTest` passes with the real Take screen (its take doesn't exist, so it shows "This take no longer exists." under the title "Take"). |
 | T6 | Done | `EditorViewModel` (the draft, the medicine editor's working copy keyed by its back-stack entry, validation, preview, notes, save), `SavedEditor.kt` (the drafts as JSON in the `SavedStateHandle`, P6-D6), both editors' screens, and `EditorGraph.kt`: the nested graph on `TreatmentEditorRoute`, starting at the new `TreatmentFormRoute`. 21 unit tests; 28 deliberate bugs, all caught (one after a test fix). Lint caught `LocalDate.EPOCH`, which needs API 34. |
 | T7 | Done | Q3 in `OpenTake` (`AppNavHost`): while the editors are on the back stack, a tapped reminder's take opens on top, replacing a take already there; otherwise right above Home, as P5 did. UI tests with fakes in `androidTest/…/ui/`: `CreateTreatmentTest`, `EditorValidationTest`, `EditStartedTreatmentTest`, `EndAndDeleteTest`, `DiscardChangesTest`, `TakeScreenTest`, `ScreensNavigationTest` (with Q3's two tests), and their helpers `UiTesting.kt` (`FakeApp`, `showApp`, `dateTimeText()`, `pickDay`). `NavigationSmokeTest` keeps only what needs `MainActivity`. 11 deliberate bugs, all caught. Every instrumented test passes on the emulator and the phone (36). |
-| T8 | Doing | Every state drawn again from the finished code: on the emulator in light and dark at font scale 1 and at the system's 2, and on the phone in light and dark; all fit. Left: M1–M7 on the phone and E1 on the emulator, with the user. |
+| T8 | Doing | Every state drawn again on both devices. M1–M7 pass on the phone (results below); M1 found a medicine with no takes shown as "Last take: No end", fixed with a test. E1 on the emulator: the Back key passes; the back swipe and its predictive animation couldn't be injected over adb, so they wait for the user at the emulator's window. |
 | T9 | To do | Wrap-up, CLAUDE.md, pull request |
 
 ## Decisions and deviations
@@ -64,6 +65,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-22 | The editors' graph is built by `navigation/EditorGraph.kt`, a file of its own, rather than in `AppNavHost.kt`. To fold into SPEC §4.1 in T9. | Two destinations sharing one ViewModel from the graph's entry; `AppNavHost` only calls `editorGraph(…)`. |
 | 2026-11-22 | Instrumented test names have no apostrophes either ("reminder's", "can't" failed the dex step). | CLAUDE.md lists commas and parentheses; any ASCII punctuation but `-`, `_` and `$` fails. |
 | 2026-11-22 | Fixed the `deliberate-bugs` skill's `run.sh`: the test command now runs with its input from `/dev/null`. Committed on the phase branch with T7, for the skills review to confirm. | With an instrumented command, `adb` read the rest of the bug list from the runner's input, so only the first bug ran (T7: "caught 1 of 1" for 11 bugs). |
+| 2026-11-22 | A medicine with no takes at all (its treatment ended before its first take) says "No takes: the treatment ended before the first one." in place of its progress and last take. To fold into SPEC §4.3.4 in T9. | M1: it showed "0 of 0 taken or skipped" and "Last take: No end", but it has no end only in the sense of having nothing. |
 | 2026-11-22 | Labels before a day take a colon: "Starts: Tomorrow 08:00", "Ended: …", "Next: …", "Last answered: …", "Taken: Yesterday 23:50". UI text, so no SPEC change. | "Today", "Tomorrow" and "Yesterday" are capitalised, which reads wrongly mid-sentence ("Starts Tomorrow"). |
 
 ## Known issues
@@ -76,6 +78,21 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 Connections to other phases left for later.
 
 - **P7 (home):** P1's Home placeholder stays. Its "All treatments" and "New treatment" open P6's screens; its "Sample take" opens a take that doesn't exist, which the Take screen shows as such. P7 replaces it, opens `TreatmentRoute(id)` from a medicine's row, and can reuse `ScreenDependencies`, `minuteTicks`, `DateTimeText` and the messages in `ui/common` (SPEC P6-D2–P6-D4).
+
+## Manual checks (T8)
+
+On the phone (POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`, Spanish, 24-hour clock), debug build, 2026-11-22, driven over adb with the user for the sound and the taps on reminders. Test treatments only, deleted at the end; no alarm or notification left; dark theme and font scale put back.
+
+| # | Result |
+|---|---|
+| M1 | Pass, after a fix. "M1 test" created with two medicines, first takes moved to tomorrow 16:00 with the date picker: previews 21 takes (last Mon 30 Nov 08:00) and 15 (last Sat 28 Nov 08:00); the Treatment screen "Upcoming · Starts: Tomorrow 16:00"; the alarm clock set for Mon 23 16:00 at once (P5-D2). Dose edited, saved, back on the Treatment screen. End early, after its confirmation: Finished, the alarm gone. **Found:** each medicine showed "0 of 0 taken or skipped" and "Last take: No end", since it had no takes at all: now "No takes: the treatment ended before the first one.", with a UI test that fails without the fix. Delete, after its confirmation: back on an empty list; no alarm, no notification. |
+| M2 | Pass. "M2 test": every 30 minutes (the minutes unit, debug build) for 1 day from today 15:00: 48 takes, the past-first-take note. Saved at 15:48: the 15:30 take's reminder alerted at once (heard by the user). The user's tap opened its Take screen (Due, "Missed if not answered by Today 16:00"). Taken at 15:49 removed the reminder; Undo brought it back, alerting at 15:50:06; Taken again, then Change time to 15:45 with the time picker's minute dial: "Taken at 15:45". |
+| M3 | Pass. With the treatment editor open and "M3 test" typed, the user tapped the reminder: the Take screen opened above the editor; Back returned to it with "M3 test". Without an editor, Back from the Take screen went Home. |
+| M4 | Pass. Back key and back arrow, treatment and medicine editors: no dialog without changes; "Discard your changes?" with them; Keep editing stays, Discard leaves. |
+| M5 | Pass. The "For" field, the lowest number field, stays visible above the number keyboard (the screen shrinks for it). The time picker is a 24-hour dial and fits. |
+| M6 | Pass. A new treatment with "M3 test" and a medicine editor with "Survivor"; Home, then `end_process` (`am kill`); relaunched: the medicine editor came back with "Survivor" and asked before discarding; the treatment editor had "M3 test". |
+| M7 | Pass. Dark theme (`cmd uimode night yes`) and font scale 1.5: the Treatment screen, the Take screen and the medicine editor (date and time stacked) fit and read well. Put back to night mode off and font scale 1.0. |
+| E1 | Partly. On the emulator (API 36, gesture navigation), the Back key asks with changes and leaves without them. The back swipe couldn't be injected (`input swipe` and `input motionevent` from either edge did nothing), so the swipe and its predictive animation wait for the user. |
 
 ## How to verify
 
