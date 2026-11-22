@@ -2,6 +2,4 @@
 <resources>
     <string name="app_name">Pills Reminder</string>
     <string name="navigate_back">Back</string>
-    <!-- Shown on placeholder screens until a later phase replaces them. %1$s is a phase ID, such as P6. -->
-    <string name="placeholder_note">Placeholder: replaced in %1$s.</string>
 </resources>

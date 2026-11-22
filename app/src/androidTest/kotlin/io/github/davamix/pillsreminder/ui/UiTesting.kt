@@ -2,6 +2,7 @@ package io.github.davamix.pillsreminder.ui
 
 import android.content.Context
 import android.text.format.DateFormat
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -14,6 +15,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import androidx.test.core.app.ApplicationProvider
 import io.github.davamix.pillsreminder.R
@@ -57,14 +60,15 @@ fun clockAt(local: LocalDateTime): Clock = Clock.fixed(local.atZone(madrid).toIn
 /**
  * The app's navigation graph on [data] at [now], with no ticks: the clock doesn't move. The reminder check reads
  * [checkDevice] and keeps [checkStore]: by default everything is set, on a phone that isn't HyperOS, and the first
- * launch is done, so Home shows no warning and opens no check (P7).
+ * launch is done, so Home shows no warning and opens no check (P7). [unreadable]: the stored data can't be read.
  */
 class FakeApp(
     data: PillsData = PillsData(),
     now: LocalDateTime,
     record: CheckRecord = CheckRecord(firstLaunchDone = true),
+    unreadable: Boolean = false,
 ) {
-    val repository = InMemoryTreatmentRepository(StoredData.Readable(data))
+    val repository = InMemoryTreatmentRepository(if (unreadable) StoredData.Unreadable else StoredData.Readable(data))
     val checkDevice = FakeCheckDevice()
     val checkStore = InMemoryCheckStore(record)
     private val reconciled = AtomicInteger()
@@ -155,6 +159,12 @@ fun dateTimeText(): DateTimeText =
         ),
     )
 
+/** A plural resource for [count], such as "1 setting to check." */
+fun quantity(
+    @PluralsRes id: Int,
+    count: Int,
+): String = context.resources.getQuantityString(id, count, count)
+
 fun ComposeContentTestRule.tap(
     @StringRes id: Int,
 ) = onNodeWithText(text(id)).performScrollToIfNeeded().performClick()
@@ -177,6 +187,17 @@ fun ComposeContentTestRule.type(
     @StringRes label: Int,
     value: String,
 ) = onNode(hasSetTextAction() and hasText(text(label))).performScrollToIfNeeded().performTextReplacement(value)
+
+/**
+ * Asserts that the node takes touches over at least [min] of height (NF-7). Material 3's buttons are drawn 40 dp tall
+ * and take touches over 48 dp, so `assertHeightIsAtLeast`, which reads the drawn size, can't check them (P7 T6).
+ */
+fun SemanticsNodeInteraction.assertTouchHeightIsAtLeast(min: Dp): SemanticsNodeInteraction {
+    val node = fetchSemanticsNode()
+    val height = with(node.layoutInfo.density) { node.touchBoundsInRoot.height.toDp() }
+    if (height < min - 0.5.dp) throw AssertionError("Touch height is $height, expected at least $min")
+    return this
+}
 
 /** Scrolls to the node when it is in a scrolling column; a node outside one is left as it is. */
 fun SemanticsNodeInteraction.performScrollToIfNeeded(): SemanticsNodeInteraction =
