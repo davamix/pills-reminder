@@ -25,11 +25,12 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-In progress: branch `phase/p7-home` created. SPEC.md v0.2 is `Ready`: the review confirmed every draft assumption (Q1–Q6). Home and Settings are still P1's placeholders.
+In progress. T1's measurements are done (below, "Measurements (T1)"): they settle the intents of SPEC §4.3.8, and three of them refine the SPEC, which waits for the user's agreement to a SPEC v0.3. No code yet: Home and Settings are still P1's placeholders.
 
 ## Next steps
 
-1. T1, the measurements of SPEC §4.6, with the phone connected and unlocked.
+1. With the user's agreement, SPEC v0.3 on `main` with T1's results (`phase-docs`, "SPEC change during implementation"), merged into the branch: the intents of §4.3.8 as measured; the battery dialog with `setPackage("com.android.settings")`; the exact-alarm line's button to the app's details; Autostart's button to HyperOS's Autostart list; §2.2 and §4.3.7's wording on the battery saver (C2); §4.6's results.
+2. Then T2: the layouts of Home and Settings, and their drawings (`screen-gallery`), on the emulator and the phone.
 
 ## Tasks
 
@@ -37,7 +38,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | Measure first: C1–C6 |
+| T1 | Done | C1–C6 on the phone and the emulator, with a throwaway probe (a debug-only activity, deleted, never committed); results in "Measurements (T1)". The clean debug build is installed again on both devices. |
 | T2 | To do | Layouts and drawings of Home and Settings |
 | T3 | To do | The check: device, logic, store |
 | T4 | To do | Home's ViewModel and destination |
@@ -52,6 +53,32 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+
+## Measurements (T1)
+
+2026-11-22. **Phone:** POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM` (`ro.mi.os.version.name` `OS1.0`, `ro.miui.ui.version.name` `V816`), Spanish, wireless debugging; the debug app with Autostart on (op 10008 `allow`, as the user keeps it), the battery saver at its default, the notification permission granted. **Emulator:** `PillsReminder_API_36`, Android 16, API 36, stock settings. The probe was a debug-only activity with one button per intent, logging each start (and `resolveActivity()`), the activity's lifecycle and every reading of `DeviceChecks`; adb tapped its buttons, read the screen that opened and pressed Back. On the phone, only the screens about the app itself were read, not the lists of all apps. Every setting changed was put back, and checked.
+
+| # | Result |
+|---|---|
+| C1, emulator | Every Android intent opens its screen for the app, and Back returns to the app: `ACTION_APP_NOTIFICATION_SETTINGS` (the app's notifications, with its categories), `ACTION_CHANNEL_NOTIFICATION_SETTINGS` (the Reminders category: Show notifications, Pop on screen, Sound, Vibration), `ACTION_REQUEST_SCHEDULE_EXACT_ALARM` ("Alarms & reminders" for the app), `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (Android's dialog, "Let app always run in background?", Deny and Allow), `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` (every app's battery use), `ACTION_APPLICATION_DETAILS_SETTINGS` (App info). HyperOS's components: `ActivityNotFoundException`. |
+| C1, phone | `ACTION_APP_NOTIFICATION_SETTINGS`: HyperOS's page for the app, with **"Notificaciones flotantes"** and **"Notificaciones en la Pantalla de bloqueo"**, each a switch, besides Show notifications, Sound and Vibration. `ACTION_CHANNEL_NOTIFICATION_SETTINGS`: the Reminders category, with its own Notificaciones flotantes switch and "En la Pantalla de bloqueo" (a choice). `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`: "Alarmas y recordatorios" for the app. **`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` opens a chooser,** "Completar acción utilizando", with "Detalles de la batería" (`com.miui.securitycenter`'s `PowerDetailActivity`) and "Batería y rendimiento" (`com.miui.powerkeeper`'s `HiddenAppsConfigActivity`): both are the app's battery saver page ("Sin restricciones", "Ahorro de batería (recomendado)", …), not Android's dialog. **With `setPackage("com.android.settings")`, the same intent opens Android's dialog**, "¿Permitir que la aplicación se ejecute siempre en segundo plano?", DENEGAR and PERMITIR. `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS`: HyperOS's battery saver list of every app. `ACTION_APPLICATION_DETAILS_SETTINGS` is redirected to HyperOS's own App info (`com.miui.appmanager.ApplicationsDetailsActivity`), which has **no Autostart line**, scrolled to its end; its "Otros permisos" has only home-screen shortcuts, show on the lock screen, and pop-up windows from the background. **Autostart:** `com.miui.securitycenter/com.miui.permcenter.autostart.AutoStartManagementActivity` opens HyperOS's Autostart list, titled "Autoinicio en segundo plano", where the app is one row: the same screen the user reaches from Settings > Apps > Manage apps. No per-app Autostart screen can be opened (`AutoStartDetailManagementActivity`: `ActivityNotFoundException`; no other exported activity of the package mentions Autostart). Back returned to the app from every screen. `resolveActivity()` found every system screen without `<queries>`. |
+| C1, exact alarms | On both devices the "Alarms & reminders" page shows its switch **off and disabled** (`checked=false enabled=false`), though `canScheduleExactAlarms()` is true through `USE_EXACT_ALARM`: the page is about `SCHEDULE_EXACT_ALARM`, which the app doesn't declare. Opening it from the check would mislead. |
+| C2, phone | Android's dialog (with `setPackage`), PERMITIR: the app is exempt (`isIgnoringBatteryOptimizations` true, standby bucket 5), and HyperOS's battery saver page then shows **"Sin restricciones"** selected. Choosing "Ahorro de batería (recomendado)" again on that page, and also "Sin restricciones" then "Ahorro" once more, **left the app exempt**: HyperOS doesn't undo the dialog's exemption, though P5 saw its own "Sin restricciones" undone by going back to the default. Put back with `dumpsys deviceidle whitelist -<package>`: optimised, bucket 10, the page at "Ahorro de batería (recomendado)". So: HyperOS's "Sin restricciones" makes the app exempt (P5), and the dialog sets "Sin restricciones", but they aren't one setting both ways. |
+| C3, phone | The app's **"Notificaciones flotantes" and "Notificaciones en la Pantalla de bloqueo"**, each turned off, read, and on again: **nothing the app can read changed**: `areNotificationsEnabled()`, `NotificationManager.getImportance()`, the channel's importance and lock-screen visibility, the secure settings `lock_screen_show_notifications` and `lock_screen_allow_private_notifications`, and the app's and channel's lines in `dumpsys notification`. They stay steps to confirm. **The category's own "Notificaciones flotantes" is the channel's importance:** off, 4 → 3; on, back to 4. The Notifications line reads it (`NO_POP_UP`). |
+| C4 | Android's dialog shows on both devices (the phone's is `com.google.android.permissioncontroller`'s `GrantPermissionsActivity`, "¿Permitir que Pills Reminder (debug) te envíe notificaciones?", PERMITIR and NO PERMITIR). **The activity gets only `onPause` and `onResume` around it, never `onStop` and `onStart`**, on both: P5's `onStart` reconcile wouldn't run after a grant, so P7-D6's reconcile is needed. On the emulator: a first refusal gives `rationale=true`; a second, `rationale=false`; a third request returns `granted=false` at once, with no dialog. Back on the dialog returns `granted=false`. On the phone, one request, granted; the permission's flags were put back as found (`USER_SET` cleared). |
+| C5, emulator | `pm revoke POST_NOTIFICATIONS` ends the process; the reading is then `notif=false`; `pm grant` brings it back. The category's "Pop on screen" off gives importance 3 (`NO_POP_UP`), "Show notifications" off gives 0 (`OFF`); both back on, 4. `dumpsys deviceidle whitelist +` and `-` the app: exempt, then optimised. **Exact alarms can't be revoked:** `cmd appops set … SCHEDULE_EXACT_ALARM deny` and `ignore` leave `canScheduleExactAlarms()` true, and the settings page's switch is disabled; its MISSING line is tested with fakes only. Everything put back. |
+| C6 | Phone: `Build.MANUFACTURER` `Xiaomi`, `Build.BRAND` `POCO`, `ro.mi.os.version.name` `OS1.0`. Emulator: `Google`, `google`, no HyperOS property. `Build.MANUFACTURER` equal to "Xiaomi", ignoring case, marks HyperOS. |
+
+**What this settles for SPEC §4.3.8** (to go into SPEC v0.3 with the user's agreement):
+
+| Item | Intent | Fallback |
+|---|---|---|
+| Notifications, permission | `ACTION_APP_NOTIFICATION_SETTINGS` | the app's details |
+| Notifications, channel `OFF` or `NO_POP_UP` | `ACTION_CHANNEL_NOTIFICATION_SETTINGS` | the app's notifications |
+| Exact alarms (never missing in practice) | the app's details, `ACTION_APPLICATION_DETAILS_SETTINGS`: "Alarms & reminders" shows a disabled switch that is off | — |
+| Battery optimisation | `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` with `setPackage("com.android.settings")`: Android's own dialog, on both devices | the same intent without the package (on HyperOS, the app's battery saver page, through a chooser) |
+| Autostart (HyperOS) | `AutoStartManagementActivity`, HyperOS's Autostart list; the line says to find the app in it | the app's details |
+| Floating and Lock screen notifications (HyperOS) | `ACTION_APP_NOTIFICATION_SETTINGS`: both switches are there | the app's details |
 
 ## Known issues
 
@@ -73,6 +100,12 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (later)
+
+- Done: the branch; T1, C1–C6 on the phone and the emulator ("Measurements (T1)"), with a throwaway probe, deleted.
+- Found: on HyperOS, the battery intent opens a chooser of HyperOS's battery saver pages unless it names `com.android.settings`; the "Alarms & reminders" page shows a disabled, off switch for an app with `USE_EXACT_ALARM`; HyperOS's App info has no Autostart line, and only the Autostart list can be opened; the app's Floating and Lock screen notification switches can't be read; HyperOS's battery saver doesn't undo the dialog's exemption; the permission dialog only pauses the activity (P7-D6 needed).
+- Device state left: the phone and the emulator have the clean debug build of `main` (no probe), no test treatment, no alarm or notification from T1. The phone's settings for the debug app are as found: notifications granted (flags as before), battery optimisation on and HyperOS's battery saver at its default, Autostart on, the app's and the category's notification switches on. The emulator's are as found too (notifications granted, channel at importance 4, not exempt); it runs headless.
 
 ### 2026-11-22
 
