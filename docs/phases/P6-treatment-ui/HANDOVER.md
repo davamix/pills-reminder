@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | In progress |
-| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
+| **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p6-treatment-ui` |
 | **Last session** | 2026-11-22 |
 
@@ -65,6 +65,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-22 | Instrumented test names have no apostrophes either ("reminder's", "can't" failed the dex step). | CLAUDE.md lists commas and parentheses; any ASCII punctuation but `-`, `_` and `$` fails. |
 | 2026-11-22 | Fixed the `deliberate-bugs` skill's `run.sh`: the test command now runs with its input from `/dev/null`. Committed on the phase branch with T7, for the skills review to confirm. | With an instrumented command, `adb` read the rest of the bug list from the runner's input, so only the first bug ran (T7: "caught 1 of 1" for 11 bugs). |
 | 2026-11-22 | A medicine with no takes at all (its treatment ended before its first take) says "No takes: the treatment ended before the first one." in place of its progress and last take. To fold into SPEC §4.3.4 in T9. | M1: it showed "0 of 0 taken or skipped" and "Last take: No end", but it has no end only in the sense of having nothing. |
+| 2026-11-22 | **SPEC v0.3** folds in every row above marked "to fold into SPEC", with Q8 (the pickers and library texts in the UI's language) and Q9 (a medicine with no takes). No change to the specification or the plan. | T9 (`phase-docs`, "SPEC change during implementation"). |
 | 2026-11-22 | Labels before a day take a colon: "Starts: Tomorrow 08:00", "Ended: …", "Next: …", "Last answered: …", "Taken: Yesterday 23:50". UI text, so no SPEC change. | "Today", "Tomorrow" and "Yesterday" are capitalised, which reads wrongly mid-sentence ("Starts Tomorrow"). |
 
 ## Known issues
