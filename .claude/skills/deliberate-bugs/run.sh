@@ -52,7 +52,8 @@ while IFS=$'\t' read -r id file; do
     fi
     marker="$out/.started"
     touch "$marker"
-    bash -c "$command" >> "$log" 2>&1
+    # No stdin: adb, in an instrumented run, would read the rest of the bug list from it.
+    bash -c "$command" >> "$log" 2>&1 < /dev/null
     rc=$?
     restore
     # Failing tests: instrumented ones from the runner's output, JVM ones from JUnit XML written during this run.

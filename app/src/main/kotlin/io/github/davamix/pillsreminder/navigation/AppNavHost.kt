@@ -7,6 +7,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -89,9 +90,10 @@ fun AppNavHost(
 }
 
 /**
- * Opens [take] once, right above Home, so Back returns to Home (RM-6, P5 SPEC §4.3.8), then calls [onOpened]. Whatever
- * was open above Home closes. It waits for the activity to be resumed: an activity Android rebuilds is composed before
- * that (CLAUDE.md, "Navigation driven by a ViewModel state").
+ * Opens [take] once, then calls [onOpened] (RM-6, P5 SPEC §4.3.8). Usually right above Home, so Back returns to Home and
+ * whatever was open above Home closes. While the editors are open, above the screen on top instead, so Back returns to
+ * them with their changes; a take already on top is replaced, not stacked (P6 Q3). It waits for the activity to be
+ * resumed: an activity Android rebuilds is composed before that (CLAUDE.md, "Navigation driven by a ViewModel state").
  */
 @Composable
 private fun OpenTake(
@@ -104,10 +106,24 @@ private fun OpenTake(
     LaunchedEffect(take) {
         if (take == null) return@LaunchedEffect
         lifecycle.currentStateFlow.first { it.isAtLeast(Lifecycle.State.RESUMED) }
+        val editorOpen = navController.hasEntry<TreatmentEditorRoute>()
+        val takeOnTop = navController.currentBackStackEntry?.destination?.hasRoute<TakeRoute>() == true
         navController.navigate(take) {
-            popUpTo<HomeRoute>()
+            when {
+                !editorOpen -> popUpTo<HomeRoute>()
+                takeOnTop -> popUpTo<TakeRoute> { inclusive = true }
+            }
             launchSingleTop = true
         }
         currentOnOpened()
     }
 }
+
+/** Whether the back stack holds an entry of route [T]. */
+private inline fun <reified T : Any> NavHostController.hasEntry(): Boolean =
+    try {
+        getBackStackEntry<T>()
+        true
+    } catch (e: IllegalArgumentException) {
+        false
+    }
