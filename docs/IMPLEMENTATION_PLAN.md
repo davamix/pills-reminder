@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | v0.7, agreed |
+| **Status** | v0.8, agreed |
 | **Last updated** | 2026-11-22 |
-| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.8 |
+| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.10 |
 
 [SPECIFICATION.md](SPECIFICATION.md) says *what* the app does. This plan says *how* it is built: the architecture, the technical decisions, and the phases of work. Each phase gets its own specification and handover documents (see [§6](#6-working-method)).
 
@@ -56,7 +56,7 @@ How to read it:
 | D-1 | Kotlin and Jetpack Compose (Material 3), single activity. | The standard modern Android stack, and the one Workout Timer used, so its lessons carry over. |
 | D-2 | Two Gradle modules. `:core` holds the model, the schedule, the take states and the reminder planner, in pure Kotlin. `:app` holds everything that needs Android. | The scheduling and reminder rules are the heart of the app and most of its risk. On the JVM they can be tested in seconds, over simulated days and time zones, and Android code can't leak into them. |
 | D-3 | Manual dependency injection through an `AppContainer`. | The app has few dependencies. A framework such as Hilt adds build complexity with no real gain at this size. |
-| D-4 | All data is one JSON document, with a `schemaVersion`, stored with Jetpack DataStore and a kotlinx.serialization serializer. | DataStore writes atomically (a new file, then a rename), so an interrupted save never damages the old data (`NF-4`). It gives a `Flow` of changes, which keeps the screens current (`HM-5`). The data is small: even a medicine with no end, every 8 hours, adds about 1,100 answers a year. Room (SQLite) was considered: it needs more code and migrations, and there are no queries to justify it. |
+| D-4 | All data is one JSON document, with a `schemaVersion`, stored with Jetpack DataStore and a kotlinx.serialization serializer. | DataStore writes atomically (a new file, then a rename), so an interrupted save never damages the old data (`NF-4`). It gives a `Flow` of changes, which keeps the screens current (`HM-5`). The data is small: even a medicine with no end, every 8 hours, adds about 1,100 answers a year. Room (SQLite) was considered: it needs more code and migrations, and there are no queries to justify it. The reminder check's own record (the first launch done, the HyperOS steps confirmed) isn't treatment data, and is kept apart in a second, small DataStore file, so it works while the treatments' file can't be read (P7 Q1). |
 | D-5 | **Takes are worked out, not stored.** The store keeps the treatments, their medicines and schedules, and the *answers*: Taken (with the time taken) or Skipped, plus snoozes and which alerts have played. Pending, Due and Missed come from the schedule, the answers and the clock. | A medicine with no end has no last take, so its takes can't all be stored. Deriving them also keeps the rules of §4.3 in one place. |
 | D-6 | Planned times are **local date-times** on the phone's clock (`java.time.LocalDateTime`), turned into instants with the phone's current time zone only when needed. A take that falls in the hour skipped by a daylight saving change moves forward by that hour. In the repeated hour, the earlier one counts. Time comes from an injected `java.time.Clock`. | Implements `SC-4`: 08:00 stays 08:00 across daylight saving and time zone changes. Tests use fixed clocks and zones, including Europe/Madrid on the days the clocks change. |
 | D-7 | **One alarm at a time.** The app keeps a single exact alarm, set for the next moment something must happen: a take becomes due, a reminder alerts again, a snooze ends, or a take becomes Missed. When it fires, and after every change, a **reconcile** works out what the notification shade should show now, posts or removes notifications, and sets the next alarm. | One idempotent path handles every trigger: the alarm, a notification action, a restart, an edit, opening the app. Running it twice changes nothing. There are no per-take alarms that could be forgotten or left behind. |
@@ -84,6 +84,7 @@ pills-reminder/
 └── app/               Android application
     ├── data/          the store (DataStore and JSON) and the repository
     ├── reminders/     alarm scheduler, reconcile, receivers, notifications
+    ├── check/         the reminder check: what reminders depend on, and the check's own record (P7)
     ├── ui/            theme and screens: home, treatments, treatment, editors, take, settings
     ├── navigation/    navigation host and routes
     └── di/            AppContainer
@@ -157,6 +158,7 @@ The home screen (P7) reads the same schedule and take states as the planner, and
   - The app offers no repair. The file stays as it is, so that it can be read over adb. Clearing the app's storage in Android's settings starts again, and deletes it. (P3 Q1)
   - The reminders change nothing: those already in the shade stay, and no new alarm is set (P5). (P5 Q1)
 - If a reconcile's write fails, nothing is applied, and an alarm 5 minutes later tries again, for as long as it fails (P5 Q1).
+- **The reminder check's record** is a second, small file beside it, also written by DataStore as JSON: whether the first launch is done, and which HyperOS steps the user has confirmed. It holds no treatment content. A missing or damaged one reads as empty, and the next write replaces it: the check then shows again (P7 Q1).
 - The repository interface lives in `:core` (P2), with an in-memory fake for tests and for the phases that run before P3 is merged.
 
 ## 3. Security and privacy
@@ -378,13 +380,15 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
     - upcoming treatments, and an empty state;
     - a message when the stored data can't be read (§2.4, P3 Q1);
     - updates each minute while open (`HM-5`);
-    - marking the next take Taken early (`TK-4`).
+    - marking the next take Taken early (`TK-4`), with a confirmation (P7 Q5).
   - **Reminder check:**
-    - the notification permission, asked at first launch;
+    - the notification permission, asked with Android's dialog at first launch, when the check opens once above Home; afterwards its button opens Android's settings (P7 Q6);
+    - the app's Reminders channel: on, and allowed to pop up and sound (P7 Q3);
     - exact alarms;
-    - battery optimisation, with Android's own request dialog;
-    - HyperOS's Autostart and battery saver, plus anything P5's measurements add, as steps for the user to confirm, each with a button to its settings screen where one can be opened;
-    - a warning on the home screen while something is missing.
+    - battery optimisation, with Android's own request dialog; on HyperOS it is the app's battery saver, which P5 found (P7 Q2);
+    - on a Xiaomi phone, HyperOS's Autostart, Floating notifications and Lock screen notifications, which P5's measurements named, as steps for the user to confirm, each with a button to its settings screen (P7 Q4);
+    - its own record, in a second, small file (§2.4, P7 Q1);
+    - a warning on the home screen while something is missing or a step isn't confirmed.
   - **Settings:** the reminder check.
 - **Done when:**
   - Compose UI tests cover the home screen's order, a due take, a take marked early and the empty state;
@@ -524,3 +528,4 @@ None at the moment. New questions are numbered from PQ-4.
 | 0.5 | 2026-11-20 | From P5's measurements on the phone (P5 T1, P5 Q5). `D-8`: the alarm is an alarm clock, `setAlarmClock()`, because HyperOS held `setExactAndAllowWhileIdle()` alarms for up to 5 minutes with the screen off, even exempt from battery optimisation; PQ-2's fallback is now used. P5's summary in §5.2 says so. |
 | 0.6 | 2026-11-21 | From P5's measurements on the phone (P5 Q6–Q8), decided by the user. `D-10`: the notifications have no category, because HyperOS's Do Not Disturb lets the *reminder* category sound (`RM-8`); each notification is public on the lock screen, since an app can't set the channel's visibility; in vibrate mode Android vibrates instead of sounding. Now based on specification v0.8 (`RM-2`). |
 | 0.7 | 2026-11-22 | From the skills review after P5. `D-8`: HyperOS shows no alarm-clock icon, and the next alarm nowhere (P5 Q12); the icon PQ-2 accepted is stock Android's. §7: SK-7's steps went into `phone`; SK-8 `deliberate-bugs` created. |
+| 0.8 | 2026-11-22 | From the P7 spec review (P7 Q1–Q6), confirming its draft assumptions. `D-4` and §2.4: the reminder check's own record is a second, small DataStore file, apart from the treatments. §2.1: P7's `check` package. P7 in §5.2: the Reminders channel; battery optimisation, which is HyperOS's battery saver; HyperOS's steps (Autostart, Floating and Lock screen notifications) on a Xiaomi phone; the permission asked when the check opens at first launch; Taken early with a confirmation. Now based on specification v0.10, which took Q2–Q6 into `RM-9` and §6. |
