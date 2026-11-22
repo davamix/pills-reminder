@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.2 |
+| **Status** | Ready, v0.3 |
 | **Phase** | P6, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 (done). P3 and P5 are merged too, so the screens use the real store, and the reminders follow every change. |
 | **Branch** | `phase/p6-treatment-ui` |
@@ -151,21 +151,28 @@ P6 owns the packages `ui.treatments`, `ui.treatment`, `ui.editor` and `ui.take` 
 
 ```
 app/src/main/kotlin/io/github/davamix/pillsreminder/
+├── navigation/                   (shared package) P6's own files:
+│   ├── EditorGraph.kt            the editors' nested graph (P6-D1, §4.3.1)
+│   └── DropUnlessResumed.kt      dropUnlessResumedWith: a resumed-only click that carries a value
 ├── ui/common/
 │   ├── ScreenDependencies.kt     what the screens' ViewModels need (P6-D2)
 │   ├── MinuteTicks.kt            a tick at each whole minute of the clock (P6-D3)
 │   ├── DateTimeText.kt           dates and times as text (P6-D4, Q5)
-│   ├── Messages.kt               unreadable data, not saved, not changed (§4.3.10)
+│   ├── DateTimeFields.kt         DateField and TimeField: buttons with their pickers (§4.3.11)
+│   ├── CommonTexts.kt            schedules, take states, statuses, "Taken at …" as text
+│   ├── Messages.kt               ChangeProblem, attempt {}, ShowProblem, UnreadableMessage (§4.3.10)
+│   ├── LeaveWhen.kt              navigation driven by a state, once resumed (§4.3.1)
+│   ├── BackButton.kt             the top bar's back arrow
 │   └── ConfirmDialog.kt          one dialog for every confirmation
-├── ui/treatments/                TreatmentsScreen.kt, TreatmentsViewModel.kt
-├── ui/treatment/                 TreatmentScreen.kt, TreatmentViewModel.kt
+├── ui/treatments/                TreatmentsContent.kt, TreatmentsScreen.kt, TreatmentsViewModel.kt
+├── ui/treatment/                 TreatmentContent.kt, TreatmentScreen.kt, TreatmentViewModel.kt
 ├── ui/editor/
 │   ├── EditorViewModel.kt        the two editors' shared ViewModel (P6-D1)
-│   ├── EditorState.kt            the states, and the saved form of the drafts (P6-D6)
-│   ├── TreatmentEditorScreen.kt
-│   ├── MedicineEditorScreen.kt
-│   └── DateTimeFields.kt         the date and time buttons with their pickers
-└── ui/take/                      TakeScreen.kt, TakeViewModel.kt
+│   ├── EditorState.kt            the states the editors draw
+│   ├── SavedEditor.kt            the drafts as JSON in the SavedStateHandle (P6-D6)
+│   ├── TreatmentEditorContent.kt, TreatmentEditorScreen.kt
+│   └── MedicineEditorContent.kt, MedicineEditorScreen.kt
+└── ui/take/                      TakeContent.kt, TakeScreen.kt, TakeViewModel.kt
 
 app/src/main/res/values/
 ├── strings_common.xml            new: dates, times, messages, confirmations
@@ -182,11 +189,12 @@ app/src/androidTest/kotlin/io/github/davamix/pillsreminder/ui/…   Compose UI t
 
 **Shared files changed,** with P6's entries only:
 
-- `navigation/Routes.kt`: P6's routes. `TreatmentRoute` and `TakeRoute` keep their arguments; `TakeRoute`'s are P5's contract. `TreatmentEditorRoute(treatmentId: String? = null)` becomes the nested graph's route, so P7's "New treatment" keeps working; the treatment editor's own destination gets a new route; `MedicineEditorRoute(medicineId: String? = null)` stays, inside the graph (§4.3.1).
+- `navigation/Routes.kt`: P6's routes. `TreatmentRoute` and `TakeRoute` keep their arguments; `TakeRoute`'s are P5's contract. `TreatmentEditorRoute(treatmentId: String? = null)` becomes the nested graph's route, so P7's "New treatment" keeps working; the treatment editor's own destination is the new `TreatmentFormRoute`; `MedicineEditorRoute(medicineId: String? = null)` stays, inside the graph (§4.3.1).
 - `navigation/AppNavHost.kt`: P6's destinations; a `dependencies: ScreenDependencies` parameter, defaulting to the app's (P6-D2); the Treatments placeholder's sample entry goes. Home's placeholder and its "Sample take" stay as they are, for P7: that take doesn't exist, so it opens the Take screen's "no longer exists" state. `OpenTake` (P5's) changes for Q3 only.
-- `NavigationSmokeTest` (P1's): rewritten for the real screens, through `AppNavHost` with fakes. Its tests that need `MainActivity` (the start screen, portrait) stay on it.
-- `OpenTakeTest` (P5's): unchanged if it still passes; if the Take screen's title changes, it follows. A new test there for Q3.
-- `AndroidManifest.xml`: only if the soft keyboard needs it, `android:windowSoftInputMode="adjustResize"` on `MainActivity` (§4.3.11).
+- `app/build.gradle.kts`: `androidResources { localeFilters += "en" }`, so the libraries' own texts are in the UI's language (Q8). A translation adds its language there.
+- `NavigationSmokeTest` (P1's): keeps only what needs `MainActivity`: the start screen, portrait, and P1's placeholders that remain (P7's Home and Settings). P6's screens are walked with fakes in `ui.ScreensNavigationTest`.
+- `OpenTakeTest` (P5's): unchanged, and passes with the real Take screen. Q3's tests are in `ui.ScreensNavigationTest`.
+- `AndroidManifest.xml`: unchanged. The editors' `imePadding()` keeps the field being typed in above the keyboard (M5).
 - `CLAUDE.md` (T9): the screens' dependencies, the `ui/common` pieces, and the Take route's new rule (Q3).
 
 No change to `:core`, `AppContainer`, `MainActivity`, the store or the reminders. If one is needed, stop and ask.
@@ -225,9 +233,8 @@ enum class ChangeProblem { UNREADABLE, NOT_SAVED, NOT_CHANGED }
 
 ```kotlin
 // ui/treatments
-data class TreatmentRow(val id: TreatmentId, val name: String, val status: TreatmentStatus,
-                        val medicines: List<String>, val startsAt: LocalDateTime?, val endedAt: LocalDateTime?,
-                        val lastTake: LocalDateTime?)
+data class TreatmentRow(val id: TreatmentId, val name: String, val medicines: List<String>,   // its group gives its status
+                        val startsAt: LocalDateTime?, val endedAt: LocalDateTime?, val lastTake: LocalDateTime?)
 sealed interface TreatmentsState {
     data object Unreadable : TreatmentsState
     data class Ready(val active: List<TreatmentRow>, val upcoming: List<TreatmentRow>,
@@ -243,14 +250,15 @@ data class MedicineCard(val id: MedicineId, val name: String, val dose: String, 
 sealed interface TreatmentState {
     data object Unreadable : TreatmentState
     data object Missing : TreatmentState                 // deleted, or never existed
-    data class Ready(val name: String, val notes: String, val status: TreatmentStatus,
-                     val startsAt: LocalDateTime?, val endedAt: LocalDateTime?, val medicines: List<MedicineCard>,
+    data class Ready(val id: TreatmentId, val name: String, val notes: String, val status: TreatmentStatus,
+                     val startsAt: LocalDateTime?, val endedAt: LocalDateTime?, val lastTake: LocalDateTime?,
+                     val medicines: List<MedicineCard>,
                      val canEdit: Boolean, val canEnd: Boolean, val today: LocalDate,
                      val problem: ChangeProblem? = null) : TreatmentState
 }
 class TreatmentViewModel(deps: ScreenDependencies, id: TreatmentId) : ViewModel() {
     val state: StateFlow<TreatmentState?>
-    val deleted: StateFlow<Boolean>                      // true once deleted: the screen goes back (§4.3.4)
+    val deleted: StateFlow<Boolean>                      // true once deleted, or found gone: the screen goes back (§4.3.4)
     fun end(); fun delete(); fun problemShown()
 }
 
@@ -263,7 +271,7 @@ sealed interface TakeScreenState {
                      val take: Take, val isLastAnswered: Boolean, val actions: TakeActions,
                      val now: ZonedDateTime, val problem: ChangeProblem? = null) : TakeScreenState
 }
-class TakeViewModel(deps: ScreenDependencies, key: TakeKey) : ViewModel() {
+class TakeViewModel(deps: ScreenDependencies, key: TakeKey?) : ViewModel() {   // null: the route's time doesn't parse
     val state: StateFlow<TakeScreenState?>
     fun markTaken(); fun skip(); fun undo(); fun setTakenTime(at: LocalDateTime); fun problemShown()
 }
@@ -271,25 +279,27 @@ class TakeViewModel(deps: ScreenDependencies, key: TakeKey) : ViewModel() {
 // ui/editor
 data class MedicineForm(val draft: MedicineDraft, val intervalText: String, val durationText: String)
 data class EditorState(
-    val treatment: TreatmentDraft,          // the draft being edited
+    val draft: TreatmentDraft,              // the draft being edited
     val isNew: Boolean,
     val showErrors: Boolean,                // after the first Save (§4.3.8)
-    val errors: List<ValidationError>,
+    val errors: List<ValidationError>,      // the treatment's own: its name, at least one medicine
     val hasChanges: Boolean,                // TR-13
+    val started: Set<MedicineId>,           // their removal asks first (Q6)
     val medicine: MedicineEditing?,         // the medicine editor's working copy, while it is open
     val unreadable: Boolean,
     val saving: Boolean,
     val problem: ChangeProblem?,
+    val today: LocalDate,
 )
 data class MedicineEditing(val form: MedicineForm, val isNew: Boolean, val showErrors: Boolean,
                            val errors: List<ValidationError>, val preview: Preview?, val started: Boolean,
-                           val firstTakeInPast: Boolean, val hasChanges: Boolean)
+                           val firstTakeInPast: Boolean, val hasChanges: Boolean, val allowMinutes: Boolean)
 data class Preview(val count: Long?, val last: LocalDateTime?)      // null, null: no end
 class EditorViewModel(deps: ScreenDependencies, treatmentId: TreatmentId?, saved: SavedStateHandle) : ViewModel() {
     val state: StateFlow<EditorState?>                   // null until the stored treatment is loaded
     val savedAs: StateFlow<TreatmentId?>                 // set once saved: the screen leaves (§4.3.6)
     fun setName(text: String); fun setNotes(text: String)
-    fun editMedicine(id: MedicineId?)                    // null: a new medicine
+    fun openMedicine(id: MedicineId?, entry: String)     // null: a new medicine; entry: the editor's back-stack entry (§4.3.7)
     fun setMedicineName(text: String); fun setDose(text: String); fun setInstructions(text: String)
     fun setInterval(text: String); fun setIntervalUnit(unit: IntervalUnit)
     fun setDuration(text: String); fun setDurationUnit(unit: DurationUnit); fun setNoEnd(noEnd: Boolean)
@@ -301,7 +311,9 @@ class EditorViewModel(deps: ScreenDependencies, treatmentId: TreatmentId?, saved
 }
 ```
 
-Each ViewModel's factory is in its companion and takes the `ScreenDependencies` and the route's arguments, plus `createSavedStateHandle()` for the editor's.
+Each ViewModel's factory is in its companion and takes the `ScreenDependencies` and the route's arguments, plus `createSavedStateHandle()` for the editor's. Each screen has an entry composable that takes its ViewModel (or, for the editors, the shared one) and a stateless `…Content` composable that draws its state.
+
+Shared composables in `ui/common`: `DateField(label, date, today, text, onDate)` and `TimeField(label, time, text, onTime)`, buttons that open the pickers (§4.3.11); `LeaveWhen(leave, onLeave)`, which calls `onLeave` once `leave` turns true and the screen is resumed (§4.3.1); `ShowProblem(problem, host, onShown)`, which shows a `ChangeProblem` once in a snackbar.
 
 ### 4.3 Behaviour
 
@@ -322,9 +334,9 @@ flowchart LR
     Reminder(["Tapped reminder (P5)"]) --> Take
 ```
 
-- The editors are a nested graph, `navigation<TreatmentEditorRoute>(startDestination = <the treatment editor's route>)`. Both destinations get the same `EditorViewModel`, scoped to the graph's back-stack entry (`navController.getBackStackEntry<TreatmentEditorRoute>()`), which reads `treatmentId` from it. If Navigation won't pass the graph's argument this way, the start destination declares the same argument. T6 checks it.
-- **Clicks that navigate** go through `dropUnlessResumed` (CLAUDE.md).
-- **Navigation driven by a state** (leaving after a save, a delete) is reported once from a `LaunchedEffect` on that state, after `lifecycle.currentStateFlow.first { it.isAtLeast(RESUMED) }`, with a plain lambda (CLAUDE.md).
+- The editors are a nested graph, built by `editorGraph(…)` in `navigation/EditorGraph.kt`: `navigation<TreatmentEditorRoute>(startDestination = TreatmentFormRoute)`. Both destinations get the same `EditorViewModel`, scoped to the graph's back-stack entry (`navController.getBackStackEntry<TreatmentEditorRoute>()`), and read `treatmentId` from it with `toRoute<TreatmentEditorRoute>()`.
+- **Clicks that navigate** go through `dropUnlessResumed` (CLAUDE.md), or `dropUnlessResumedWith` for a click that carries a value (a row's treatment, a take's key).
+- **Navigation driven by a state** (leaving after a save, a delete) is reported once by `LeaveWhen`: a `LaunchedEffect` on that state, after `lifecycle.currentStateFlow.first { it.isAtLeast(RESUMED) }`, with a plain lambda (CLAUDE.md).
 - After **saving a new treatment**, the editor graph is replaced by that treatment's screen (`popUpTo<TreatmentEditorRoute> { inclusive = true }`, then `TreatmentRoute(id)`). After **saving an edit**, the graph is popped, back to where it was opened from.
 - After **deleting** a treatment, its screen goes back.
 - The Take screen's route is P5's: `TakeRoute(medicineId, plannedAt)`, `plannedAt` in `LocalDateTime.toString()` form. A `plannedAt` that doesn't parse is the Missing state.
@@ -340,8 +352,8 @@ flowchart LR
 
 - Three groups, each with a heading, shown only when not empty: **Active**, **Upcoming** and **Finished**, from P2's `status(id, now)`.
 - Order: Active by name; Upcoming by first take, soonest first; Finished by when it ended or had its last take, latest first.
-- Each row: the treatment's name, and one line under it: Active, its medicines' names; Upcoming, "Starts Mon 23 Nov 08:00"; Finished, "Ended Tue 24 Nov 10:00" when ended early, or "Finished Mon 30 Nov" after its last take. A row opens the Treatment screen.
-- "New treatment" opens the editor (a floating button with its label, so it isn't only an icon).
+- Each row: the treatment's name, and one line under it: Active, its medicines' names; Upcoming, "Starts: Mon 23 Nov 08:00"; Finished, "Ended: Tue 24 Nov 10:00" when ended early, or "Finished: Mon 30 Nov" after its last take. A label before a day takes a colon, since "Today", "Tomorrow" and "Yesterday" are capitalised. A row opens the Treatment screen.
+- "New treatment" opens the editor: a floating button with its label, so it isn't only an icon. It uses `ExtendedFloatingActionButton`'s content overload: the one with `text` and `icon` hides its label from TalkBack in Material 3 1.4.
 - **No treatments:** "No treatments yet", with the same button.
 - **Unreadable:** the message of §4.3.10 instead of the list; no button.
 
@@ -352,7 +364,8 @@ flowchart LR
   - the name and dose ("Amoxicillin · 1 capsule"), and the instructions, if any;
   - the schedule: "Every 8 hours, for 7 days", or "Every week, no end";
   - the progress: "1 of 21 taken or skipped", or, with no end, "1 taken or skipped · No end" (`SC-5`), from `answeredCount` and `count`;
-  - the last take, "Last take Mon 30 Nov 00:00", or "No end";
+  - the last take, "Last take: Mon 30 Nov 00:00", or "No end";
+  - a medicine with no takes at all, because its treatment was ended before its first take, says so instead of the progress and the last take: "No takes: the treatment ended before the first one." (Q9);
   - **the next take,** from `nextTake(now)`: "Next: Today 16:00 · Due", or "· Pending". It opens the Take screen. None once nothing is left;
   - **the last answered take** (`TK-5`), from `lastAnswered(now)`: "Last answered: Today 08:00 · Taken at 08:05", or "· Skipped". It opens the Take screen. None while nothing is answered.
 - **Actions:**
@@ -360,7 +373,7 @@ flowchart LR
   - **End early,** for an Active or Upcoming treatment. It asks first (Q6): "End Example now? Its takes still to come are removed, and a take that is due now becomes missed." Then `repository.endTreatment(id, clock)`.
   - **Delete,** always. It asks first (`TR-9`): "Delete Example? Its medicines and every take recorded for it are deleted. This can't be undone." Then `repository.deleteTreatment(id)`, and the screen goes back.
   - End early and Delete are full-width buttons, one under the other, after the cards (P5's lesson).
-- **Missing** (deleted, for example from the debug tools): "This treatment no longer exists", with Back.
+- **Missing** (deleted, for example from the debug tools): "This treatment no longer exists", with Back. After its own Delete, the screen shows nothing while it leaves (its state is `null`), rather than that message.
 - **Unreadable:** the message of §4.3.10.
 
 #### 4.3.5 Take screen
@@ -396,6 +409,7 @@ flowchart LR
 #### 4.3.7 Medicine editor
 
 - **Opening:** the working copy is the draft's medicine, or, for a new one, an empty medicine with `MedicineId.random()`, an interval of 8 hours, a duration of 7 days, and the first take at `suggestedFirstTake(now)` (`TR-4`). The defaults other than the first take are suggestions.
+- **The working copy belongs to the medicine editor's back-stack entry** (`openMedicine(id, entry)`): the same entry keeps it, as after Android ended the process (P6-D6, M6); a new entry starts a fresh one. A Back with no changes pops the editor without telling the ViewModel, so a copy left over must not reappear the next time the editor opens.
 - **Fields,** as in the sketch of §2.1:
   - name, dose and instructions, plain text (`TR-7`);
   - **Every** [amount] [unit ▾]: hours, days or weeks, and minutes in debug builds only (`allowMinutes`). Unit names follow the amount: "1 hour", "8 hours";
@@ -455,8 +469,9 @@ From plan §2.4 and P3's pending wiring:
 - Screens use `Scaffold`, which keeps the content out of the system bars (P1-D4). Long content scrolls: lists are `LazyColumn`s, the editors a scrolling `Column` or a `LazyColumn`.
 - **Touch targets** are at least 48 dp: Material 3's buttons and icon buttons already are; clickable rows and cards get a minimum height of 48 dp.
 - **Buttons with text** go one under the other, full width, where two side by side could break a word at font scale 2 (P5).
-- **The soft keyboard** must not hide the field being typed in. With edge to edge, the editors add `imePadding()`; if the window doesn't resize for the keyboard, `MainActivity` gets `windowSoftInputMode="adjustResize"` in the manifest. M5 checks it on the phone.
-- **Pickers:** Material 3's `DatePicker` and `TimePicker`, each in a dialog. If the date picker's calendar doesn't fit at font scale 2, the dialog opens in its input mode (`DisplayMode.Input`) at large font scales. The date picker works in UTC milliseconds: convert with `ZoneOffset.UTC`, never with the phone's zone, or the date shifts by a day.
+- **The soft keyboard** must not hide the field being typed in. With edge to edge, the editors add `imePadding()`, which is enough: the screen shrinks for the keyboard (M5). The manifest is unchanged.
+- **Pickers:** Material 3's `DatePicker` and `TimePicker`, each in a dialog (`DatePickerDialog`, `TimePickerDialog`). From font scale 1.5 on, both open in their input mode (`DisplayMode.Input`, `TimeInput`): the calendar and the clock dial don't fit. The date picker works in UTC milliseconds: convert with `ZoneOffset.UTC`, never with the phone's zone, or the date shifts by a day.
+- **The pickers in the UI's language** (Q8): the date picker's state takes the locale of `date_locale` with the phone's region (`DatePickerState(locale, …)`), so its names are English and its weeks start on the phone's first day (Monday in Spain). Its title is the field's label and its headline the app's own date ("Mon 23 Nov"), since its default headline follows the phone's locale. `localeFilters += "en"` keeps the libraries' other texts, such as the time picker's descriptions, in English.
 - Icons only from `material-icons-core` (already a dependency): for example `Add`, `Edit`, `Delete`, `Close`, `DateRange`. Every icon button has a content description.
 
 #### 4.3.12 A reminder tapped while an editor is open (Q3)
@@ -520,19 +535,21 @@ All instrumented tests use fakes, apart from those through `MainActivity` named 
 |---|---|---|
 | `DateTimeTextTest`: Today, Tomorrow, Yesterday and dates; the year outside today's year; 24-hour and 12-hour times; midnight | unit | `NF-8`, P6-D4 |
 | `MinuteTicksTest`: a tick at once, then at each whole minute of the clock | unit | P6-D3 |
+| `AttemptTest`: an applied change, a refused one, unreadable data, a failed write, and any other exception going through | unit | §4.3.10 |
 | `TreatmentsViewModelTest`: groups and their order; several Active at once; Finished ones stay; Upcoming becomes Active at its first take on a tick; unreadable | unit | `TR-1`, `TR-12`, rule 7 |
 | `TreatmentViewModelTest`: the §4.4 example on Mon 23 Nov at 10:30 with both 08:00 takes Taken (1 of 21, 1 of 15; last takes; next Today 16:00); no end; next take and last answered; End early with a Due take, which becomes Missed, and a take marked early, which keeps its answer; End not offered once ended; Edit not offered once ended (Q4); delete and `deleted`; missing; unreadable; a failed write | unit | `TR-9`, `TR-11`, `TK-5`, `SC-5`, §4.3.10 |
 | `TakeViewModelTest`: each row of §4.3.5's table; Taken records now in whole minutes; Change time, and a time in the future refused; Undo; an older answered take has no actions; Missed; missing take and a `plannedAt` that doesn't parse; an action refused after the take changed; unreadable; a failed write | unit | `TK-2`, `TK-4` (Q7), `TK-5`, §4.3.10 |
 | `EditorViewModelTest`, new treatment: the suggested first take (`TR-4`); defaults; no errors before Save, then each error of `TR-8`, and each going once fixed; an amount too big for an `Int`; preview of the §4.4 medicines (21 and Mon 30 Nov 00:00, 15 and Sat 28 Nov 00:00); no end; a first take in the past and its note; two medicines with different first takes; a free-text dose "1/3 tablet", instructions, notes; Done and Close; remove; `hasChanges` for each editor (`TR-13`); save, and `savedAs` | unit | `TR-2`–`TR-8`, `TR-13`, `SC-2`, `SC-5` |
-| `EditorViewModelTest`, edit: the draft from the stored treatment; P2's example (8 h to 12 h on Tue 24 Nov 10:00, four answered): the started note, preview 15 and Sun 29 Nov 20:00, and after save 4 of 15; an answer given while editing is kept by the save (P2-D4); removing a started medicine asks (Q6); unreadable refuses; a failed write keeps the draft; minutes offered only with `allowMinutes`; the drafts restored from a `SavedStateHandle` (P6-D6) | unit | `TR-9`, `TR-10`, `D-15`, §4.3.10 |
-| `CreateTreatmentTest`: the §4.4 example created through both editors, on Sun 22 Nov 10:00; the Treatment screen's counts and last takes; Upcoming in Treatments | UI | `TR-1`–`TR-4`, `SC-2`, plan's done criterion |
+| `EditorViewModelTest`, edit: the draft from the stored treatment; P2's example (8 h to 12 h on Tue 24 Nov 10:00, four answered): the started note, preview 15 and Sun 29 Nov 20:00, and after save 4 of 15; an answer given while editing is kept by the save (P2-D4); removing a started medicine asks (Q6); unreadable refuses; a failed write keeps the draft; minutes offered only with `allowMinutes`; the drafts restored from a `SavedStateHandle` (P6-D6), and the working copy kept for the same back-stack entry only; "started" from an answer alone, before the first take | unit | `TR-9`, `TR-10`, `D-15`, §4.3.10 |
+| `CreateTreatmentTest`: the §4.4 example created through both editors, on Sun 22 Nov 07:30, the first takes moved to Monday with the date picker; the Treatment screen's counts and last takes; Upcoming in Treatments | UI | `TR-1`–`TR-4`, `SC-2`, plan's done criterion |
 | `EditorValidationTest`: Save with nothing entered shows the treatment's errors; a medicine's errors on Done; each goes once fixed | UI | `TR-8` |
 | `EditStartedTreatmentTest`: P2's example through the editors, then the Treatment screen's 4 of 15 | UI | `TR-10` |
-| `EndAndDeleteTest`: End early with its confirmation, Cancel then End: Finished; Delete with its confirmation: gone from Treatments | UI | `TR-9`, `TR-11` |
+| `EndAndDeleteTest`: End early with its confirmation, Cancel then End: Finished; Delete with its confirmation: gone from Treatments; a treatment ended before its first take says its medicines have no takes (Q9) | UI | `TR-9`, `TR-11` |
 | `DiscardChangesTest`: Back and the back arrow, with and without changes, in each editor; Keep editing; Discard | UI | `TR-13` |
 | `TakeScreenTest`: Taken, Change time, Skip, Undo on one take, each seen on screen; an older take shows no actions | UI | `TK-2`, `TK-5` |
-| `NavigationSmokeTest` (rewritten): every P6 screen opens from its button and Back returns; the app starts on Home and asks for portrait (through `MainActivity`) | UI | `NF-7` |
-| `OpenTakeTest` (P5's, kept), and a new test: a reminder tapped while the editor is open opens the take above it, and Back returns to the editor with its changes | UI | `RM-6`, Q3 |
+| `NavigationSmokeTest` (trimmed): the app starts on Home and asks for portrait; Settings and the sample take open from Home (through `MainActivity`) | UI | `NF-7` |
+| `ScreensNavigationTest`: every P6 screen opens from another and Back returns; a reminder's take opens above an open editor, a second one replaces it, and Back returns to the editor with its changes; without an editor, right above Home | UI | `RM-6`, Q3 |
+| `OpenTakeTest` (P5's, kept): a reminder's intent opens the real Take screen | UI | `RM-6` |
 | Rows and icon buttons are at least 48 dp tall (`assertHeightIsAtLeast`), in the flow tests | UI | `NF-7` |
 | Galleries (throwaway, T2, T3, T8): every state of every screen, light and dark, font scale 1 and 2, on the phone's content area | drawn | `NF-7`, `NF-10` |
 
@@ -545,7 +562,7 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 | # | Check | Expected |
 |---|---|---|
 | M1 | Create a treatment like the §4.4 example by hand, with first takes a few hours ahead. Open it, edit one medicine's dose, save. End it early, then delete it. | Counts and last takes as in §4.3.13; every confirmation shows; the treatment goes from Treatments; no reminder is left in the shade or as the alarm (`phone` skill's `notifications` and `alarms`). |
-| M2 | In the medicine editor of the debug build, create a treatment every 2 minutes, first take in 2 minutes. When the reminder alerts, tap it; on the Take screen, tap Taken; then Undo; then Taken again and Change time. Delete the treatment. | The tap opens the Take screen (`RM-6`); Taken removes the reminder (`RM-7`); Undo brings it back, alerting at once (`TK-5`); the time taken changes (`TK-2`). |
+| M2 | In the medicine editor of the debug build, create a treatment in minutes with a take due at once (T8: every 30 minutes from the current hour). When the reminder alerts, tap it; on the Take screen, tap Taken; then Undo; then Taken again and Change time. Delete the treatment. | The tap opens the Take screen (`RM-6`); Taken removes the reminder (`RM-7`); Undo brings it back, alerting at once (`TK-5`); the time taken changes (`TK-2`). |
 | M3 | With the treatment editor open and changed, tap a reminder (as in M2); then Back. | The Take screen opens above the editor; Back returns to it, with its changes (Q3). |
 | M4 | In each editor, change something and leave with the phone's Back button and with the back arrow; leave with no change. | The confirmation each time there are changes, and none without (`TR-13`). |
 | M5 | In the editors, type into every field, the lowest ones too, with the keyboard up. | No field is hidden by the keyboard; the date and time pickers open and fit; the time picker is 24-hour, as the phone is. |
@@ -580,7 +597,7 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q8.
+None at the moment. New questions are numbered from Q10.
 
 ### Answered
 
@@ -593,6 +610,8 @@ None at the moment. New questions are numbered from Q8.
 | Q5 | The language of day and month names, with the UI in English on a phone in Spanish | The UI's language: "Mon 23 Nov", with the locale and patterns in `strings_common.xml`, so a Spanish translation brings "lun 23 nov" with it. The hour format follows the phone's setting. In specification v0.9 (`NF-8`). |
 | Q6 | Which actions ask for confirmation, beyond `TR-9`'s delete and `TR-13`'s discard | **End early**, which can't be undone, and **removing a medicine** that has started, since saving deletes its recorded takes. Nothing else. In specification v0.9 (§6). |
 | Q7 | Which takes the Treatment screen opens, and whether the Take screen marks a take early (`TK-4`, which the plan gives to P7's home) | Each medicine's next take and its last answered take. The Take screen offers every action P2 allows, so Taken also shows for a next take that can be marked early. In specification v0.9 (§6). |
+| Q8 | On the phone (T2, T3), Material's own texts followed the phone's language: the date picker's title read "Seleccionar fecha", and its headline "23 nov 2026", in an English app | `localeFilters += "en"` keeps only English resources, so the libraries' texts fall back to English; the date picker takes the UI's language with the phone's region, and has the app's own title and headline (§4.3.11). A translation adds its language to the filter. |
+| Q9 | On the phone (T8, M1), a treatment ended before its first take showed each medicine as "0 of 0 taken or skipped" and "Last take: No end", though it has no takes at all | Such a medicine says "No takes: the treatment ended before the first one." in place of its progress and last take (§4.3.4), with a UI test. |
 
 ## 10. Change log
 
@@ -600,3 +619,4 @@ None at the moment. New questions are numbered from Q8.
 |---|---|---|
 | 0.1 | 2026-11-22 | First draft, from plan v0.7 and specification v0.8 |
 | 0.2 | 2026-11-22 | Review: Q1–Q7 answered, confirming every draft assumption. Now quotes specification v0.9, which took Q1 and Q4–Q7 into `TR-11`, `NF-8` and §6. Ready. |
+| 0.3 | 2026-11-22 | T9: folds in the decisions recorded during T2–T8. Q8 (the pickers and library texts in the UI's language: `localeFilters`, the date picker's locale, title and headline) and Q9 (a medicine with no takes). §4.1: the files as built, `navigation/EditorGraph.kt` and `DropUnlessResumed.kt`, the date and time fields and shared texts in `ui/common`; the manifest unchanged. §4.2: the states and the editor's API as built (`openMedicine(id, entry)`). §4.3.1: `TreatmentFormRoute`, `LeaveWhen`, `dropUnlessResumedWith`. §4.3.3: labels with a colon, the floating button's content overload. §4.3.4: no takes; nothing shown while leaving after a delete. §4.3.7: the working copy belongs to the editor's back-stack entry. §4.3.11: the keyboard, the pickers' input mode from font scale 1.5. §6: the tests as built. No change to the specification or the plan. |
