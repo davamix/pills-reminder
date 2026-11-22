@@ -83,8 +83,14 @@ fun AppNavHost(
         composable<MedicineEditorRoute> {
             MedicineEditorScreen(onBack = dropUnlessResumed { navController.popBackStack() })
         }
-        composable<TakeRoute> {
-            TakeScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        composable<TakeRoute> { entry ->
+            val route = entry.toRoute<TakeRoute>()
+            TakeScreen(
+                deps = dependencies,
+                medicineId = route.medicineId,
+                plannedAt = route.plannedAt,
+                onBack = dropUnlessResumed { navController.popBackStack() },
+            )
         }
         composable<SettingsRoute> {
             SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() })

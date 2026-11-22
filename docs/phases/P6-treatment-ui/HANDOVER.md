@@ -29,7 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T5`: the Take screen's ViewModel and destination. A draft of `TakeViewModel`, `TakeScreen` and `TakeViewModelTest` is in the session's scratchpad (`t5/`), if the session is the same. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`), for T8's drawings; a new session writes it again from the `phone` skill.
+1. `T6`: the editors' ViewModel and graph. Drafts of `EditorViewModel`, `SavedEditor.kt`, both editors' screens and `EditorViewModelTest` are in the session's scratchpad (`t6/`), if the session is the same.
 
 ## Tasks
 
@@ -41,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator (light and dark at font scale 1, and at the system's font scale 2) and on the phone (light and dark); all fit. Shown to the user, who agreed. |
 | T3 | Done | `TreatmentEditorContent`, `MedicineEditorContent` (with `MedicineFieldActions`), their states in `EditorState.kt`, the discard and remove confirmations; `strings_editor.xml`. Drawn like T2's. A number field's error under the narrow field broke words at font scale 2, so each amount's error goes under its whole row. Shown to the user, who agreed. |
 | T4 | Done | `TreatmentsViewModel`, `TreatmentViewModel` (End early, Delete, `deleted`), their entry composables taking `ScreenDependencies`, and their destinations in `AppNavHost` (its new `dependencies` parameter). Shared: `LeaveWhen` (navigation driven by a state), `dropUnlessResumedWith` (a resumed-only click that carries a value), `vmTest` and `TestTicks` in the tests. 18 unit tests; 20 deliberate bugs, all caught. `NavigationSmokeTest`'s placeholder walk replaced by one that only reads the data, until T7. |
-| T5 | To do | Take screen |
+| T5 | Done | `TakeViewModel` (the actions offered by running P2's pure actions, P6-D5; `keyOf` reads the route), `TakeScreen`, and its destination. 18 unit tests; 15 deliberate bugs, all caught. `OpenTakeTest` passes with the real Take screen (its take doesn't exist, so it shows "This take no longer exists." under the title "Take"). |
 | T6 | To do | Editors |
 | T7 | To do | Flows and navigation, UI tests |
 | T8 | To do | Drawings again, manual checks on the phone and the emulator |
@@ -94,3 +94,4 @@ Newest first.
 - T2 and T3: every state drawn on the emulator and the phone, and agreed by the user. On the phone, the date picker's title showed in Spanish: fixed with `localeFilters` and the picker's own title and headline.
 - T4's deliberate bugs, 20 of 20 caught: `TreatmentsViewModel`: Active sorted case-sensitively, Upcoming latest first, Finished oldest first, by the groups test; no start time, by the groups and rows tests; a last take on an ended row, by the rows test; no ticks, by the tick test; unreadable shown as empty, by the unreadable test. `TreatmentViewModel`: Edit offered once ended, by the End early test; End offered when Finished, by the Finished test; a refused End shown, by the already-ended test; Delete of a gone treatment staying, by its test; Delete leaving on a failure, by the failed-write and unreadable tests; the problem not shown, by the failed-write test; Missing shown while leaving, by the Delete test; the count one short, the next take as the last answered, and no last answered, by the example test and others; no start time, by the Upcoming test; a last take while Active, by the example test; no ticks, by the tick test.
 - Unit totals after T4: `:app` 157, `:core` 177, none failing. `NavigationSmokeTest` and `OpenTakeTest` pass on the emulator (13 tests).
+- T5's deliberate bugs, 15 of 15 caught: Taken offered only when Due, by the early, last-answered and tick tests; Skip only when Due, by the last-answered test; Undo only for Taken, by the Skipped and older-take tests; Change time and "last answered" for any Taken take, by the older-take test; Skip marking Taken, Undo skipping and Change time a minute off, each by its own test; the problem dropped, by the future-time, failed-write and refused tests; the problem never cleared, by the refused test; the route read as a date only, by the route test; a missing take shown as the next one, by the missing test; unreadable shown as missing, by the unreadable test; no ticks, by the tick test; the medicine's name as the treatment's, by the Due test.
