@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texts shared by the screens (P6 SPEC §4.3.2, §4.3.10). The wording is a suggestion; this file holds the final one. -->
+<resources>
+    <!-- The language of day and month names (NF-8, P6 Q5): a BCP 47 tag. A translation gives its own, such as "es". -->
+    <string name="date_locale">en</string>
+    <!-- A date in this year, such as "Mon 23 Nov", and in another year, "Mon 30 Nov 2027": java.time patterns. -->
+    <string name="date_pattern">EEE d MMM</string>
+    <string name="date_pattern_with_year">EEE d MMM yyyy</string>
+    <string name="day_today">Today</string>
+    <string name="day_tomorrow">Tomorrow</string>
+    <string name="day_yesterday">Yesterday</string>
+    <!-- A day, then a time, such as "Today 16:00" or "Mon 30 Nov 00:00". -->
+    <string name="day_and_time">%1$s %2$s</string>
+
+    <!-- What went wrong with a change (P6 SPEC §4.3.10). -->
+    <string name="problem_unreadable">The stored data can\'t be read, so nothing can be shown or changed. It is kept as it is.</string>
+    <string name="problem_not_saved">Not saved: the change couldn\'t be written. Try again.</string>
+    <string name="problem_not_changed">Not changed: this take changed in the meantime.</string>
+
+    <string name="action_cancel">Cancel</string>
+</resources>

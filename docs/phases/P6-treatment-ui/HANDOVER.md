@@ -29,7 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T1`: the shared pieces in `ui/common` (`ScreenDependencies`, `minuteTicks`, `DateTimeText`, `ChangeProblem`, `ConfirmDialog`), `strings_common.xml`, and their unit tests.
+1. `T2`: the layouts of Treatments, Treatment and Take, drawn in every state on the emulator and the phone, and shown to the user.
 
 ## Tasks
 
@@ -37,7 +37,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | Shared pieces |
+| T1 | Done | `ui/common`: `ScreenDependencies` (with `rememberAppDependencies`), `minuteTicks`, `DateTimeText` (with `number()` for counts), `ChangeProblem` with `attempt {}` and `UnreadableMessage`, `ConfirmDialog`; `strings_common.xml`. 15 unit tests; 18 deliberate bugs, all caught (session log). |
 | T2 | To do | Layouts of Treatments, Treatment and Take, drawn |
 | T3 | To do | Layouts of the editors, drawn |
 | T4 | To do | Treatments and Treatment screens |
@@ -73,3 +73,12 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22
+
+- Done: SPEC v0.1 written; reviewed, every draft assumption accepted (Q1–Q7); specification v0.9 took Q1 and Q4–Q7; SPEC v0.2 `Ready`. Branch created. T1.
+- T1's deliberate bugs (`deliberate-bugs` skill), 18 of 18 caught:
+  - `DateTimeText`: 24-hour times unpadded (`H:mm`), and padded 12-hour times (`hh:mm a`), caught by the 24-hour and 12-hour tests; the hour format swapped, by both; no "Yesterday", by the day names test; "Tomorrow" two days off, and the days counted backwards, by the day names, year's end and planned time tests; no year for later years, and for earlier years, by the other-year test; the date pattern in English whatever the locale, by the locale test; the year pattern ignored, by the other-year test; the time before the day, by the planned time test; no grouping, by the counts test.
+  - `minuteTicks`: no tick at once, and a fixed minute's wait, by both tests.
+  - `attempt`: a refused change taken as applied; unreadable taken as refused; a failed write taken as unreadable; catching every exception: each by its own test.
+- Notes: unit totals after T1: `:app` 139, `:core` 177, none failing. Material 3 is 1.4.0 (Compose BOM 2026.09.00), which has `TimePickerDialog`.
