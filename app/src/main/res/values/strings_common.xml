@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texts shared by the screens (P6 SPEC §4.3.2, §4.3.10). The wording is a suggestion; this file holds the final one. -->
+<resources>
+    <!-- The language of day and month names (NF-8, P6 Q5): a BCP 47 tag. A translation gives its own, such as "es". -->
+    <string name="date_locale">en</string>
+    <!-- A date in this year, such as "Mon 23 Nov", and in another year, "Mon 30 Nov 2027": java.time patterns. -->
+    <string name="date_pattern">EEE d MMM</string>
+    <string name="date_pattern_with_year">EEE d MMM yyyy</string>
+    <string name="day_today">Today</string>
+    <string name="day_tomorrow">Tomorrow</string>
+    <string name="day_yesterday">Yesterday</string>
+    <!-- A day, then a time, such as "Today 16:00" or "Mon 30 Nov 00:00". -->
+    <string name="day_and_time">%1$s %2$s</string>
+
+    <!-- What went wrong with a change (P6 SPEC §4.3.10). -->
+    <string name="problem_unreadable">The stored data can\'t be read, so nothing can be shown or changed. It is kept as it is.</string>
+    <string name="problem_not_saved">Not saved: the change couldn\'t be written. Try again.</string>
+    <string name="problem_not_changed">Not changed: this take changed in the meantime.</string>
+
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+
+    <!-- A medicine and its dose, such as "Amoxicillin · 1 capsule". Without a dose, the name alone. -->
+    <string name="medicine_and_dose">%1$s · %2$s</string>
+    <!-- Shown instead of a number of takes or a last take for a medicine with no end (SC-5). -->
+    <string name="no_end">No end</string>
+
+    <!-- A schedule: its interval, then its duration, such as "Every 8 hours, for 7 days" or "Every week, no end". -->
+    <string name="schedule_summary">%1$s, %2$s</string>
+    <plurals name="schedule_every_minutes">
+        <item quantity="one">Every minute</item>
+        <item quantity="other">Every %d minutes</item>
+    </plurals>
+    <plurals name="schedule_every_hours">
+        <item quantity="one">Every hour</item>
+        <item quantity="other">Every %d hours</item>
+    </plurals>
+    <plurals name="schedule_every_days">
+        <item quantity="one">Every day</item>
+        <item quantity="other">Every %d days</item>
+    </plurals>
+    <plurals name="schedule_every_weeks">
+        <item quantity="one">Every week</item>
+        <item quantity="other">Every %d weeks</item>
+    </plurals>
+    <plurals name="schedule_for_days">
+        <item quantity="one">for %d day</item>
+        <item quantity="other">for %d days</item>
+    </plurals>
+    <plurals name="schedule_for_weeks">
+        <item quantity="one">for %d week</item>
+        <item quantity="other">for %d weeks</item>
+    </plurals>
+    <string name="schedule_no_end">no end</string>
+
+    <!-- A take's state (TK-1). -->
+    <string name="take_state_pending">Pending</string>
+    <string name="take_state_due">Due</string>
+    <string name="take_state_taken">Taken</string>
+    <string name="take_state_skipped">Skipped</string>
+    <string name="take_state_missed">Missed</string>
+    <!-- When a take was taken: a time on the day it was planned, or a day and a time on another (TK-2). -->
+    <string name="taken_at">Taken at %1$s</string>
+    <string name="taken_on">Taken: %1$s</string>
+
+    <!-- A treatment's status (spec §4.3 rule 7). -->
+    <string name="status_active">Active</string>
+    <string name="status_upcoming">Upcoming</string>
+    <string name="status_finished">Finished</string>
+</resources>

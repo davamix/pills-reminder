@@ -43,6 +43,12 @@ android {
         buildConfig = true
     }
 
+    androidResources {
+        // The UI is in English (NF-8). Without this, the libraries' own texts, such as Material's date picker title,
+        // follow the phone's language (Spanish on the phone) in an English app (P6). A translation adds its language.
+        localeFilters += "en"
+    }
+
     lint {
         abortOnError = true
         warningsAsErrors = false

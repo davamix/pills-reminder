@@ -15,7 +15,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * The navigation skeleton of P1: every placeholder screen opens from its button, and Back returns. The test names are
+ * What needs `MainActivity`: the start screen, portrait, and P1's placeholders that remain (P7's Home and Settings).
+ * P6's screens are walked with fakes in `ui.ScreensNavigationTest` (P6-D2). The test names are
  * sentences, which D8 accepts because minSdk is 33 (P1-D7). DEX names can't hold ASCII punctuation other than `$`, `-`
  * and `_`, so they have no commas.
  */
@@ -57,42 +58,6 @@ class NavigationSmokeTest {
 
         tap(R.string.home_sample_take)
         assertOn(R.string.take_title)
-        tapBackArrow()
-        assertOn(R.string.home_title)
-    }
-
-    @Test
-    fun `the editors open from home and Back returns through each`() {
-        tap(R.string.home_new_treatment)
-        assertOn(R.string.treatment_editor_title)
-        tap(R.string.treatment_editor_add_medicine)
-        assertOn(R.string.medicine_editor_title)
-        pressBack()
-        assertOn(R.string.treatment_editor_title)
-        tapBackArrow()
-        assertOn(R.string.home_title)
-    }
-
-    @Test
-    fun `a treatment with its editor and its take open from the treatments list and Back returns`() {
-        tap(R.string.home_all_treatments)
-        assertOn(R.string.treatments_title)
-        tap(R.string.treatments_open_sample)
-        assertOn(R.string.treatment_title)
-        tap(R.string.treatment_edit)
-        assertOn(R.string.treatment_editor_title)
-        pressBack()
-        assertOn(R.string.treatment_title)
-        tap(R.string.treatment_open_take)
-        assertOn(R.string.take_title)
-        pressBack()
-        assertOn(R.string.treatment_title)
-        pressBack()
-        assertOn(R.string.treatments_title)
-        tap(R.string.treatments_new)
-        assertOn(R.string.treatment_editor_title)
-        pressBack()
-        assertOn(R.string.treatments_title)
         tapBackArrow()
         assertOn(R.string.home_title)
     }

@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The Take screen (P6 SPEC §4.3.5). The wording is a suggestion; this file holds the final one. -->
 <resources>
     <string name="take_title">Take</string>
+    <string name="take_missing">This take no longer exists.</string>
+    <string name="take_missing_text">Its treatment may have been deleted, or its medicine removed or edited.</string>
+
+    <!-- %1$s is a day and a time, such as "Mon 23 Nov 16:00". -->
+    <string name="take_planned">Planned: %1$s</string>
+    <string name="take_missed_at">Missed if not answered by %1$s</string>
+    <string name="take_only_last">Only the last answered take of a medicine can be changed.</string>
+
+    <string name="take_taken">Taken</string>
+    <string name="take_skip">Skip</string>
+    <string name="take_change_time">Change time taken</string>
+    <string name="take_undo">Undo</string>
+
+    <string name="take_change_time_title">Time taken</string>
+    <string name="take_change_time_date">Date</string>
+    <string name="take_change_time_time">Time</string>
+    <string name="take_change_time_future">The time taken can\'t be in the future.</string>
+    <string name="take_change_time_save">Save</string>
 </resources>

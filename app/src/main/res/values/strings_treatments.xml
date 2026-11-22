@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The Treatments screen (P6 SPEC §4.3.3). The wording is a suggestion; this file holds the final one. -->
 <resources>
     <string name="treatments_title">Treatments</string>
-    <string name="treatments_open_sample">Open sample</string>
     <string name="treatments_new">New treatment</string>
+    <!-- The line under a treatment's name. %1$s is a day and a time, or a day. -->
+    <string name="treatments_starts">Starts: %1$s</string>
+    <string name="treatments_ended">Ended: %1$s</string>
+    <string name="treatments_finished">Finished: %1$s</string>
+    <string name="treatments_empty_title">No treatments yet</string>
+    <string name="treatments_empty_text">A treatment groups the medicines prescribed together. Create one to be reminded of each take.</string>
 </resources>

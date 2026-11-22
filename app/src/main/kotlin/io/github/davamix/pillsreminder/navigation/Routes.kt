@@ -19,13 +19,20 @@ data class TreatmentRoute(
     val treatmentId: String,
 )
 
-/** The treatment editor; a `null` [treatmentId] means a new treatment (P6). */
+/**
+ * The editors, a nested graph whose two screens share one draft (P6-D1); a `null` [treatmentId] means a new treatment
+ * (P6). It opens on [TreatmentFormRoute].
+ */
 @Serializable
 data class TreatmentEditorRoute(
     val treatmentId: String? = null,
 )
 
-/** The medicine editor; a `null` [medicineId] means a new medicine (P6). */
+/** The treatment editor's own screen, the first of the editors' graph (P6). */
+@Serializable
+data object TreatmentFormRoute
+
+/** The medicine editor, in the editors' graph; a `null` [medicineId] means a new medicine (P6). */
 @Serializable
 data class MedicineEditorRoute(
     val medicineId: String? = null,
