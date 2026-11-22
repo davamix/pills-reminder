@@ -219,6 +219,25 @@ All on time, except where the app couldn't run (Force stop, the restart before t
 
 Between the repeats, light Doze (12 `light-idle` periods), and `normal (alarm)` at 01:16, 04:15 and 07:16. Each repeat comes 10 minutes after the alert before it, in whole seconds, so the 04:00 round drifted by a second per repeat, as `RM-5` says. In the morning, **wireless debugging was off**, and the user had to turn it off and on again before adb found the phone (for the skills review).
 
+**Relaxed settings, 2026-11-22 morning:** Autostart on (op 10008 `allow`), battery saver "No restrictions" (exempt from battery optimisation, standby bucket 5). Same phone and build, then the build with the debug screen's Instructions switch (installed at 09:29:46, which was M11).
+
+| # | Setup | Result |
+|---|---|---|
+| M11 | `gradle installDebug` at 09:29:46, the night's 07:00 reminder in the shade | The update removed it (09:29:44.4); `MY_PACKAGE_REPLACED` arrived (`reconcile package_replaced`), and it came back **silently** 1.7 s later (no `notification_alert`). The alarm survived. |
+| M13 | The night treatment, its reminder in the shade: End, then Delete, on the debug screen | End: the reminder removed 11 ms after the change, `alarm none`. Delete: no treatment, no alarm. |
+| M1 | Two medicines, every 45 minutes, first take 09:32, the debug screen in front | Both alerted 42 ms late: one `notification_alert` for the two, `buzz=0, beep=1`; the user: pop-up and sound. Titles "Test A: 1 tablet" and "Test B: 1 tablet", text "Test", grouped under "2 takes due". At 10:17, with the app in the background and the phone locked: both alerted 42 ms late, one sound. With instructions (a 5-minute treatment at 10:34): text **"Test · with food"**, 20 ms late. |
+| M3 | Taken on *Test A* from the shade at 09:32:38; Snooze on *Test A* and Skip on *Test B* from the lock screen (`isKeyguardShowing=true`) at 10:17 | Each applied and removed its reminder at once. The data: `taken`, `takenAt 09:32`; `skipped`; a `snoozedUntil` record at 10:27:17, with the alarm clock then. At 10:27:17 *Test A* alerted again (104 ms late) with a new round (`alerts: 1`); Taken from the pop-up. |
+| M2 | *Test B*'s 09:32 take left unanswered | Repeats at 09:42, 09:52 and 10:02 (18, 70, 57 ms late), nothing after them, and removed at 10:17, when it was Missed. |
+| M4 | A tap on *Test B*: the app in front (Home), in the background (the launcher in front), its process ended (`end_process`), the phone locked (from the 09:42 repeat on the lock screen) | The Take screen each time (`MainActivity` resumed, "Take" on screen); the reminder stays in the shade. With the process ended, a new process (`app_start`). |
+| M5 | The lock screen | The 09:42 repeat with its full content and its three actions. **HyperOS hides a notification already seen in the shade from the lock screen:** at 09:36, *Test B* (`seen=true`) wasn't on it, though public, with lock-screen notifications on. A repeat brings it back. |
+| M6 | 09:52 in Do Not Disturb (`zen_mode=1`); 10:02 in HyperOS's Silent mode (`mode_ringer=1`); 10:27 in vibrate mode (`mode_ringer=1`), the phone unlocked and in hand | DnD: posted, no `notification_alert`, the screen stayed off; the user: nothing seen or heard, the reminder in the shade. Silent: the screen lit up, no sound; Android logged `buzz=1`, and the user felt no vibration, though the phone was on the table and its vibration is soft (not conclusive). Vibrate: `buzz=1, beep=0`; the user: vibration and pop-up, no sound. Normal mode: `buzz=0` every time. |
+| M14 | Between reminders, after Taken at 10:27 | One alarm clock (11:02), with its show intent to the app; `dumpsys activity services`: nothing. **HyperOS shows no alarm-clock icon** in the status bar (SystemUI's `alarm_clock` slot is `GONE`), and the next alarm on neither the lock screen nor Control Center, so there was nothing to tap. Android holds it (`Next alarm clock information` 11:02). The tap is to check on the emulator (E1). |
+| M7 | A 5-minute treatment: the screen off from 10:34:20 | 10:39 late 36 ms |
+| M8 | The user swiped the app from Recents (10:40) | **The process survived** (no `SwipeUpClean`, same `pid`): with the settings relaxed, HyperOS doesn't end it. 10:44 late 19 ms |
+| M9 | `end_process` at 10:45 | 10:49 late 986 ms, in a new process |
+| M12 | *Force stop* by the user at 10:49:40 | No alarm, nothing at 10:54. Opened at 10:54:52: the 10:54 take alerted (52 s late) and the alarm set at once |
+| M10 | Restarted after the 10:59 alert (35 ms late); booted 10:59:50; unlocked at 11:05:12.2 | `reconcile boot` **7.1 s** after the unlock alerted the 11:04 take; the alarm set again (11:09) |
+
 ## Known issues
 
 - **A number written as text reads as the number:** kotlinx.serialization accepts `"alerts": "2"` as 2, in strict mode too, as it does for every number of the format (`amount`, `count`), since P3. Nothing is lost: the next write writes a number. `DamagedDataTest` tests a count of 2.5 instead.
