@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Status** | In progress |
-| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
+| **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p7-home` |
 | **Last session** | 2026-11-22 |
 
@@ -19,18 +19,17 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 1. Use the phase-start skill for P7. Read only docs/phases/P7-home/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p7-home. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. T1 measures on the phone and the emulator before anything is built: the phone must be connected and unlocked, and I change its settings myself, or agree first. Ask before creating test treatments on the phone (their reminders alert) and put back every setting changed. The emulator is needed for T1, the drawings and E1–E2. Every screen must fit the phone's content area, 392.7 × 796.4 dp.
+4. T1's measurements are done. The phone is needed for the drawings (T2, T7) and M1–M5, connected and unlocked; I change its settings myself, or agree first. Ask before creating test treatments on the phone (their reminders alert) and put back every setting changed. The emulator is needed for the drawings and E1–E2. Every screen must fit the phone's content area, 392.7 × 796.4 dp.
 5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-In progress. T1's measurements are done (below, "Measurements (T1)"): they settle the intents of SPEC §4.3.8, and three of them refine the SPEC, which waits for the user's agreement to a SPEC v0.3. No code yet: Home and Settings are still P1's placeholders.
+In progress. T1 is done ("Measurements (T1)"). Its results are in SPEC v0.3 (Q7), agreed by the user, with specification v0.11 and plan v0.9 (`RM-9`'s battery saver wording), merged into the branch. No code yet: Home and Settings are still P1's placeholders.
 
 ## Next steps
 
-1. With the user's agreement, SPEC v0.3 on `main` with T1's results (`phase-docs`, "SPEC change during implementation"), merged into the branch: the intents of §4.3.8 as measured; the battery dialog with `setPackage("com.android.settings")`; the exact-alarm line's button to the app's details; Autostart's button to HyperOS's Autostart list; §2.2 and §4.3.7's wording on the battery saver (C2); §4.6's results.
-2. Then T2: the layouts of Home and Settings, and their drawings (`screen-gallery`), on the emulator and the phone.
+1. T2: the layouts of Home and Settings: their state types, stateless `…Content` composables, `TimeLeft` and strings, drawn from fixed states with the `screen-gallery` skill (SPEC §7 lists the states), light and dark, font scale 1 and 2, on the emulator and the phone. Show the user the drawings before T4.
 
 ## Tasks
 
@@ -53,6 +52,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-22 | **SPEC v0.3** (Q7), agreed by the user: the battery button names `com.android.settings`; the exact-alarm line's button opens the app's details; Autostart's opens HyperOS's Autostart list. Specification v0.11 and plan v0.9: HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being the same setting. | T1, C1 and C2 ("Measurements (T1)"). |
 
 ## Measurements (T1)
 
@@ -69,7 +69,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | C5, emulator | `pm revoke POST_NOTIFICATIONS` ends the process; the reading is then `notif=false`; `pm grant` brings it back. The category's "Pop on screen" off gives importance 3 (`NO_POP_UP`), "Show notifications" off gives 0 (`OFF`); both back on, 4. `dumpsys deviceidle whitelist +` and `-` the app: exempt, then optimised. **Exact alarms can't be revoked:** `cmd appops set … SCHEDULE_EXACT_ALARM deny` and `ignore` leave `canScheduleExactAlarms()` true, and the settings page's switch is disabled; its MISSING line is tested with fakes only. Everything put back. |
 | C6 | Phone: `Build.MANUFACTURER` `Xiaomi`, `Build.BRAND` `POCO`, `ro.mi.os.version.name` `OS1.0`. Emulator: `Google`, `google`, no HyperOS property. `Build.MANUFACTURER` equal to "Xiaomi", ignoring case, marks HyperOS. |
 
-**What this settles for SPEC §4.3.8** (to go into SPEC v0.3 with the user's agreement):
+**What this settles for SPEC §4.3.8** (now in SPEC v0.3):
 
 | Item | Intent | Fallback |
 |---|---|---|
@@ -105,6 +105,7 @@ Newest first.
 
 - Done: the branch; T1, C1–C6 on the phone and the emulator ("Measurements (T1)"), with a throwaway probe, deleted.
 - Found: on HyperOS, the battery intent opens a chooser of HyperOS's battery saver pages unless it names `com.android.settings`; the "Alarms & reminders" page shows a disabled, off switch for an app with `USE_EXACT_ALARM`; HyperOS's App info has no Autostart line, and only the Autostart list can be opened; the app's Floating and Lock screen notification switches can't be read; HyperOS's battery saver doesn't undo the dialog's exemption; the permission dialog only pauses the activity (P7-D6 needed).
+- SPEC v0.3 with T1's results (Q7), specification v0.11 and plan v0.9, all agreed by the user, on `main`, merged into the branch.
 - Device state left: the phone and the emulator have the clean debug build of `main` (no probe), no test treatment, no alarm or notification from T1. The phone's settings for the debug app are as found: notifications granted (flags as before), battery optimisation on and HyperOS's battery saver at its default, Autostart on, the app's and the category's notification switches on. The emulator's are as found too (notifications granted, channel at importance 4, not exempt); it runs headless.
 
 ### 2026-11-22
