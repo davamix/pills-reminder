@@ -289,6 +289,7 @@ Newest first.
 ### 2026-11-22 (close)
 
 - The user merged pull request [#5](https://github.com/davamix/pills-reminder/pull/5); P5 is closed: `Done` in plan §5.1, SPEC §8 ticked.
+- Skills review, all four proposals made, on `main`: the `phone` skill (two wrong claims corrected, the emulator's time and zone and Autostart's op 10008; P5's HyperOS and Doze findings; reminder helpers `reminder_log`, `reminder_state`, `alert_events`, `doze_history`, `wait_until`, `wait_alert`, `debug_create`; a "Reminder device runs" section); a new skill, `deliberate-bugs` (SK-8); plan v0.7 (`D-8`: no alarm icon on HyperOS; SK-7 folded into `phone`); `CLAUDE.md` (scripts that edit files go in a file, not a heredoc; the new skill).
 
 ### 2026-11-22, midday: T9
 

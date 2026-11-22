@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification (v0.8) and the implementation plan (v0.6) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
+**Status:** the specification (v0.8) and the implementation plan (v0.7) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
 
 ## Documents
 
@@ -34,6 +34,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - `handover`: end a session. Runs the checks, updates HANDOVER.md, commits and pushes, and opens the pull request when the phase is done.
 - `phase-close`: after the user merges a phase's pull request, mark the phase `Done` on `main`, then review the skills: propose new skills, or changes to skills and to this file, from what the phase taught (plan `D-17`). The user decides which to make.
 - `phone`: the phone and the emulator over adb, with helpers: pick the device, start the emulator, install, launch, read the screen, screenshots, logs, instrumented tests that keep the app's data, the app's alarms and notifications, Doze, and the HyperOS pitfalls found on this phone.
+- `deliberate-bugs`: show that new tests can fail. Each bug of a bugs file, on its own: applied, the tests run, the file put back and checked with `cmp`; it says which tests caught each.
 
 ## Commands
 
@@ -115,7 +116,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - **Formatting numbers:** don't call `String.format` without a `Locale`. Lint warns (`DefaultLocale`), and the result would follow the phone's language. Pad with `padStart` instead.
 - **Tests:**
   - **Unit tests:** in both modules, JUnit Jupiter, with sentence names in backticks. With AGP 9, `./gradlew build` runs only `:app`'s debug unit tests (`testDebugUnitTest`).
-  - **New tests that pass on their first run:** check that they can fail. Copy the file under test to the scratchpad, and put one deliberate bug into the original, for example with `sed`. Run the tests (filtered, see "Commands"), then copy the file back and check it with `cmp`. Note each bug, and the tests that caught it, in the handover. P4 did four this way.
+  - **New tests that pass on their first run:** check that they can fail, with one deliberate bug at a time in the code under test: the `deliberate-bugs` skill applies each, runs the tests, puts the file back and checks it with `cmp`. Note each bug, and the tests that caught it, in the handover. P4 and P5 did about fifty this way.
   - **Characters in test names:** names in backticks can't contain `.` `;` `:` `/` `\` `[` `]` `<` `>` on the JVM; the compiler rejects them. Use commas, or "and", instead. Write times as `0800` or `16h00`, not `08:00`.
   - **Instrumented tests** (`app/src/androidTest`): JUnit 4, also with sentence names in backticks (P1-D7). D8 takes spaces because `minSdk` is 33, but **no other ASCII punctuation except `-`, `_` and `$`**: no commas, no parentheses. A comma failed the dex step in P1 T6. To run one of them, run its class: `am instrument -e class Class#method` splits at the spaces.
   - **Instrumented tests and the real data:** `AppContainer.repository` is the app's real file. A test that goes through `MainActivity` or the container reads and writes the data the app really has, on the phone too. Build ViewModels with fakes, and leave the data as it was found. Store tests use their own file in the cache; `StoreDeviceCheck` touches the real data only when run with `-e storeCheck <step>`.
@@ -136,7 +137,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 - Android SDK in `D:\Android\Sdk` (`ANDROID_HOME`): platforms up to `android-37.0`, build-tools up to 37.0.0, emulator 37.1. Android Studio 2026.1 (build 261), whose JDK 25 is `JAVA_HOME`.
 - `gh` is authenticated as the repo's owner. Python 3.12 is installed.
 - **What a library does that its docs don't say** can be read from its classes in the Gradle cache. Unzip the AAR's `classes.jar` from `~/.gradle/caches/modules-2/files-2.1/<group>/<artifact>/<version>/` into the scratchpad, then read a class with `"$JAVA_HOME/bin/javap" -c -p -constants <file>.class`. String constants show names and messages; "Exception table" shows what each `catch` handles. P3 found DataStore's temporary file, its `fd.sync()` and when it deletes the file this way.
-- Create and change files with the Write and Edit tools, not shell heredocs. In Workout Timer, a heredoc that wrote a Kotlin file failed to parse in Git Bash, and nothing was written.
+- Create and change files with the Write and Edit tools, not shell heredocs. In Workout Timer, a heredoc that wrote a Kotlin file failed to parse in Git Bash, and nothing was written. **A script that edits files** goes in a scratchpad file too, written with Write and run with `python -I "$(cygpath -w <file>)"`: in P5, a heredoc's quotes broke the shell, and another lost its backslashes, writing control characters into a script.
 
 ## Git
 
