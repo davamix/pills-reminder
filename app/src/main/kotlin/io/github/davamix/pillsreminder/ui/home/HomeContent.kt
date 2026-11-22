@@ -72,8 +72,11 @@ const val HOME_LIST_TAG = "home-list"
 /** Room below the list's last row for the floating button. */
 private val FAB_SPACE = 88.dp
 
-/** From this font scale on, a row's button goes under its text, so no word breaks (P7 SPEC §4.3.11). */
-private const val STACKED_FONT_SCALE = 1.5f
+/**
+ * From this font scale on, a row's button goes under its text, so no word breaks (P7 SPEC §4.3.11). At the phone's
+ * "big" font, 1.4, a button beside the text left it so narrow that a dose broke between its number and its unit (T7, M5).
+ */
+private const val STACKED_FONT_SCALE = 1.3f
 
 /** One medicine's next take on Home: a Due row or a Next row (HM-1–HM-3, P7 SPEC §4.3.3). */
 data class HomeRow(
