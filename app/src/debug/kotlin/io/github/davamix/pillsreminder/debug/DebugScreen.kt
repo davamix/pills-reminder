@@ -46,6 +46,7 @@ data class DebugActions(
     val onFirstIn: (String) -> Unit = {},
     val onTwoMedicines: (Boolean) -> Unit = {},
     val onNoEnd: (Boolean) -> Unit = {},
+    val onInstructions: (Boolean) -> Unit = {},
     val onCreate: () -> Unit = {},
     val onEnd: () -> Unit = {},
     val onDelete: () -> Unit = {},
@@ -65,6 +66,7 @@ fun DebugScreen(viewModel: DebugViewModel = viewModel(factory = DebugViewModel.F
             onFirstIn = viewModel::setFirstIn,
             onTwoMedicines = viewModel::setTwoMedicines,
             onNoEnd = viewModel::setNoEnd,
+            onInstructions = viewModel::setInstructions,
             onCreate = viewModel::create,
             onEnd = viewModel::endTests,
             onDelete = viewModel::deleteTests,
@@ -137,6 +139,7 @@ private fun TestTreatment(
     )
     SwitchRow(stringResource(R.string.debug_two_medicines), state.form.twoMedicines, actions.onTwoMedicines)
     SwitchRow(stringResource(R.string.debug_no_end), state.form.noEnd, actions.onNoEnd)
+    SwitchRow(stringResource(R.string.debug_instructions), state.form.instructions, actions.onInstructions)
     Button(onClick = actions.onCreate, enabled = state.form.settings != null && !state.unreadable, modifier = Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.debug_create))
     }

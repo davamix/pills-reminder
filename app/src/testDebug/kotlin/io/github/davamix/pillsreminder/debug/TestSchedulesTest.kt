@@ -61,6 +61,15 @@ class TestSchedulesTest {
     }
 
     @Test
+    fun `its medicines have instructions only when asked for`() {
+        val with = TestSchedules.draft(TestSettings(twoMedicines = true, instructions = true), now)
+        val without = TestSchedules.draft(TestSettings(twoMedicines = true), now)
+
+        assertEquals(listOf("with food", "with food"), with.medicines.map { it.instructions })
+        assertEquals(listOf("", ""), without.medicines.map { it.instructions })
+    }
+
+    @Test
     fun `with no end it has no last take`() {
         val draft = TestSchedules.draft(TestSettings(noEnd = true), now)
         val saved = PillsData().saveTreatment(draft, now)

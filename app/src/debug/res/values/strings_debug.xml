@@ -9,6 +9,7 @@
     <string name="debug_first_in">First take in (minutes)</string>
     <string name="debug_two_medicines">Two medicines</string>
     <string name="debug_no_end">No end</string>
+    <string name="debug_instructions">Instructions "with food"</string>
     <string name="debug_create">Create test treatment</string>
     <string name="debug_test_count">Test treatments: %d</string>
     <string name="debug_end">End test treatments</string>

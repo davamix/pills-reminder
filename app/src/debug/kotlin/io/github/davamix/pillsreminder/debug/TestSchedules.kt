@@ -21,6 +21,8 @@ data class TestSettings(
     val twoMedicines: Boolean = false,
     /** No end, rather than 1 day. */
     val noEnd: Boolean = false,
+    /** Each medicine with the instructions [INSTRUCTIONS], rather than none. */
+    val instructions: Boolean = false,
 )
 
 /**
@@ -29,6 +31,9 @@ data class TestSettings(
  */
 object TestSchedules {
     const val PREFIX = "debug-"
+
+    /** The test medicines' instructions, when asked for: `TR-6`'s example. */
+    const val INSTRUCTIONS = "with food"
 
     fun isTest(treatment: Treatment): Boolean = treatment.id.value.startsWith(PREFIX)
 
@@ -47,7 +52,7 @@ object TestSchedules {
                     id = MedicineId(PREFIX + UUID.randomUUID()),
                     name = name,
                     dose = "1 tablet",
-                    instructions = "",
+                    instructions = if (settings.instructions) INSTRUCTIONS else "",
                     firstTake = first,
                     intervalAmount = settings.intervalMinutes,
                     intervalUnit = IntervalUnit.MINUTES,

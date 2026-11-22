@@ -46,13 +46,14 @@ data class DebugForm(
     val firstInText: String = TestSettings().firstInMinutes.toString(),
     val twoMedicines: Boolean = false,
     val noEnd: Boolean = false,
+    val instructions: Boolean = false,
 ) {
     /** The settings, or `null` while a number is missing or out of range. */
     val settings: TestSettings?
         get() {
             val interval = intervalText.toIntOrNull()?.takeIf { it >= 1 } ?: return null
             val firstIn = firstInText.toIntOrNull()?.takeIf { it >= 0 } ?: return null
-            return TestSettings(interval, firstIn, twoMedicines, noEnd)
+            return TestSettings(interval, firstIn, twoMedicines, noEnd, instructions)
         }
 }
 
@@ -112,6 +113,8 @@ class DebugViewModel(
     fun setTwoMedicines(two: Boolean) = form.update { it.copy(twoMedicines = two) }
 
     fun setNoEnd(noEnd: Boolean) = form.update { it.copy(noEnd = noEnd) }
+
+    fun setInstructions(instructions: Boolean) = form.update { it.copy(instructions = instructions) }
 
     fun create() =
         act {
