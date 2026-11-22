@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.2 |
+| **Status** | Ready, v0.3 |
 | **Phase** | P7, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 (done). P3, P5 and P6 are merged too, so Home uses the real store, the reminders follow every answer given on it, and its rows open P6's screens. |
 | **Branch** | `phase/p7-home` |
@@ -21,7 +21,7 @@ After P7, every screen of spec §6 exists. P8 then wires and accepts the whole a
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.10), so this document stands on its own. P2 implemented the rules; P7 shows them and calls them.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.11), so this document stands on its own. P2 implemented the rules; P7 shows them and calls them.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
@@ -32,7 +32,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | HM-5 | "While the home screen is open, the times left and the states stay current, without leaving and coming back." | The state is worked out again at each whole minute and at each change of the data (§4.3.1). The reminder check is read again each time the screen comes back to the front (§4.3.9). |
 | TK-2 | "Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20"." | Taken on a Due row records now, through P2's `markTaken`. Correcting the time stays on P6's Take screen. |
 | TK-4 | "A medicine's next take can be marked Taken before it is due, from the app, for example before going out. Its reminder is then cancelled. The next take is the medicine's Due take, if it has one, or else its first unanswered take still to come. Only one take of a medicine can be marked ahead of its time: the one after it can be marked early once the marked take's planned time has passed." | "Taken early" on a Next row whenever P2's `markTaken` would apply, after a confirmation (Q5, §4.3.4). P5's reconcile then never alerts for it. |
-| RM-9 | "**Reminder check:** the app checks what its reminders depend on: the notification permission; its Reminders notification category, which must be on and allowed to pop up and sound; the exact-alarm permission; and Android's battery optimisation for the app, which on HyperOS is the app's battery saver. It shows what is missing, each with a button that opens the right settings screen, or Android's own dialog for battery optimisation. On HyperOS, the settings the app can't read (Autostart, Floating notifications and Lock screen notifications) are listed as steps for you to confirm. The check is shown on first launch, where Android's dialog asks for the notification permission, and in Settings. The home screen warns while something is missing or a step isn't confirmed." | The check in Settings (§4.3.7–§4.3.9), opened at the first launch (§4.3.10), and Home's warning (§4.3.6). T1 settles each button's screen on this phone (§4.6). |
+| RM-9 | "**Reminder check:** the app checks what its reminders depend on: the notification permission; its Reminders notification category, which must be on and allowed to pop up and sound; the exact-alarm permission; and Android's battery optimisation for the app, which HyperOS's battery saver at "No restrictions" also turns off. It shows what is missing, each with a button that opens the right settings screen, or Android's own dialog for battery optimisation. On HyperOS, the settings the app can't read (Autostart, Floating notifications and Lock screen notifications) are listed as steps for you to confirm. The check is shown on first launch, where Android's dialog asks for the notification permission, and in Settings. The home screen warns while something is missing or a step isn't confirmed." | The check in Settings (§4.3.7–§4.3.9), opened at the first launch (§4.3.10), and Home's warning (§4.3.6). Each button's screen as T1 measured it (§4.3.8, §4.6). |
 | NF-7 | "**Phone layout:** portrait only, for a screen about 393 dp wide. Touch targets are at least 48 dp. Text stays usable with the system's larger font sizes." | Both screens fit the phone's content area, with 48 dp targets, and are drawn at font scale 2 (§4.3.11, T2, T7). |
 | NF-8 | "**Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Times follow the phone's 24-hour clock setting. Day and month names are in the UI's language, such as "Mon 23 Nov", so a translation brings its own." | Every text in `strings_home.xml` and `strings_settings.xml`, the time left's units included; dates and times through P6's `DateTimeText`. |
 | NF-10 | "**Theme:** follows the system's light or dark setting." | P1's theme; every state is drawn in both. |
@@ -99,7 +99,7 @@ Plan §3, the permissions the app may declare, among them "`REQUEST_IGNORE_BATTE
 
 Plan §2.3: "The home screen (P7) reads the same schedule and take states as the planner, and works them out again each minute while it is open (`HM-5`)."
 
-Plan §5.2 (v0.8), P7's scope for the check: "the notification permission, asked with Android's dialog at first launch, when the check opens once above Home; afterwards its button opens Android's settings (P7 Q6); the app's Reminders channel: on, and allowed to pop up and sound (P7 Q3); exact alarms; battery optimisation, with Android's own request dialog; on HyperOS it is the app's battery saver, which P5 found (P7 Q2); on a Xiaomi phone, HyperOS's Autostart, Floating notifications and Lock screen notifications, which P5's measurements named, as steps for the user to confirm, each with a button to its settings screen (P7 Q4); its own record, in a second, small file (§2.4, P7 Q1); a warning on the home screen while something is missing or a step isn't confirmed."
+Plan §5.2 (v0.9), P7's scope for the check: "the notification permission, asked with Android's dialog at first launch, when the check opens once above Home; afterwards its button opens Android's settings (P7 Q6); the app's Reminders channel: on, and allowed to pop up and sound (P7 Q3); exact alarms; battery optimisation, with Android's own request dialog; on HyperOS, the app's battery saver at "No restrictions" also turns it off, which P5 found (P7 Q2, T1); on a Xiaomi phone, HyperOS's Autostart, Floating notifications and Lock screen notifications, which P5's measurements named, as steps for the user to confirm, each with a button to its settings screen (P7 Q4); its own record, in a second, small file (§2.4, P7 Q1); a warning on the home screen while something is missing or a step isn't confirmed."
 
 Plan §2.4 (v0.8): "**The reminder check's record** is a second, small file beside it, also written by DataStore as JSON: whether the first launch is done, and which HyperOS steps the user has confirmed. It holds no treatment content. A missing or damaged one reads as empty, and the next write replaces it: the check then shows again (P7 Q1)."
 
@@ -113,10 +113,10 @@ From their handovers' "Pending wiring", "Decisions and deviations" and "Known is
   - the notification permission is needed;
   - `USE_EXACT_ALARM` is granted at install, on the phone and the emulator (A1);
   - **battery optimisation and HyperOS's battery saver aren't needed:** alarm clocks were on time with both at their defaults, in every case, "though `RM-9` still asks the check to show battery optimisation" (Q2);
-  - **on HyperOS they are one setting:** the app's battery saver at "No restrictions" made Android treat the app as exempt from battery optimisation (P5 T1, A2 run 3), so `isIgnoringBatteryOptimizations()` reads it;
+  - **on HyperOS they are linked one way:** the app's battery saver at "No restrictions" made Android treat the app as exempt from battery optimisation (P5 T1, A2 run 3), so `isIgnoringBatteryOptimizations()` reads it. P7's T1 found that Android's dialog sets "No restrictions" too, but HyperOS's default doesn't undo the dialog's exemption (§4.6, C2, Q7);
   - **Autostart** is needed so that reminders come back right after an app update: with it off, HyperOS blocks `MY_PACKAGE_REPLACED`, and the update has removed the notifications. Not for restarts: `BOOT_COMPLETED` came with it off;
   - HyperOS's "Floating notifications" and "Lock screen notifications" for the app are on by default, and "worth listing as steps to confirm, since turning them off would hide the pop-up and the lock screen content";
-  - "Once the check gets the notification permission granted, `MainActivity.onStart`'s reconcile posts the reminders the plan holds." That holds after a visit to Android's settings, which stops the activity. Android's permission dialog may only pause it: T1 measures it, and the draft reconciles after the dialog's answer (P7-D6).
+  - "Once the check gets the notification permission granted, `MainActivity.onStart`'s reconcile posts the reminders the plan holds." That holds after a visit to Android's settings, which stops the activity. Android's permission dialog only pauses it, on both devices (T1, C4), so the check reconciles after the dialog's answer (P7-D6).
   - "Taken on the home screen removes the reminder by itself (P5-D2)."
 - **P6, Home:** "P1's Home placeholder stays. Its "All treatments" and "New treatment" open P6's screens; its "Sample take" opens a take that doesn't exist […]. P7 replaces it, opens `TreatmentRoute(id)` from a medicine's row, and can reuse `ScreenDependencies`, `minuteTicks`, `DateTimeText` and the messages in `ui/common` (SPEC P6-D2–P6-D4)."
 - **P6's flow tests tap Home's buttons by their texts,** `home_all_treatments` and `home_new_treatment` (`compose.tap(…)`, which finds one node by its text): `CreateTreatmentTest`, `DiscardChangesTest`, `EditStartedTreatmentTest`, `EditorValidationTest`, `EndAndDeleteTest`, `ScreensNavigationTest`, `TakeScreenTest`. Home keeps both as buttons with those texts, each on one node only, so they pass unchanged (§4.3.5).
@@ -386,32 +386,32 @@ In this order. Android's items always; HyperOS's steps only on a HyperOS phone (
 | Item | OK when | MISSING says (suggestion) | Button |
 |---|---|---|---|
 | **Notifications** | allowed, and the Reminders channel `ON` (Q3) | not allowed: "Not allowed: no reminder can appear."; channel `OFF`: "The Reminders category is off: no reminder can appear."; `NO_POP_UP`: "Reminders don't pop up or sound: set the Reminders category to pop up." | **Open settings**: the app's notification settings, or the channel's |
-| **Exact alarms** | `canScheduleExactAlarms()` | "Not allowed: reminders may come late." It is granted at install and can't be revoked (`D-8`), so it should never show; T1 checks whether anything can revoke it. | **Open settings** (T1 decides the screen) |
-| **Battery optimisation** | the app is exempt | "On: Android may delay reminders. Turning it off costs no battery: the app runs only to alert." On HyperOS it adds: "In HyperOS this is the app's Battery saver: No restrictions." (Q2) | **Turn off**: Android's own request dialog (`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) |
-| **Autostart** (HyperOS) | confirmed | "Turn Autostart on, so reminders come back right after an app update." | **Open settings** (T1) and **Done** |
+| **Exact alarms** | `canScheduleExactAlarms()` | "Not allowed: reminders may come late." It is granted at install and nothing revokes it (`D-8`, T1 C5), so it should never show. | **Open settings**: the app's details (§4.3.8) |
+| **Battery optimisation** | the app is exempt | "On: Android may delay reminders. Turning it off costs no battery: the app runs only to alert." On HyperOS it adds: "This also sets HyperOS's Battery saver to No restrictions." (Q2, Q7) | **Turn off**: Android's own request dialog (§4.3.8) |
+| **Autostart** (HyperOS) | confirmed | "Turn Autostart on, so reminders come back right after an app update. Find Pills Reminder in the list." | **Open settings**: HyperOS's Autostart list (§4.3.8), and **Done** |
 | **Floating notifications** (HyperOS) | confirmed | "Keep Floating notifications on, so reminders pop up." | **Open settings** and **Done** |
 | **Lock screen notifications** (HyperOS) | confirmed | "Keep Lock screen notifications on, so reminders show on the lock screen." | **Open settings** and **Done** |
 
 - **Android's items** are OK or MISSING, from `DeviceChecks`. An OK line says so ("Allowed.", "Off for this app.") and keeps no button, apart from Notifications, whose settings stay useful.
 - **HyperOS's steps** are TO_CONFIRM until the user marks them done, then CONFIRMED (Q4). **Done** is a checkbox row ("Done", 48 dp tall); unticking it makes the step TO_CONFIRM again. The record keeps the confirmed steps (Q1).
-- **HyperOS's battery saver** isn't a step of its own: on HyperOS it is the battery optimisation line, which the app can read (§2.2). T1 checks that Android's dialog sets it too.
-- If T1 finds a HyperOS step the app can read after all (for example Floating notifications through the channel's importance), it becomes a line like Android's, with no Done: record it in the handover, and change this table with the user.
+- **HyperOS's battery saver** isn't a step of its own: its "No restrictions" turns battery optimisation off, which the app reads, and Android's dialog sets it (§2.2, T1 C2). Going back to HyperOS's default afterwards leaves the app exempt, which the line then shows as OK: harmless, since reminders need neither (P5).
+- **The category's own "Floating notifications"** in HyperOS is the channel's importance (T1 C3), which the Notifications line reads (`NO_POP_UP`). The app's "Floating notifications" and "Lock screen notifications" can't be read (T1 C3), so they stay steps.
 - **Above the lines:** "Reminders depend on these settings." and a summary: "Everything reminders need is set." or "2 settings to check."; under a heading "HyperOS", one line: "The app can't read these. Check each one, then mark it done."
 
 #### 4.3.8 Opening the settings screens
 
 - `ReminderCheckDevice.open(activity, item)` starts an explicit intent from the screen's activity, from the user's tap only. Each intent carries the app's package (`package:` URI or `EXTRA_APP_PACKAGE`).
-- **Draft intents,** which T1 checks on the phone and the emulator and may change:
+- **The intents,** as T1 measured them on the phone and the emulator (§4.6). "The app's details" is `ACTION_APPLICATION_DETAILS_SETTINGS`, which HyperOS redirects to its own App info.
 
   | Item | First choice | If it fails |
   |---|---|---|
   | Notifications | `Settings.ACTION_APP_NOTIFICATION_SETTINGS`; for a channel `OFF` or `NO_POP_UP`, `ACTION_CHANNEL_NOTIFICATION_SETTINGS` with the channel's ID | the app's details |
-  | Exact alarms | `ACTION_REQUEST_SCHEDULE_EXACT_ALARM` (it may list only apps that declare `SCHEDULE_EXACT_ALARM`) | the app's details |
-  | Battery optimisation | `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, Android's dialog | `ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS` |
-  | Autostart | HyperOS's Autostart screen, if T1 finds one that opens (for example `com.miui.securitycenter`'s) | the app's details (`ACTION_APPLICATION_DETAILS_SETTINGS`), where HyperOS shows the Autostart switch |
-  | Floating, Lock screen notifications | the app's notification settings, where HyperOS shows both switches | the app's details |
+  | Exact alarms | the app's details. Not `ACTION_REQUEST_SCHEDULE_EXACT_ALARM`: its "Alarms & reminders" page shows a disabled switch, off, for an app that holds `USE_EXACT_ALARM` (C1) | — |
+  | Battery optimisation | `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` with `setPackage("com.android.settings")`: Android's own dialog on both devices. Without the package, HyperOS offers a chooser of its own battery saver pages (C1) | the same intent without the package |
+  | Autostart | HyperOS's Autostart list, `com.miui.securitycenter/com.miui.permcenter.autostart.AutoStartManagementActivity` ("Autoinicio en segundo plano"), where the app is one row: HyperOS's App info has no Autostart line, and no per-app Autostart screen can be opened (C1) | the app's details |
+  | Floating, Lock screen notifications | `ACTION_APP_NOTIFICATION_SETTINGS`, where HyperOS shows both switches (C1) | the app's details |
 
-- **Falling back:** the code starts the first choice and catches `ActivityNotFoundException` and `SecurityException`, then starts the fallback. It doesn't call `resolveActivity()` first: without `<queries>` in the manifest, package visibility would make it return `null` for other apps' screens.
+- **Falling back:** the code starts the first choice and catches `ActivityNotFoundException` and `SecurityException`, then starts the fallback. It doesn't call `resolveActivity()` first: T1 found it worked for these screens without `<queries>`, but package visibility doesn't promise it.
 - Lint's `BatteryLife` warning on `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is suppressed on that line, with a comment: plan §3 allows the permission for this check (`RM-9`).
 
 #### 4.3.9 Reading the check again
@@ -469,22 +469,22 @@ On Sun 22 Nov at 10:30, the same treatment saved and not yet started: Upcoming: 
 | P7-D3 | HyperOS's steps show only on a HyperOS phone, are confirmed by the user, and count for Home's warning until confirmed. (Q4) | The emulator, and stock Android, have no such settings. The app can't read them (spec §3), so a confirmation is the only way the warning can go. |
 | P7-D4 | Home offers Taken for each Due take, and Taken early for a next take whenever P2's pure `markTaken` applies (P6-D5), after a confirmation. (Q5) | The rules stay in `:core`. Marking early is the unusual case, and a slip would cancel a reminder: the confirmation says so. |
 | P7-D5 | The first launch opens the check once, above Home, and the check asks for the notification permission with Android's dialog. Afterwards the Notifications line opens Android's settings. (Q6) | `RM-9` and plan §5.2: the permission is asked at first launch, and each line has a button to its settings screen. Android stops showing the dialog after two refusals, so settings always work. |
-| P7-D6 | After Android's permission dialog grants notifications, the check asks the reminders to reconcile (`ScreenDependencies.reconcile`). | P5 counts on `MainActivity.onStart`'s reconcile after the permission is granted, but a dialog may only pause the activity, so `onStart` wouldn't run. T1 measures it; reconciling twice changes nothing. |
+| P7-D6 | After Android's permission dialog grants notifications, the check asks the reminders to reconcile (`ScreenDependencies.reconcile`). | P5 counts on `MainActivity.onStart`'s reconcile after the permission is granted, but the dialog only pauses the activity, on the phone and the emulator (T1, C4), so `onStart` doesn't run. Reconciling twice changes nothing. |
 
 ### 4.6 Measured first
 
 T1 measures on the devices what the check relies on, before the design does. It uses `adb` where the shell can do it (`am start`, `dumpsys`, `appops`, `pm`), and a throwaway probe where only the app can (`phone` skill, "Measuring device behaviour"): a debug-only screen with one button per intent, which logs what each start did, and the readings of `DeviceChecks`. The probe is never committed. Each result records the device, its Android and HyperOS versions, and the settings before and after. Ask the user before changing any setting on the phone, and put it back.
 
-| # | What | Device | The draft assumes |
-|---|---|---|---|
-| C1 | Which screen each intent of §4.3.8 opens, started by the app from a tap; whether Back returns to the app; which fail, and with what | Phone, emulator | Android's intents open their screens on both; HyperOS's app details page has the Autostart switch, and its notification page both switches. |
-| C2 | Android's battery dialog: does HyperOS show it; does Allow make the app exempt, and set HyperOS's battery saver to "No restrictions"; and back again from HyperOS's setting (P5 saw one way) | Phone, emulator | Yes both ways, so the battery saver is the battery optimisation line. |
-| C3 | Whether HyperOS's "Floating notifications" and "Lock screen notifications" switches change anything the app can read: `areNotificationsEnabled`, the channel's importance or lock-screen visibility, in `dumpsys notification` before and after | Phone | Nothing: they stay steps to confirm. |
-| C4 | Android's notification permission dialog: shown on the phone as on the emulator; whether the activity gets `onStart` after it, or only `onResume`; what a dismissal and a second refusal do | Phone, emulator | Only `onResume` (P7-D6), and no dialog after two refusals. |
-| C5 | What can be revoked and granted again on the emulator: `pm revoke` and `pm grant` of `POST_NOTIFICATIONS` (ending the process); the channel turned off and on; `dumpsys deviceidle whitelist -` and `+` the app; exact alarms, with `appops` or anything else; and what `DeviceChecks` reads after each | Emulator | Every item but exact alarms, which nothing revokes; its MISSING line is then tested with fakes only. |
-| C6 | `Build.MANUFACTURER` and `Build.BRAND` on both devices; a HyperOS property such as `ro.mi.os.version.name` | Phone, emulator | `Xiaomi` on the phone, which marks HyperOS; not on the emulator. |
+Measured on 2026-11-22: the phone (POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM`) with the debug app's settings as the user keeps them (Autostart on, the battery saver at its default), and the emulator (API 36) with stock settings. The handover's "Measurements (T1)" has every reading. Every setting changed was put back.
 
-Results that contradict this table change the SPEC first, with the user (`phase-docs`, "SPEC change during implementation").
+| # | What | Device | Result |
+|---|---|---|---|
+| C1 | Which screen each intent of §4.3.8 opens, started by the app from a tap; whether Back returns to the app; which fail, and with what | Phone, emulator | Android's intents open their screens on both, and Back returns to the app from each. On the phone, the app's notification page has the **Floating** and **Lock screen notifications** switches. Three differences from the draft: **the battery intent opens a chooser** of HyperOS's battery saver pages, and Android's dialog only with `setPackage("com.android.settings")`; **"Alarms & reminders" shows a disabled switch, off,** for an app with `USE_EXACT_ALARM`, on both devices; **HyperOS's App info has no Autostart line**, and only HyperOS's Autostart list opens (`AutoStartManagementActivity`). HyperOS's components don't exist on the emulator (`ActivityNotFoundException`). |
+| C2 | Android's battery dialog: does HyperOS show it; does Allow make the app exempt, and set HyperOS's battery saver to "No restrictions"; and back again from HyperOS's setting (P5 saw one way) | Phone, emulator | The dialog (with the package) shows on both; Allow makes the app exempt, and HyperOS's page then shows "Sin restricciones". **Not back again:** HyperOS's default, chosen afterwards, left the app exempt. Linked one way only (Q7). |
+| C3 | Whether HyperOS's "Floating notifications" and "Lock screen notifications" switches change anything the app can read: `areNotificationsEnabled`, the channel's importance or lock-screen visibility, in `dumpsys notification` before and after | Phone | The app's two switches: **nothing readable changed**; they stay steps to confirm. The Reminders category's own Floating notifications switch is the channel's importance (4 ↔ 3), which the Notifications line reads. |
+| C4 | Android's notification permission dialog: shown on the phone as on the emulator; whether the activity gets `onStart` after it, or only `onResume`; what a dismissal and a second refusal do | Phone, emulator | Shown on both; **only `onPause` and `onResume`** around it (P7-D6 needed). After two refusals, a request returns at once with no dialog; Back on the dialog is a refusal for the result. |
+| C5 | What can be revoked and granted again on the emulator: `pm revoke` and `pm grant` of `POST_NOTIFICATIONS` (ending the process); the channel turned off and on; `dumpsys deviceidle whitelist -` and `+` the app; exact alarms, with `appops` or anything else; and what `DeviceChecks` reads after each | Emulator | Each as expected: the permission (the process ends at the revoke), the channel off (importance 0) and without pop-ups (3), battery optimisation both ways. **Exact alarms can't be revoked:** `appops` `deny` and `ignore` leave `canScheduleExactAlarms()` true. |
+| C6 | `Build.MANUFACTURER` and `Build.BRAND` on both devices; a HyperOS property such as `ro.mi.os.version.name` | Phone, emulator | Phone: `Xiaomi`, `POCO`, `OS1.0`. Emulator: `Google`, `google`, none. `Build.MANUFACTURER` equal to "Xiaomi", ignoring case, marks HyperOS. |
 
 ## 5. Security and privacy
 
@@ -567,7 +567,7 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q7.
+None at the moment. New questions are numbered from Q8.
 
 ### Answered
 
@@ -576,11 +576,12 @@ The review confirmed every draft assumption. Q1 went into plan v0.8 (`D-4`, §2.
 | # | Question | Decision |
 |---|---|---|
 | Q1 | Where the check keeps what it must remember: that the first launch is done, and which HyperOS steps the user has confirmed. Plan `D-4` said all data is one JSON document; these aren't treatment data. | A second DataStore file, `reminder-check.json`, with the libraries already in the build (P7-D1). A missing or damaged one reads as empty and is replaced: the check then shows again. Not a field of the treatments' document (a format change, blocked while that file can't be read), nor `SharedPreferences`. In plan v0.8 (`D-4`, §2.4). |
-| Q2 | Whether battery optimisation counts as missing, so Home warns until it is off, though P5 found reminders on time with it on | It counts, as `RM-9` says: one tap in Android's dialog turns it off, which costs no battery since the app runs only to alert (`NF-5`). On HyperOS it is the app's battery saver too (P5), so there is no separate battery saver step; T1 checks it both ways (C2). In specification v0.10 (`RM-9`). |
+| Q2 | Whether battery optimisation counts as missing, so Home warns until it is off, though P5 found reminders on time with it on | It counts, as `RM-9` says: one tap in Android's dialog turns it off, which costs no battery since the app runs only to alert (`NF-5`). On HyperOS, the battery saver's "No restrictions" turns it off too (P5), so there is no separate battery saver step; T1 found the link one way only (C2, Q7). In specification v0.10 and v0.11 (`RM-9`). |
 | Q3 | Whether the check also reads the app's Reminders channel, which can be turned off or lowered with the permission granted | Yes, as part of the Notifications line: the channel off, or below high importance, is missing, with a button to the channel's settings (§4.3.7). In specification v0.10 (`RM-9`). |
 | Q4 | Which HyperOS steps the check lists, on which phones, and whether Home warns until they are confirmed | Autostart (needed after an update, P5), Floating notifications and Lock screen notifications (on by default, P5), on a Xiaomi phone only (T1, C6). Each is to confirm until the user ticks Done, and Home warns until all are; unticking brings the warning back (P7-D3). In specification v0.10 (`RM-9`). |
 | Q5 | How Home marks a next take early (`TK-4`), with `HM-2`'s Taken button for due takes only | An outlined "Taken early" button on each Next row that P2 allows, with a confirmation ("Its reminder won't alert", P7-D4). The Take screen, reached through the treatment, also offers it (P6 Q7). In specification v0.10 (§6). |
 | Q6 | What the first launch shows, and how the notification permission is asked | The check opens once, above Home, and asks with Android's dialog at once; Back returns to Home. Afterwards, the Notifications line's button opens Android's settings, rather than the dialog, which Android stops showing after two refusals (P7-D5). A phone updated from an earlier build sees the check once too. In specification v0.10 (`RM-9`). |
+| Q7 | Found in T1 (§4.6): on HyperOS the battery intent opens a chooser of HyperOS's battery saver pages, not Android's dialog; "Alarms & reminders" shows a disabled switch, off, for an app with `USE_EXACT_ALARM`; HyperOS's App info has no Autostart line, and no per-app Autostart screen opens; HyperOS's battery saver and Android's battery optimisation are linked one way only (C2) | Decided by the user on 2026-11-22. The battery button names `com.android.settings`, which shows Android's dialog on both devices; the exact-alarm line's button opens the app's details; Autostart's opens HyperOS's Autostart list, and its line says to find the app there (§4.3.7, §4.3.8). `RM-9` now says HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being it: specification v0.11, plan v0.9. |
 
 ## 10. Change log
 
@@ -588,3 +589,4 @@ The review confirmed every draft assumption. Q1 went into plan v0.8 (`D-4`, §2.
 |---|---|---|
 | 0.1 | 2026-11-22 | First draft, from plan v0.7 and specification v0.9 |
 | 0.2 | 2026-11-22 | Review: Q1–Q6 answered, confirming every draft assumption. Now quotes specification v0.10, which took Q2–Q6 into `RM-9` and §6, and plan v0.8, which took Q1 into `D-4` and §2.4. Ready. |
+| 0.3 | 2026-11-22 | T1's measurements (§4.6, Q7). §4.3.8: the intents as measured; the battery dialog through `com.android.settings`; the exact-alarm line to the app's details; Autostart to HyperOS's Autostart list. §4.3.7: the battery and Autostart lines' texts; the category's Floating notifications is the channel's importance. §2.2 and Q2: HyperOS's battery saver linked one way. P7-D6 confirmed. Now quotes specification v0.11 and plan v0.9. |

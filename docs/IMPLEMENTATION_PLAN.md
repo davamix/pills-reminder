@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | v0.8, agreed |
+| **Status** | v0.9, agreed |
 | **Last updated** | 2026-11-22 |
-| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.10 |
+| **Based on** | [SPECIFICATION.md](SPECIFICATION.md) v0.11 |
 
 [SPECIFICATION.md](SPECIFICATION.md) says *what* the app does. This plan says *how* it is built: the architecture, the technical decisions, and the phases of work. Each phase gets its own specification and handover documents (see [§6](#6-working-method)).
 
@@ -385,7 +385,7 @@ The summaries below are the source for each phase's own SPEC.md, which expands t
     - the notification permission, asked with Android's dialog at first launch, when the check opens once above Home; afterwards its button opens Android's settings (P7 Q6);
     - the app's Reminders channel: on, and allowed to pop up and sound (P7 Q3);
     - exact alarms;
-    - battery optimisation, with Android's own request dialog; on HyperOS it is the app's battery saver, which P5 found (P7 Q2);
+    - battery optimisation, with Android's own request dialog; on HyperOS, the app's battery saver at "No restrictions" also turns it off, which P5 found (P7 Q2, T1);
     - on a Xiaomi phone, HyperOS's Autostart, Floating notifications and Lock screen notifications, which P5's measurements named, as steps for the user to confirm, each with a button to its settings screen (P7 Q4);
     - its own record, in a second, small file (§2.4, P7 Q1);
     - a warning on the home screen while something is missing or a step isn't confirmed.
@@ -529,3 +529,4 @@ None at the moment. New questions are numbered from PQ-4.
 | 0.6 | 2026-11-21 | From P5's measurements on the phone (P5 Q6–Q8), decided by the user. `D-10`: the notifications have no category, because HyperOS's Do Not Disturb lets the *reminder* category sound (`RM-8`); each notification is public on the lock screen, since an app can't set the channel's visibility; in vibrate mode Android vibrates instead of sounding. Now based on specification v0.8 (`RM-2`). |
 | 0.7 | 2026-11-22 | From the skills review after P5. `D-8`: HyperOS shows no alarm-clock icon, and the next alarm nowhere (P5 Q12); the icon PQ-2 accepted is stock Android's. §7: SK-7's steps went into `phone`; SK-8 `deliberate-bugs` created. |
 | 0.8 | 2026-11-22 | From the P7 spec review (P7 Q1–Q6), confirming its draft assumptions. `D-4` and §2.4: the reminder check's own record is a second, small DataStore file, apart from the treatments. §2.1: P7's `check` package. P7 in §5.2: the Reminders channel; battery optimisation, which is HyperOS's battery saver; HyperOS's steps (Autostart, Floating and Lock screen notifications) on a Xiaomi phone; the permission asked when the check opens at first launch; Taken early with a confirmation. Now based on specification v0.10, which took Q2–Q6 into `RM-9` and §6. |
+| 0.9 | 2026-11-22 | From P7's measurements (P7 T1). P7 in §5.2: HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being the same setting. Now based on specification v0.11. |
