@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Ready, v0.3 |
+| **Status** | Ready, v0.4 |
 | **Phase** | P7, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 (done). P3, P5 and P6 are merged too, so Home uses the real store, the reminders follow every answer given on it, and its rows open P6's screens. |
 | **Branch** | `phase/p7-home` |
@@ -150,6 +150,7 @@ From their handovers' "Pending wiring", "Decisions and deviations" and "Known is
 | Reading Autostart: the app can't (spec §3). The check asks the user to confirm it. | — |
 | A home-screen widget, a history of takes | Not in v1 (spec §2) |
 | The end-to-end test, the acceptance record, the release build | P8 |
+| The reminder that can lose its sound, found in M3: a race in P5's reconciler (Q10) | Its own fix, in a branch from `main` after P7, before P8 |
 
 ## 4. Design
 
@@ -187,7 +188,8 @@ app/src/androidTest/kotlin/io/github/davamix/pillsreminder/ui/…   HomeScreenTe
 - `navigation/Routes.kt`: `SettingsRoute` becomes `data class SettingsRoute(val firstLaunch: Boolean = false)` (§4.3.10).
 - `navigation/AppNavHost.kt`: Home's and Settings' destinations; the placeholder's `sampleTake` goes.
 - `ui/common/PlaceholderScreen.kt` and `strings.xml`'s `placeholder_note` (P1's): no screen uses them after P7, so they go.
-- `androidTest/…/ui/UiTesting.kt` (P6's): `FakeApp` passes a fake device (everything allowed, not HyperOS), an in-memory check store with the first launch done, and a `reconcile` that counts its calls; each can be set by a test.
+- `androidTest/…/ui/UiTesting.kt` (P6's): `FakeApp` passes a fake device (everything allowed, not HyperOS), an in-memory check store with the first launch done, and a `reconcile` that counts its calls; each can be set by a test. `FakeApp(unreadable = true)` starts with unreadable data. Two helpers: `quantity(id, count)` for plural texts, and `assertTouchHeightIsAtLeast(min)` (§6).
+- `androidTest/…/FirstLaunchDone.kt` (new): the rule for tests through `MainActivity` (§6).
 - `androidTest/…/NavigationSmokeTest.kt` (P1's, trimmed in P6): the sample take's test goes; Settings opens from Home's settings button. It starts `MainActivity` with the first launch done (§6).
 - `androidTest/…/reminders/OpenTakeTest.kt` (P5's): opens Settings from Home's settings button, by its content description; starts with the first launch done.
 - `test/…/ui/ViewModelTesting.kt` (P6's): `deps(…)` gets fakes for the three new entries.
@@ -213,17 +215,30 @@ data class DeviceChecks(
 enum class ChannelState { ON, NO_POP_UP, OFF }  // importance HIGH or more (or no channel yet); lower; NONE
 
 enum class HyperOsStep { AUTOSTART, FLOATING_NOTIFICATIONS, LOCK_SCREEN_NOTIFICATIONS }   // Q4, T1
-enum class CheckItem { NOTIFICATIONS, EXACT_ALARMS, BATTERY, AUTOSTART, FLOATING_NOTIFICATIONS, LOCK_SCREEN_NOTIFICATIONS }
+/** Each item of §4.3.7; a HyperOS step carries its [step]. */
+enum class CheckItem(val step: HyperOsStep?) {
+    NOTIFICATIONS(null), EXACT_ALARMS(null), BATTERY(null),
+    AUTOSTART(HyperOsStep.AUTOSTART), FLOATING_NOTIFICATIONS(…), LOCK_SCREEN_NOTIFICATIONS(…),
+}
 enum class LineStatus { OK, MISSING, TO_CONFIRM, CONFIRMED }
-data class CheckLine(val item: CheckItem, val status: LineStatus, val channel: ChannelState? = null)  // channel: NOTIFICATIONS only
+/** Why the Notifications line is missing: each has its own text and opens its own screen (§4.3.7, §4.3.8). */
+enum class NotificationsProblem { NOT_ALLOWED, CHANNEL_OFF, NO_POP_UP }
+data class CheckLine(val item: CheckItem, val status: LineStatus, val problem: NotificationsProblem? = null)
 
-data class ReminderCheck(val lines: List<CheckLine>) {
+/** [hyperOs]: the battery line adds its HyperOS sentence (§4.3.7). */
+data class ReminderCheck(val lines: List<CheckLine>, val hyperOs: Boolean) {
     /** What Home warns about: lines MISSING or TO_CONFIRM. */
     val toCheck: Int
 }
 
 /** The check: Android's items always, HyperOS's steps only on a HyperOS phone, in the order of §4.3.7. */
 fun reminderCheck(device: DeviceChecks, record: CheckRecord): ReminderCheck
+fun channelStateOf(importance: Int?): ChannelState        // null (no channel yet) ON; NONE OFF; below HIGH NO_POP_UP
+fun isHyperOs(manufacturer: String): Boolean              // "Xiaomi", ignoring case (T1, C6)
+
+/** The screens an item's button tries, in order (§4.3.8): pure, so the rules have JVM tests. */
+enum class SettingsScreen { APP_NOTIFICATIONS, CHANNEL, APP_DETAILS, BATTERY_DIALOG, BATTERY_ANY, AUTOSTART_LIST }
+fun settingsScreens(item: CheckItem, device: DeviceChecks): List<SettingsScreen>
 
 /** Reads the device, and opens the settings screen of an item. Fakes in tests (P7-D2). */
 interface ReminderCheckDevice {
@@ -243,9 +258,11 @@ interface CheckStore {
 }
 class InMemoryCheckStore(initial: CheckRecord = CheckRecord()) : CheckStore      // tests, in main like core's fake
 class DataStoreCheckStore(dataStore: DataStore<CheckRecord>) : CheckStore {
-    companion object { fun create(file: File, scope: CoroutineScope): DataStoreCheckStore }
+    companion object { const val FILE_NAME = "reminder-check.json"; fun create(file: File, scope: CoroutineScope): DataStoreCheckStore }
 }
 ```
+
+The record's file: `{"schemaVersion":1,"firstLaunchDone":true,"confirmed":["AUTOSTART","LOCK_SCREEN_NOTIFICATIONS"]}`, the steps by name, sorted. A missing file, a damaged one, another `schemaVersion`, or one that can't be opened reads as the empty record; a step name it doesn't know is left out. A write that fails throws an `IOException`.
 
 ```kotlin
 // ui/common: P7's entries in P6's ScreenDependencies
@@ -283,8 +300,8 @@ sealed interface HomeData {
 }
 data class HomeState(
     val data: HomeData?,                    // null until the stored data is read
-    val toCheck: Int,                       // the check's warning (§4.3.6); 0: no warning
-    val openCheck: Boolean,                 // the first launch: open the check (§4.3.10)
+    val toCheck: Int,                       // the check's warning (§4.3.6); 0: no warning, and until the record is read
+    val openCheck: Boolean,                 // the first launch: open the check (§4.3.10); false until the record is read
     val problem: ChangeProblem? = null,
 )
 class HomeViewModel(deps: ScreenDependencies) : ViewModel() {
@@ -309,10 +326,11 @@ data class SettingsState(
     val problem: ChangeProblem? = null,     // a confirmation that couldn't be written
 )
 class SettingsViewModel(deps: ScreenDependencies, firstLaunch: Boolean, saved: SavedStateHandle) : ViewModel() {
-    val state: StateFlow<SettingsState?>
+    val state: StateFlow<SettingsState?>                    // null until the check's record is read
     fun refresh()                                           // each time the screen is resumed
     fun setConfirmed(step: HyperOsStep, confirmed: Boolean)
-    fun notificationsAsked(granted: Boolean)                // the dialog's answer: reconciles when granted
+    fun notificationsRequested()                            // right before the dialog opens: "asked", in `saved`
+    fun notificationsAsked(granted: Boolean)                // the dialog's answer: reads the device, reconciles if granted
     fun problemShown()
 }
 ```
@@ -359,14 +377,15 @@ As in the sketch of §2.1 (texts are suggestions):
 #### 4.3.4 Taken and Taken early (TK-2, TK-4)
 
 - **Taken** on a Due row: `repository.markTaken(key, clock)` inside `attempt { }`. P2 records now, in whole minutes; P5 removes the reminder (P5-D2). No confirmation: it is Home's main action (HM-2).
-- **Taken early** on a Next row (Q5): shown only when P2's pure `data.markTaken(key, now)` would return non-`null` (P6-D5), which is `canMarkEarly`: the medicine's next take, Pending, with nothing already answered ahead of its time. An outlined button, so the Due rows' filled Taken stays the one that stands out. It asks first: "Mark Atrovent's take at Today 16:00 as taken now? Its reminder won't alert." with **Taken early** and **Cancel**. Then the same `markTaken`.
+- **Taken early** on a Next row (Q5): shown only when P2's pure `data.markTaken(key, now)` would return non-`null` (P6-D5), which is `canMarkEarly`: the medicine's next take, Pending, with nothing already answered ahead of its time. An outlined button, so the Due rows' filled Taken stays the one that stands out. It asks first, in P6's `ConfirmDialog`: "Mark as taken now?", "Atrovent · 3 puffs, planned for Today 16:00. Its reminder won't alert.", with **Taken early** and **Cancel**. Then the same `markTaken`. The dialog's take is kept through a rebuilt screen (`rememberSaveable`).
 - After it, the row shows the medicine's following take, without Taken early: TK-4 allows one take ahead at a time. Once the marked take's planned time has passed, the button comes back for the next one.
 - **Refused** (the take changed meanwhile, for example answered from its reminder): "Not changed: this take changed in the meantime." The rows already show the new state. **A failed write:** "Not saved: the change couldn't be written. Try again." **Unreadable meanwhile:** as Unreadable. All through P6's `attempt { }` and `ShowProblem`, in a snackbar; any other exception isn't caught.
-- A double tap marks once: the second `markTaken` is refused by P2, and that refusal isn't shown when the first one applied. The simplest way: Taken is disabled from the tap until the data changes.
+- A double tap marks once: the second `markTaken` is refused by P2, and that refusal isn't shown when the first one applied. The ViewModel keeps each take being marked: while the change runs, and, once applied, with the stored data it changed. A take kept is ignored by `markTaken` and its button disabled, until the rows show data other than that; then it follows P2 again, so a take answered and cleared elsewhere can be marked again. The store's flow may show a change only after `update` returns, which "until the data changes" alone wouldn't cover.
 
 #### 4.3.5 Home's frame, empty state and unreadable data
 
-- **Top bar:** the title "Next takes", and a settings icon button (`Icons.Filled.Settings`, content description "Settings").
+- **Top bar:** the title "Next takes", and a settings icon button (`Icons.Filled.Settings`, content description "Settings"). It and the warning's **Check** both open `SettingsRoute()`.
+- **Rows:** Due rows are cards in the theme's `primaryContainer`, with a filled Taken; Next and Upcoming rows are plain cards, Next with an outlined Taken early.
 - **All treatments** and **New treatment** (spec §6): a bottom bar with the text button "All treatments", and the extended floating button "New treatment" (the content overload, P6's pitfall) above it, at its end. Two text buttons side by side would break at font scale 2. T2's drawings settle the layout with the user; whatever it becomes, each of the two stays a single button node with its text, `home_all_treatments` and `home_new_treatment`, which P6's flow tests tap.
 - The list is a `LazyColumn` with bottom padding, so the floating button never covers its last row.
 - **Empty** (HM-4): no treatment Active or Upcoming, Finished ones included: "No treatments active or upcoming." and, under it, "Create one with New treatment." The floating button is the offer, so the text has no second "New treatment" button that tests would find twice.
@@ -375,7 +394,8 @@ As in the sketch of §2.1 (texts are suggestions):
 
 #### 4.3.6 Home's warning (RM-9)
 
-- While the check has something to check (`toCheck > 0`: a line MISSING, or a HyperOS step TO_CONFIRM, §4.3.7), a card at the top of the list, above Due: "Reminders may not work: 2 settings to check." with the button **Check**, which opens Settings.
+- While the check has something to check (`toCheck > 0`: a line MISSING, or a HyperOS step TO_CONFIRM, §4.3.7), a card at the top of the list, above Due, in the theme's `errorContainer`: "Reminders may not work: 2 settings to check." with the button **Check**, which opens Settings.
+- Until the check's record is read, Home shows no warning and doesn't open the check: with an empty record, every HyperOS step would count for a moment.
 - It goes as soon as everything is set or confirmed, the next time Home is resumed or the record changes.
 - It shows also with unreadable data, and in the empty state.
 
@@ -397,6 +417,7 @@ In this order. Android's items always; HyperOS's steps only on a HyperOS phone (
 - **HyperOS's battery saver** isn't a step of its own: its "No restrictions" turns battery optimisation off, which the app reads, and Android's dialog sets it (§2.2, T1 C2). Going back to HyperOS's default afterwards leaves the app exempt, which the line then shows as OK: harmless, since reminders need neither (P5).
 - **The category's own "Floating notifications"** in HyperOS is the channel's importance (T1 C3), which the Notifications line reads (`NO_POP_UP`). The app's "Floating notifications" and "Lock screen notifications" can't be read (T1 C3), so they stay steps.
 - **Above the lines:** "Reminders depend on these settings." and a summary: "Everything reminders need is set." or "2 settings to check."; under a heading "HyperOS", one line: "The app can't read these. Check each one, then mark it done."
+- **Each line** is a card: its status icon (a check for OK and CONFIRMED, a warning for MISSING, an info icon for TO_CONFIRM, each with a content description), its name, its text (in the error colour when MISSING), then its buttons. The Notifications line's text says which problem it has (`NotificationsProblem`).
 
 #### 4.3.8 Opening the settings screens
 
@@ -412,6 +433,8 @@ In this order. Android's items always; HyperOS's steps only on a HyperOS phone (
   | Floating, Lock screen notifications | `ACTION_APP_NOTIFICATION_SETTINGS`, where HyperOS shows both switches (C1) | the app's details |
 
 - **Falling back:** the code starts the first choice and catches `ActivityNotFoundException` and `SecurityException`, then starts the fallback. It doesn't call `resolveActivity()` first: T1 found it worked for these screens without `<queries>`, but package visibility doesn't promise it.
+- **The order to try** is the pure `settingsScreens(item, device)`, which `AndroidReminderCheckDevice.open` turns into intents. Notifications opens the channel's screen only when the permission is granted and the channel isn't `ON`; otherwise the app's notification settings.
+- A line's button counts only while the screen is resumed (`dropUnlessResumedWith`), as a click that navigates does.
 - Lint's `BatteryLife` warning on `ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is suppressed on that line, with a comment: plan §3 allows the permission for this check (`RM-9`).
 
 #### 4.3.9 Reading the check again
@@ -426,16 +449,17 @@ In this order. Android's items always; HyperOS's steps only on a HyperOS phone (
 - **What counts:** the record's `firstLaunchDone` is `false`: a new install, cleared storage, or the first start of a build with P7 on a phone that had an earlier one.
 - **Home opens the check once:** when its state says `openCheck`, it navigates to `SettingsRoute(firstLaunch = true)` above itself, through P6's `LeaveWhen` (navigation driven by a state, once resumed), and calls `checkOpened()`. That marks `firstLaunchDone` in the store, and at once in the ViewModel, so coming back to Home before the write ends doesn't open it again. Back from the check returns to Home.
 - If a tapped reminder opens a take first (P5's `OpenTake`, above Home), Home isn't resumed, and the check opens the first time Home is.
-- **The notification permission:** the check, opened with `firstLaunch`, asks for it with Android's dialog (`ActivityResultContracts.RequestPermission`) right away, once, when it isn't granted. `askNotifications` comes from the ViewModel, which keeps "asked" in its `SavedStateHandle`, so a rebuilt screen doesn't ask again. Afterwards, the Notifications line's button opens the app's notification settings (`RM-9`): the dialog isn't offered again, since Android stops showing it after two refusals.
-- **After a grant** from the dialog, the ViewModel calls `deps.reconcile()` (P7-D6), so the reminders the plan holds are posted at once.
+- **The notification permission:** the check, opened with `firstLaunch`, asks for it with Android's dialog (`ActivityResultContracts.RequestPermission`) right away, once, when it isn't granted. `askNotifications` comes from the ViewModel, which keeps "asked" in its `SavedStateHandle`, so a rebuilt screen doesn't ask again. The screen launches the dialog through `LeaveWhen(askNotifications)`, once resumed, calling `notificationsRequested()` right before: a screen rebuilt while the dialog is up doesn't open a second one, and the answer still reaches `notificationsAsked(granted)`. Afterwards, the Notifications line's button opens the app's notification settings (`RM-9`): the dialog isn't offered again, since Android stops showing it after two refusals.
+- **After the answer,** the ViewModel reads the device again; after a grant it also calls `deps.reconcile()` (P7-D6), so the reminders the plan holds are posted at once.
 - The first launch's check is the same screen as Settings, under the same title; the line "Reminders depend on these settings." says why it opened.
 
 #### 4.3.11 Layout
 
 - **The phone's content area is 392.7 × 796.4 dp** (P1, measured; the `phone` skill's "Devices"). Both screens fit it, at font scale 1 and 2, in light and dark theme. The emulator's is 28 dp taller, so a layout that fits there can still overflow on the phone.
 - Screens use `Scaffold`, which keeps the content out of the system bars (P1-D4). Home is a `LazyColumn`; Settings a scrolling `Column` or a `LazyColumn`.
-- **Touch targets** are at least 48 dp: rows, buttons, icon buttons and Done's checkbox rows.
-- **At font scale 2,** a Due row's text and its Taken button may not fit side by side; the button then goes under the text, full width. The drawings (T2) decide. Each line of the check has its texts first and its buttons under them, one under the other.
+- **Touch targets** are at least 48 dp: rows, buttons, icon buttons and Done's checkbox rows. Material 3's buttons are drawn 40 dp tall and take touches over 48 dp, which meets `NF-7`.
+- **From font scale 1.3,** a row's button goes under its texts, full width (`STACKED_FONT_SCALE`); below that it sits beside them. T2's drawings settled font scale 2; at the phone's "big" font, 1.4, a button beside the texts left them so narrow that "Amoxicillin · 1 capsule" broke between the number and its unit (T7, M5, Q9). Each line of the check has its texts first and its buttons under them, one under the other.
+- **Non-breaking spaces** keep the time left ("in 7 h 55 min") and "No end" on one line (`strings_home.xml`): on the emulator's 12-hour clock, "in 7 h 55 / min" broke in T2.
 - **The check's colours:** a MISSING line shows an icon (`Icons.Filled.Warning`) and the error colour for its status word; an OK or CONFIRMED line an icon (`Icons.Filled.CheckCircle`, or `Check`), so the status isn't told by colour alone. Icons only from `material-icons-core`, each with a content description or marked as decoration.
 
 #### 4.3.12 Example
@@ -513,8 +537,8 @@ ViewModel and logic tests use fakes, on the JVM. UI tests run `AppNavHost` with 
 | `HomeViewModelTest`, the check: `toCheck` from a fake device and record, again after `refreshCheck()`; `openCheck` with the first launch not done, once only, and false after `checkOpened()` even before the store has written | unit | `RM-9`, §4.3.6, §4.3.10 |
 | `SettingsViewModelTest`: the lines from the fake device and record; `refresh()` reads the device again; `setConfirmed` both ways, and a failed write's problem; `askNotifications` only at the first launch with notifications not allowed, once, kept through a `SavedStateHandle`; `notificationsAsked(true)` calls `reconcile`, `false` doesn't | unit | `RM-9`, P7-D5, P7-D6 |
 | `HomeScreenTest`: the order of Due, Next and Upcoming on the §4.4 example; a due take marked Taken moves to Next; Taken early with its confirmation, Cancel then confirm; the empty state and its New treatment; unreadable; a row opens its treatment; the warning opens Settings | UI | plan's done criteria, `HM-1`–`HM-4`, `TK-4` |
-| `ReminderCheckScreenTest`: the lines from the fake device; a change of the fake device shows after leaving the screen and coming back (`refresh` on resume); each button calls `open` with its item; Done confirms a step and Home's warning goes; the first launch opens the check from Home, once, and Back returns to Home | UI | `RM-9`, §4.3.9, §4.3.10 |
-| Rows, buttons and checkbox rows are at least 48 dp tall (`assertHeightIsAtLeast`), in the UI tests | UI | `NF-7` |
+| `ReminderCheckScreenTest`: the lines from the fake device; a change of the fake device shows after the activity is paused and resumed (`activityRule.scenario.moveToState`), on Settings and then on Home (`refresh` on resume); each button calls `open` with its item; Done confirms a step and Home's warning goes; the first launch opens the check from Home, once, and Back returns to Home | UI | `RM-9`, §4.3.9, §4.3.10 |
+| Rows and checkbox rows are at least 48 dp tall (`assertHeightIsAtLeast`); buttons take touches over at least 48 dp (`assertTouchHeightIsAtLeast`, from `touchBoundsInRoot`, since they are drawn 40 dp tall) | UI | `NF-7` |
 | `NavigationSmokeTest` (trimmed): starts on Home, portrait; Settings opens from Home and Back returns; through `MainActivity` with the first launch done | UI | `NF-7` |
 | `OpenTakeTest` (P5's, kept): passes with the real Home, opening Settings by its icon | UI | `RM-6` |
 | P6's flow tests: pass unchanged with the real Home | UI | — |
@@ -522,7 +546,7 @@ ViewModel and logic tests use fakes, on the JVM. UI tests run `AppNavHost` with 
 
 New tests that pass at their first run are shown able to fail, with the `deliberate-bugs` skill (CLAUDE.md).
 
-**Tests through `MainActivity`** (`NavigationSmokeTest`, `OpenTakeTest`) would otherwise open the check on a device whose record is empty, and Android's permission dialog with it. A test rule, outside the activity's rule, reads the real record through the container, sets `firstLaunchDone` for the run, and writes back what it found afterwards (P3: leave the data as it was found).
+**Tests through `MainActivity`** (`NavigationSmokeTest`, `OpenTakeTest`) would otherwise open the check on a device whose record is empty, and Android's permission dialog with it. The rule `FirstLaunchDone`, an `ExternalResource` at `@get:Rule(order = 0)`, outside the activity's rule, reads the real record through the container, sets `firstLaunchDone` for the run, and writes back what it found afterwards (P3: leave the data as it was found). With no record before, it writes back the empty one, which means the same as no file.
 
 **Android's permission dialog isn't in a UI test:** a fake device that says notifications aren't allowed would show the real dialog. `SettingsViewModelTest` covers when it is asked; M2 and E2 see it on the devices.
 
@@ -567,7 +591,7 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 9. Open questions
 
-None at the moment. New questions are numbered from Q8.
+None at the moment. New questions are numbered from Q11.
 
 ### Answered
 
@@ -582,6 +606,9 @@ The review confirmed every draft assumption. Q1 went into plan v0.8 (`D-4`, §2.
 | Q5 | How Home marks a next take early (`TK-4`), with `HM-2`'s Taken button for due takes only | An outlined "Taken early" button on each Next row that P2 allows, with a confirmation ("Its reminder won't alert", P7-D4). The Take screen, reached through the treatment, also offers it (P6 Q7). In specification v0.10 (§6). |
 | Q6 | What the first launch shows, and how the notification permission is asked | The check opens once, above Home, and asks with Android's dialog at once; Back returns to Home. Afterwards, the Notifications line's button opens Android's settings, rather than the dialog, which Android stops showing after two refusals (P7-D5). A phone updated from an earlier build sees the check once too. In specification v0.10 (`RM-9`). |
 | Q7 | Found in T1 (§4.6): on HyperOS the battery intent opens a chooser of HyperOS's battery saver pages, not Android's dialog; "Alarms & reminders" shows a disabled switch, off, for an app with `USE_EXACT_ALARM`; HyperOS's App info has no Autostart line, and no per-app Autostart screen opens; HyperOS's battery saver and Android's battery optimisation are linked one way only (C2) | Decided by the user on 2026-11-22. The battery button names `com.android.settings`, which shows Android's dialog on both devices; the exact-alarm line's button opens the app's details; Autostart's opens HyperOS's Autostart list, and its line says to find the app there (§4.3.7, §4.3.8). `RM-9` now says HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being it: specification v0.11, plan v0.9. |
+| Q8 | Found in T2–T6: details the draft left open, recorded in the handover as they were built | Kept as built, and folded in v0.4: the Notifications line's `problem`, `ReminderCheck.hyperOs` and `CheckItem.step` (§4.2); `settingsScreens()` and the record's file (§4.2, §4.3.8); the Taken early dialog's wording (§4.3.4); a double tap ignored until the rows show the change (§4.3.4); no warning and no first launch until the record is read (§4.3.6); `notificationsRequested()` and Settings' `null` state (§4.2, §4.3.10); the cards' colours and the non-breaking spaces (§4.3.5, §4.3.11); buttons checked by their touch height, and the `FirstLaunchDone` rule (§6). |
+| Q9 | Found in T7 (M5): at the phone's "big" font, 1.4, a row's texts beside its button broke "Amoxicillin · 1 capsule" between the number and its unit, and the progress took three lines; the button stacked only from 1.5 | Decided by the user on 2026-11-22: the button goes under the texts from font scale 1.3. Drawn again on the phone at 1.4: each line fits (§4.3.11). |
+| Q10 | Found in T7 (M3): a reminder that alerted played no sound. After an alert, the reconcile that the stored record starts reads the shade before Android has registered the post, finds the reminder missing, and posts it again silently, which replaces the alerting post (P5's `Reconciler`) | Decided by the user on 2026-11-22: not fixed in P7, whose packages don't include P5's; fixed in its own branch from `main` after P7, with a unit test that reproduces the race and a check on the phone, before P8 (§3). |
 
 ## 10. Change log
 
@@ -590,3 +617,4 @@ The review confirmed every draft assumption. Q1 went into plan v0.8 (`D-4`, §2.
 | 0.1 | 2026-11-22 | First draft, from plan v0.7 and specification v0.9 |
 | 0.2 | 2026-11-22 | Review: Q1–Q6 answered, confirming every draft assumption. Now quotes specification v0.10, which took Q2–Q6 into `RM-9` and §6, and plan v0.8, which took Q1 into `D-4` and §2.4. Ready. |
 | 0.3 | 2026-11-22 | T1's measurements (§4.6, Q7). §4.3.8: the intents as measured; the battery dialog through `com.android.settings`; the exact-alarm line to the app's details; Autostart to HyperOS's Autostart list. §4.3.7: the battery and Autostart lines' texts; the category's Floating notifications is the channel's importance. §2.2 and Q2: HyperOS's battery saver linked one way. P7-D6 confirmed. Now quotes specification v0.11 and plan v0.9. |
+| 0.4 | 2026-11-22 | T8: what implementation settled (Q8–Q10). §4.2: `CheckItem.step`, `NotificationsProblem` and `CheckLine.problem`, `ReminderCheck.hyperOs`, `channelStateOf`, `isHyperOs`, `settingsScreens()`, the record's file, `notificationsRequested()`, the states before the record is read. §4.3: the dialog's wording and the double tap (§4.3.4); the cards and where Check leads (§4.3.5, §4.3.6); the line cards and the screens' order (§4.3.7, §4.3.8); the dialog's request and answer (§4.3.10); rows stack from font scale 1.3, non-breaking spaces, buttons' touch height (§4.3.11). §4.1 and §6: `FirstLaunchDone`, `FakeApp(unreadable)`, `assertTouchHeightIsAtLeast`. §3: the lost-sound fix, after P7. |
