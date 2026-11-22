@@ -9,6 +9,7 @@ import io.github.davamix.pillsreminder.R
 import java.text.NumberFormat
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.Locale
@@ -44,6 +45,9 @@ class DateTimeText(
 
     /** The time of day: "16:00", or "4:00 PM" on a 12-hour phone. */
     fun time(at: LocalDateTime): String = timeFormat.format(at)
+
+    /** A time of day, as [time] writes it. */
+    fun time(at: LocalTime): String = timeFormat.format(at)
 
     /** The date, such as "Mon 23 Nov", with the year when it isn't [today]'s: "Mon 30 Nov 2027". */
     fun date(

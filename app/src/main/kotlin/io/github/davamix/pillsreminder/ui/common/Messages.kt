@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -43,6 +47,25 @@ suspend fun attempt(change: suspend () -> Boolean): ChangeProblem? =
     } catch (e: IOException) {
         ChangeProblem.NOT_SAVED
     }
+
+/**
+ * Shows [problem] once in [host]'s snackbar, then calls [onShown] so the ViewModel clears it (P6 SPEC §4.3.10). The same
+ * problem twice in a row shows twice, since it is cleared in between.
+ */
+@Composable
+fun ShowProblem(
+    problem: ChangeProblem?,
+    host: SnackbarHostState,
+    onShown: () -> Unit,
+) {
+    val message = problem?.let { stringResource(it.message) }
+    val currentOnShown by rememberUpdatedState(onShown)
+    LaunchedEffect(problem) {
+        if (message == null) return@LaunchedEffect
+        host.showSnackbar(message)
+        currentOnShown()
+    }
+}
 
 /** In place of a screen's content when the stored data can't be read (plan §2.4). The app offers no repair. */
 @Composable

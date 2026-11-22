@@ -1,6 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- The Treatment screen (P6 SPEC §4.3.4). The wording is a suggestion; this file holds the final one. -->
 <resources>
     <string name="treatment_title">Treatment</string>
-    <string name="treatment_edit">Edit</string>
+    <string name="treatment_edit">Edit treatment</string>
+    <string name="treatment_missing">This treatment no longer exists.</string>
+
+    <!-- The status, then a detail: "Upcoming · Starts: Tomorrow 08:00". -->
+    <string name="treatment_status_detail">%1$s · %2$s</string>
+    <string name="treatment_starts">Starts: %1$s</string>
+    <string name="treatment_ended">Ended: %1$s</string>
+    <string name="treatment_last_take">Last take: %1$s</string>
+
+    <!-- A medicine's card. Numbers are already written with the locale's grouping. -->
+    <string name="treatment_progress">%1$s of %2$s taken or skipped</string>
+    <string name="treatment_progress_no_end">%1$s taken or skipped · No end</string>
+    <!-- %1$s is a day and a time, or "No end" (SC-5). -->
+    <string name="treatment_medicine_last_take">Last take: %1$s</string>
+    <!-- The next take: its day and time, then its state, such as "Next: Today 16:00 · Due". -->
+    <string name="treatment_next">Next: %1$s · %2$s</string>
+    <!-- The last answered take (TK-5): its day and time, then "Taken at 08:05" or "Skipped". -->
+    <string name="treatment_last_answered">Last answered: %1$s · %2$s</string>
+
+    <string name="treatment_end">End early</string>
+    <string name="treatment_end_confirm">End %1$s now? Its takes still to come are removed, and a take that is due now becomes missed.</string>
+    <string name="treatment_end_action">End</string>
+    <string name="treatment_delete">Delete treatment</string>
+    <string name="treatment_delete_confirm">Delete %1$s? Its medicines and every take recorded for it are deleted. This can\'t be undone.</string>
+    <string name="treatment_delete_action">Delete</string>
+
+    <!-- P1's placeholder, until T4 replaces it. -->
     <string name="treatment_open_take">Open take</string>
 </resources>

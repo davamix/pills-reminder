@@ -29,7 +29,8 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T2`: the layouts of Treatments, Treatment and Take, drawn in every state on the emulator and the phone, and shown to the user.
+1. `T3`: the editors' layouts, drawn in every state like T2's.
+2. Then draw T2's and T3's states on the phone (unlocked), and show the user both sets of drawings before T4. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`); a new session writes it again from the `phone` skill.
 
 ## Tasks
 
@@ -38,7 +39,7 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | `ui/common`: `ScreenDependencies` (with `rememberAppDependencies`), `minuteTicks`, `DateTimeText` (with `number()` for counts), `ChangeProblem` with `attempt {}` and `UnreadableMessage`, `ConfirmDialog`; `strings_common.xml`. 15 unit tests; 18 deliberate bugs, all caught (session log). |
-| T2 | To do | Layouts of Treatments, Treatment and Take, drawn |
+| T2 | Doing | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator: light and dark at font scale 1, and at the system's font scale 2; all fit. Left: the same drawings on the phone (it was locked), then shown to the user with T3's. |
 | T3 | To do | Layouts of the editors, drawn |
 | T4 | To do | Treatments and Treatment screens |
 | T5 | To do | Take screen |
@@ -53,9 +54,13 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-22 | The date and time fields (`DateField`, `TimeField`) are in `ui/common/DateTimeFields.kt`, not `ui/editor/`, with `BackButton.kt` and `CommonTexts.kt` (schedule, state and status texts) beside them. To fold into SPEC §4.1 in T9. | The Take screen's Change time uses the same fields as the medicine editor; the Treatment and Take screens write schedules and states the same way. |
+| 2026-11-22 | The date picker writes in the UI's language (`date_locale`) with the phone's region: English names, and on the phone (Spain) weeks from Monday. Material 3 1.4's `DatePickerState(locale, …)`. To fold into SPEC §4.3.11 in T9. | By default it follows the phone's locale, so on the phone it would be in Spanish while the rest of the app is in English (Q5). |
+| 2026-11-22 | Labels before a day take a colon: "Starts: Tomorrow 08:00", "Ended: …", "Next: …", "Last answered: …", "Taken: Yesterday 23:50". UI text, so no SPEC change. | "Today", "Tomorrow" and "Yesterday" are capitalised, which reads wrongly mid-sentence ("Starts Tomorrow"). |
 
 ## Known issues
 
+- **For the skills review** (`phase-close`), from T2's drawings: a `LocalDensity` with a larger font scale, set around the content, doesn't reach dialogs, which open in their own window; dialogs drawn that way keep font scale 1. Setting the emulator's own `settings put system font_scale 2.0` scales everything, dialogs and pickers included, with Android 14's non-linear scaling (put it back to `1.0` afterwards). `captureToImage()` of `onAllNodes(isDialog()).onLast()` draws the topmost dialog. The `phone` skill's "Checking a screen in every state" could say both.
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
 
 ## Pending wiring
