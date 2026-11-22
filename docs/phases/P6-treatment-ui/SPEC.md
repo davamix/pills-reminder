@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P6, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P2 (done). P3 and P5 are merged too, so the screens use the real store, and the reminders follow every change. |
 | **Branch** | `phase/p6-treatment-ui` |
@@ -23,7 +23,7 @@ Every change goes through P2's actions on the real store (P3), so the reminders 
 
 ## 2. Requirements covered
 
-The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.8), so this document stands on its own. P2 implemented the rules; P6 shows them and calls them.
+The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATION.md) (version v0.9), so this document stands on its own. P2 implemented the rules; P6 shows them and calls them.
 
 | ID | Requirement (quoted) | What this phase does for it |
 |---|---|---|
@@ -37,7 +37,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | TR-8 | "Validation: the treatment and each medicine need a name, and a treatment has at least one medicine. The interval is a whole number of hours, days or weeks, and the duration a whole number of days or weeks, each at least 1, with no upper limit; or the duration is set to no end." | P2's `validate()`, each error shown as a message by its field (§4.3.8). |
 | TR-9 | "Treatments can be created, edited and deleted in the app. Deleting asks for confirmation, and also deletes every take recorded for the treatment." | The editors create and edit; the Treatment screen deletes, after a confirmation (§4.3.4). P2's `deleteTreatment` removes the answers, P5 the reminders. |
 | TR-10 | "Editing a treatment that has already started changes only what is still to come. Takes that are due or answered keep their state; takes not yet due are worked out again from the new values." | P2's `saveTreatment` merges the draft inside the store's `update`. The medicine editor says so for a started medicine, and its preview counts the kept takes (§4.3.7). |
-| TR-11 | "A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer." | End early on the Treatment screen, after a confirmation (Q6). P2's `endTreatment` applies it; P5 removes the reminders. |
+| TR-11 | "A treatment can be ended early, for example when the doctor stops it. Its takes not yet due are removed and their reminders cancelled, and it shows as Finished. A take that is due at that moment becomes Missed, and its reminder is removed. A take already marked Taken early (`TK-4`) keeps its answer. A treatment ended early can't be edited any more, only deleted." | End early on the Treatment screen, after a confirmation (Q6). P2's `endTreatment` applies it; P5 removes the reminders. Once ended, the Treatment screen offers no Edit (Q4). |
 | TR-12 | "Finished treatments stay in the app until you delete them." | The Treatments screen's Finished group. |
 | TR-13 | "Leaving the editor with unsaved changes asks for confirmation before discarding them." | Both editors ask, on Back, the back arrow and Cancel (§4.3.9). |
 | SC-2 | "The app works out every planned take as in §4.3. The editor shows each medicine's number of takes and the date and time of its last take, before saving." | The medicine editor shows P2's `previewMedicine()`: the count and the last take, live (§4.3.7). |
@@ -45,7 +45,7 @@ The text of each requirement is quoted from [SPECIFICATION.md](../../SPECIFICATI
 | TK-2 | "Marking a take Taken records the time it was marked. That time can be corrected afterwards, for example to "taken at 08:20"." | Taken on the Take screen; Change time for the last answered take (§4.3.5). |
 | TK-5 | "The last answered take of each medicine can be changed later, for example after pressing Taken by mistake: to Taken, to Skipped, or back to unanswered. The Treatment screen shows it. Older takes can't be seen or changed. A take set back to unanswered that is Due again gets its reminder back, which alerts at once, as when the take fell due." | The Treatment screen shows each medicine's last answered take and opens it; the Take screen changes it. The reminder comes back by itself (P4, P5). |
 | NF-7 | "**Phone layout:** portrait only, for a screen about 393 dp wide. Touch targets are at least 48 dp. Text stays usable with the system's larger font sizes." | Every screen fits the phone's content area, with 48 dp targets, and is drawn at font scale 2 (§4.3.11, T2, T3). |
-| NF-8 | "**Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Dates and times follow the phone's settings, such as its 24-hour clock." | Every text in P6's `strings_*.xml`. Times follow the phone's 24-hour setting (Q5, §4.3.2). |
+| NF-8 | "**Language and formats:** the UI is in English. All user-facing text lives in resource files, so a Spanish translation can be added later without code changes. Times follow the phone's 24-hour clock setting. Day and month names are in the UI's language, such as "Mon 23 Nov", so a translation brings its own." | Every text in P6's `strings_*.xml`, the date patterns and their locale included. Times follow the phone's 24-hour setting (Q5, §4.3.2). |
 | NF-10 | "**Theme:** follows the system's light or dark setting." | P1's theme; every state is drawn in both. |
 
 Also touched, with nothing new to build:
@@ -63,16 +63,16 @@ Spec §6, the screens this phase builds:
 | Screen | Purpose | Main actions |
 |---|---|---|
 | **Treatments** | Every treatment, grouped as Active, Upcoming and Finished | Open one, new treatment |
-| **Treatment** | One treatment: its medicines, with their schedule and progress, and each medicine's last answered take (`TK-5`) | Edit, end early (`TR-11`), delete (with confirmation), open a take |
-| **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine; save; cancel (asks for confirmation if there are unsaved changes) |
-| **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Save, cancel |
+| **Treatment** | One treatment: its medicines, with their schedule and progress, each medicine's next take, and its last answered take (`TK-5`) | Edit (not once ended early), end early (`TR-11`, with confirmation), delete (with confirmation), open a medicine's next take or its last answered take |
+| **Treatment editor** | The treatment's name, notes and medicines | Add, edit or remove a medicine (removing one that has started asks for confirmation); save; cancel (asks for confirmation if there are unsaved changes) |
+| **Medicine editor** | Name, dose, instructions, interval, duration (days or weeks, or no end) and first take. Shows the number of takes and the last one (`SC-2`, `SC-5`). | Done: back to the treatment editor, whose Save stores the treatment; cancel (asks for confirmation if there are unsaved changes) |
 | **Take** | One take: planned time, state, and time taken | Taken, Skip, change the time taken, undo (`TK-2`, `TK-5`) |
 
 Spec §6's sketch of the medicine editor (low fidelity, layout only), from the §4.4 example:
 
 ```
 +------------------------------------------+
-| ←  Medicine                      [ Save ]|
+| ←  Medicine                      [ Done ]|
 |                                          |
 |  Name          [ Amoxicillin          ]  |
 |  Dose          [ 1 capsule            ]  |
@@ -580,18 +580,23 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None at the moment. New questions are numbered from Q8.
+
+### Answered
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | What does the medicine editor's button do, and what is it called? Spec §6 and its sketch say "Save". | It puts the medicine into the treatment's draft and returns; only the treatment editor's Save stores (P6-D1). It is called **Done**, so that it isn't mistaken for storing. Leaving the treatment editor unsaved still asks (`TR-13`), so nothing is lost silently. |
-| Q2 | Should an editor's unsaved draft survive Android ending the app's process in the background? | Yes, through the `SavedStateHandle` (P6-D6, M6). Not across a Force stop or a restart of the phone, which clear saved state. |
-| Q3 | A reminder tapped while an editor is open closes it, and its changes are lost (P5's pending wiring). | Keep the editor: while the editor is on the back stack, the take opens on top of the current screen, and Back returns to the editor (§4.3.12). Otherwise, as P5: right above Home. |
-| Q4 | Can a treatment that was ended early be edited? `saveTreatment` allows it, but its takes after the end stay removed, so only names and notes would mean anything. | No: Edit isn't offered for it; it can only be deleted. A treatment Finished after its last take, without being ended, can still be edited, for example to extend its duration. |
-| Q5 | Which language do day and month names use, with the UI in English on a phone in Spanish? `NF-8` asks for "the phone's settings, such as its 24-hour clock". | The UI's language: "Mon 23 Nov", as in the spec's sketches, with the locale and patterns in `strings_common.xml`, so a Spanish translation brings "lun 23 nov" with it. The hour format follows the phone's setting. |
-| Q6 | Which actions ask for confirmation, beyond `TR-9`'s delete and `TR-13`'s discard? | **End early**, which can't be undone. **Removing a medicine** that has started, since saving deletes its recorded takes. Nothing else. |
-| Q7 | Which takes can be opened from the Treatment screen, and may the Take screen mark a take early (`TK-4`, which the plan gives to P7's home)? | Each medicine's next take and its last answered take. The Take screen offers every action P2 allows, so Taken also shows for a next take that can be marked early. |
+| Q1 | What the medicine editor's button does, and what it is called | It puts the medicine into the treatment's draft and returns; only the treatment editor's Save stores (P6-D1). It is called **Done**, so that it isn't mistaken for storing. Leaving the treatment editor unsaved still asks (`TR-13`). In specification v0.9 (§6). |
+| Q2 | Whether an editor's unsaved draft survives Android ending the app's process in the background | Yes, through the `SavedStateHandle` (P6-D6, M6). Not across a Force stop or a restart of the phone, which clear saved state. |
+| Q3 | A reminder tapped while an editor is open closes it, and its changes are lost (P5's pending wiring) | The editor is kept: while it is on the back stack, the take opens on top of the current screen, and Back returns to the editor (§4.3.12). Otherwise, as P5: right above Home. |
+| Q4 | Whether a treatment ended early can be edited | No: Edit isn't offered for it; it can only be deleted. A treatment Finished after its last take, without being ended, can still be edited, for example to extend its duration. In specification v0.9 (`TR-11`, §6). |
+| Q5 | The language of day and month names, with the UI in English on a phone in Spanish | The UI's language: "Mon 23 Nov", with the locale and patterns in `strings_common.xml`, so a Spanish translation brings "lun 23 nov" with it. The hour format follows the phone's setting. In specification v0.9 (`NF-8`). |
+| Q6 | Which actions ask for confirmation, beyond `TR-9`'s delete and `TR-13`'s discard | **End early**, which can't be undone, and **removing a medicine** that has started, since saving deletes its recorded takes. Nothing else. In specification v0.9 (§6). |
+| Q7 | Which takes the Treatment screen opens, and whether the Take screen marks a take early (`TK-4`, which the plan gives to P7's home) | Each medicine's next take and its last answered take. The Take screen offers every action P2 allows, so Taken also shows for a next take that can be marked early. In specification v0.9 (§6). |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-22 | First draft, from plan v0.7 and specification v0.8 |
+| 0.2 | 2026-11-22 | Review: Q1–Q7 answered, confirming every draft assumption. Now quotes specification v0.9, which took Q1 and Q4–Q7 into `TR-11`, `NF-8` and §6. Ready. |
