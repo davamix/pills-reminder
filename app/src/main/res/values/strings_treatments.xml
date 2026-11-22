@@ -9,7 +9,4 @@
     <string name="treatments_finished">Finished: %1$s</string>
     <string name="treatments_empty_title">No treatments yet</string>
     <string name="treatments_empty_text">A treatment groups the medicines prescribed together. Create one to be reminded of each take.</string>
-
-    <!-- P1's placeholder, until T4 replaces it. -->
-    <string name="treatments_open_sample">Open sample</string>
 </resources>

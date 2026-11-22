@@ -73,21 +73,11 @@ class NavigationSmokeTest {
         assertOn(R.string.home_title)
     }
 
+    // Reads the app's real data, as the Treatments screen does, and changes nothing. P6 T7 rewrites these tests with
+    // fakes (P6-D2).
     @Test
-    fun `a treatment with its editor and its take open from the treatments list and Back returns`() {
+    fun `the treatments list and its new treatment editor open from home and Back returns`() {
         tap(R.string.home_all_treatments)
-        assertOn(R.string.treatments_title)
-        tap(R.string.treatments_open_sample)
-        assertOn(R.string.treatment_title)
-        tap(R.string.treatment_edit)
-        assertOn(R.string.treatment_editor_title)
-        pressBack()
-        assertOn(R.string.treatment_title)
-        tap(R.string.treatment_open_take)
-        assertOn(R.string.take_title)
-        pressBack()
-        assertOn(R.string.treatment_title)
-        pressBack()
         assertOn(R.string.treatments_title)
         tap(R.string.treatments_new)
         assertOn(R.string.treatment_editor_title)

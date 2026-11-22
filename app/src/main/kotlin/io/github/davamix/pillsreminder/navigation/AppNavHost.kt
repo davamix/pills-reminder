@@ -12,6 +12,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import io.github.davamix.pillsreminder.core.model.TakeKey
+import io.github.davamix.pillsreminder.core.model.TreatmentId
+import io.github.davamix.pillsreminder.ui.common.ScreenDependencies
+import io.github.davamix.pillsreminder.ui.common.rememberAppDependencies
 import io.github.davamix.pillsreminder.ui.editor.MedicineEditorScreen
 import io.github.davamix.pillsreminder.ui.editor.TreatmentEditorScreen
 import io.github.davamix.pillsreminder.ui.home.HomeScreen
@@ -21,21 +25,22 @@ import io.github.davamix.pillsreminder.ui.treatment.TreatmentScreen
 import io.github.davamix.pillsreminder.ui.treatments.TreatmentsScreen
 import kotlinx.coroutines.flow.first
 
-// Placeholder targets, until the real screens exist (P6, P7).
-private const val SAMPLE_ID = "sample"
-private val sampleTake = TakeRoute(medicineId = SAMPLE_ID, plannedAt = "2026-11-23T16:00")
+// Placeholder targets, until the real screens exist (P7).
+private val sampleTake = TakeRoute(medicineId = "sample", plannedAt = "2026-11-23T16:00")
 
 /**
  * The app's navigation graph. Each phase that builds a screen fills in its own destination. A click that navigates goes
  * through [dropUnlessResumed], so a double tap can't open a screen twice, or go back twice.
  *
  * [openTake] is a take to open from a tapped reminder (P5); [onTakeOpened] is called once it is open, to clear it.
+ * [dependencies] are what the screens' ViewModels use: the app's, or fakes in UI tests (P6-D2).
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     openTake: TakeRoute? = null,
     onTakeOpened: () -> Unit = {},
+    dependencies: ScreenDependencies = rememberAppDependencies(),
 ) {
     OpenTake(navController, openTake, onTakeOpened)
     NavHost(navController = navController, startDestination = HomeRoute) {
@@ -49,17 +54,24 @@ fun AppNavHost(
         }
         composable<TreatmentsRoute> {
             TreatmentsScreen(
+                deps = dependencies,
                 onBack = dropUnlessResumed { navController.popBackStack() },
-                onOpenSample = dropUnlessResumed { navController.navigate(TreatmentRoute(SAMPLE_ID)) },
-                onNewTreatment = dropUnlessResumed { navController.navigate(TreatmentEditorRoute()) },
+                onOpen = dropUnlessResumedWith { id: TreatmentId -> navController.navigate(TreatmentRoute(id.value)) },
+                onNew = dropUnlessResumed { navController.navigate(TreatmentEditorRoute()) },
             )
         }
         composable<TreatmentRoute> { entry ->
             val route = entry.toRoute<TreatmentRoute>()
             TreatmentScreen(
+                deps = dependencies,
+                treatmentId = TreatmentId(route.treatmentId),
                 onBack = dropUnlessResumed { navController.popBackStack() },
                 onEdit = dropUnlessResumed { navController.navigate(TreatmentEditorRoute(route.treatmentId)) },
-                onOpenTake = dropUnlessResumed { navController.navigate(sampleTake) },
+                onOpenTake =
+                    dropUnlessResumedWith { key: TakeKey ->
+                        navController.navigate(TakeRoute(key.medicineId.value, key.plannedAt.toString()))
+                    },
+                onDeleted = { navController.popBackStack() },
             )
         }
         composable<TreatmentEditorRoute> {

@@ -29,7 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T4`: the Treatments and Treatment screens' ViewModels and destinations, with End early and Delete. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`), for T8's drawings; a new session writes it again from the `phone` skill.
+1. `T5`: the Take screen's ViewModel and destination. A draft of `TakeViewModel`, `TakeScreen` and `TakeViewModelTest` is in the session's scratchpad (`t5/`), if the session is the same. The throwaway gallery is kept outside the repo, in the session's scratchpad (`ScreensGallery.kt`), for T8's drawings; a new session writes it again from the `phone` skill.
 
 ## Tasks
 
@@ -40,7 +40,7 @@ The task IDs come from SPEC.md §7.
 | T1 | Done | `ui/common`: `ScreenDependencies` (with `rememberAppDependencies`), `minuteTicks`, `DateTimeText` (with `number()` for counts), `ChangeProblem` with `attempt {}` and `UnreadableMessage`, `ConfirmDialog`; `strings_common.xml`. 15 unit tests; 18 deliberate bugs, all caught (session log). |
 | T2 | Done | `TreatmentsContent`, `TreatmentContent`, `TakeContent` with their states and strings; shared `BackButton`, `CommonTexts.kt`, `ShowProblem`, `DateField` and `TimeField`. Every state drawn on the emulator (light and dark at font scale 1, and at the system's font scale 2) and on the phone (light and dark); all fit. Shown to the user, who agreed. |
 | T3 | Done | `TreatmentEditorContent`, `MedicineEditorContent` (with `MedicineFieldActions`), their states in `EditorState.kt`, the discard and remove confirmations; `strings_editor.xml`. Drawn like T2's. A number field's error under the narrow field broke words at font scale 2, so each amount's error goes under its whole row. Shown to the user, who agreed. |
-| T4 | To do | Treatments and Treatment screens |
+| T4 | Done | `TreatmentsViewModel`, `TreatmentViewModel` (End early, Delete, `deleted`), their entry composables taking `ScreenDependencies`, and their destinations in `AppNavHost` (its new `dependencies` parameter). Shared: `LeaveWhen` (navigation driven by a state), `dropUnlessResumedWith` (a resumed-only click that carries a value), `vmTest` and `TestTicks` in the tests. 18 unit tests; 20 deliberate bugs, all caught. `NavigationSmokeTest`'s placeholder walk replaced by one that only reads the data, until T7. |
 | T5 | To do | Take screen |
 | T6 | To do | Editors |
 | T7 | To do | Flows and navigation, UI tests |
@@ -57,6 +57,9 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-22 | The date picker writes in the UI's language (`date_locale`) with the phone's region: English names, and on the phone (Spain) weeks from Monday. Material 3 1.4's `DatePickerState(locale, …)`. To fold into SPEC §4.3.11 in T9. | By default it follows the phone's locale, so on the phone it would be in Spanish while the rest of the app is in English (Q5). |
 | 2026-11-22 | `androidResources.localeFilters += "en"` in `app/build.gradle.kts` (a shared file: P6's entry). A translation adds its language there. To fold into SPEC §4.1 and §4.3.11 in T9. | On the phone, Material's own texts followed the phone's language: the date picker's title read "Seleccionar fecha" in an English app, and its input mode's labels would too. With only English resources kept, library texts fall back to English (NF-8, Q5). |
 | 2026-11-22 | The date picker has the app's own title (the field's label) and headline ("Mon 23 Nov", from `DateTimeText`). To fold into SPEC §4.3.11 in T9. | Its default headline formats with the phone's locale whatever the resources hold: "23 nov 2026" on the phone. |
+| 2026-11-22 | The Treatments screen's floating button uses `ExtendedFloatingActionButton`'s content overload, not `text` and `icon`. | Material 3 1.4 wraps that overload's label in `clearAndSetSemantics`, so the button had no name for TalkBack, and tests couldn't find it by its text (seen in `NavigationSmokeTest` with a semantics probe). |
+| 2026-11-22 | A deleted treatment's screen shows nothing while it leaves (its state is `null` once `deleted`), not "This treatment no longer exists". Deleting a treatment already gone also leaves. | The Missing state would flash on screen before the screen goes back. |
+| 2026-11-22 | ViewModel tests set the main dispatcher before `runTest` and reset it after (`vmTest`), not inside. | `stateIn`'s stop timer is still pending in `viewModelScope` when the test body ends; reset inside `runTest`, Main was gone when it ran, and the tests failed with `CompletionHandlerException`. A lesson for CLAUDE.md's coroutine tests, at the skills review. |
 | 2026-11-22 | Labels before a day take a colon: "Starts: Tomorrow 08:00", "Ended: …", "Next: …", "Last answered: …", "Taken: Yesterday 23:50". UI text, so no SPEC change. | "Today", "Tomorrow" and "Yesterday" are capitalised, which reads wrongly mid-sentence ("Starts Tomorrow"). |
 
 ## Known issues
@@ -88,3 +91,6 @@ Newest first.
   - `minuteTicks`: no tick at once, and a fixed minute's wait, by both tests.
   - `attempt`: a refused change taken as applied; unreadable taken as refused; a failed write taken as unreadable; catching every exception: each by its own test.
 - Notes: unit totals after T1: `:app` 139, `:core` 177, none failing. Material 3 is 1.4.0 (Compose BOM 2026.09.00), which has `TimePickerDialog`.
+- T2 and T3: every state drawn on the emulator and the phone, and agreed by the user. On the phone, the date picker's title showed in Spanish: fixed with `localeFilters` and the picker's own title and headline.
+- T4's deliberate bugs, 20 of 20 caught: `TreatmentsViewModel`: Active sorted case-sensitively, Upcoming latest first, Finished oldest first, by the groups test; no start time, by the groups and rows tests; a last take on an ended row, by the rows test; no ticks, by the tick test; unreadable shown as empty, by the unreadable test. `TreatmentViewModel`: Edit offered once ended, by the End early test; End offered when Finished, by the Finished test; a refused End shown, by the already-ended test; Delete of a gone treatment staying, by its test; Delete leaving on a failure, by the failed-write and unreadable tests; the problem not shown, by the failed-write test; Missing shown while leaving, by the Delete test; the count one short, the next take as the last answered, and no last answered, by the example test and others; no start time, by the Upcoming test; a last take while Active, by the example test; no ticks, by the tick test.
+- Unit totals after T4: `:app` 157, `:core` 177, none failing. `NavigationSmokeTest` and `OpenTakeTest` pass on the emulator (13 tests).

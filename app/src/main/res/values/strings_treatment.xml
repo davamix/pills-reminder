@@ -27,7 +27,4 @@
     <string name="treatment_delete">Delete treatment</string>
     <string name="treatment_delete_confirm">Delete %1$s? Its medicines and every take recorded for it are deleted. This can\'t be undone.</string>
     <string name="treatment_delete_action">Delete</string>
-
-    <!-- P1's placeholder, until T4 replaces it. -->
-    <string name="treatment_open_take">Open take</string>
 </resources>

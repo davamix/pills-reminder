@@ -4,10 +4,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -87,11 +89,13 @@ fun TreatmentsContent(
         },
         floatingActionButton = {
             if (state is TreatmentsState.Ready) {
-                ExtendedFloatingActionButton(
-                    onClick = onNew,
-                    icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                    text = { Text(stringResource(R.string.treatments_new)) },
-                )
+                // The content overload: the one with `text` and `icon` hides its label from TalkBack (Material 3 1.4
+                // wraps it in clearAndSetSemantics), so the button would have no name.
+                ExtendedFloatingActionButton(onClick = onNew) {
+                    Icon(Icons.Filled.Add, contentDescription = null)
+                    Spacer(Modifier.width(12.dp))
+                    Text(stringResource(R.string.treatments_new))
+                }
             }
         },
     ) { padding ->
