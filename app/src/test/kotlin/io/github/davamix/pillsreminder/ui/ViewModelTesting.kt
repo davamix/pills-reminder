@@ -1,5 +1,13 @@
 package io.github.davamix.pillsreminder.ui
 
+import android.content.Context
+import io.github.davamix.pillsreminder.check.ChannelState
+import io.github.davamix.pillsreminder.check.CheckItem
+import io.github.davamix.pillsreminder.check.CheckRecord
+import io.github.davamix.pillsreminder.check.CheckStore
+import io.github.davamix.pillsreminder.check.DeviceChecks
+import io.github.davamix.pillsreminder.check.InMemoryCheckStore
+import io.github.davamix.pillsreminder.check.ReminderCheckDevice
 import io.github.davamix.pillsreminder.core.model.Interval
 import io.github.davamix.pillsreminder.core.model.IntervalUnit
 import io.github.davamix.pillsreminder.core.model.Medicine
@@ -55,7 +63,35 @@ fun deps(
     clock: Clock,
     ticks: TestTicks = TestTicks(),
     allowMinutes: Boolean = true,
-) = ScreenDependencies(repository, clock, allowMinutes, ticks.flow)
+    checkDevice: ReminderCheckDevice = FakeCheckDevice(),
+    checkStore: CheckStore = InMemoryCheckStore(CheckRecord(firstLaunchDone = true)),
+    reconcile: () -> Unit = {},
+) = ScreenDependencies(repository, clock, allowMinutes, ticks.flow, checkDevice, checkStore, reconcile)
+
+/** Everything reminders need is set, on a phone that isn't HyperOS: the check has nothing to warn about. */
+val allSet =
+    DeviceChecks(notificationsAllowed = true, channel = ChannelState.ON, exactAlarms = true, batteryOptimised = false, hyperOs = false)
+
+/** The reminder check's device, as the test sets it (P7-D2). It counts its readings and records what it opened. */
+class FakeCheckDevice(
+    var checks: DeviceChecks = allSet,
+) : ReminderCheckDevice {
+    var reads = 0
+        private set
+    val opened = mutableListOf<CheckItem>()
+
+    override fun read(): DeviceChecks {
+        reads++
+        return checks
+    }
+
+    override fun open(
+        activity: Context,
+        item: CheckItem,
+    ) {
+        opened += item
+    }
+}
 
 /** The first state that isn't `null` and matches [predicate], collected in the foreground (CLAUDE.md, coroutine tests). */
 suspend fun <T : Any> StateFlow<T?>.next(predicate: (T) -> Boolean = { true }): T = filterNotNull().first(predicate)

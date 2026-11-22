@@ -45,6 +45,11 @@ data class TakeRoute(
     val plannedAt: String,
 )
 
-/** Settings, with the reminder check (P7). */
+/**
+ * Settings, with the reminder check (P7). [firstLaunch]: Home opened it at the app's first launch, so it asks for the
+ * notification permission with Android's dialog (P7 SPEC §4.3.10).
+ */
 @Serializable
-data object SettingsRoute
+data class SettingsRoute(
+    val firstLaunch: Boolean = false,
+)

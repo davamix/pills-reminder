@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.annotation.StringRes
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -18,6 +19,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import io.github.davamix.pillsreminder.FirstLaunchDone
 import io.github.davamix.pillsreminder.MainActivity
 import io.github.davamix.pillsreminder.R
 import io.github.davamix.pillsreminder.core.model.MedicineId
@@ -36,12 +38,16 @@ import java.time.LocalDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * A tapped reminder opens its take (RM-6, P5 SPEC §4.3.8). The Take screen is P1's placeholder until P6. Each test goes
- * through `MainActivity`, which reconciles the app's real data when it starts, as opening the app does; none changes it.
+ * A tapped reminder opens its take (RM-6, P5 SPEC §4.3.8). Each test goes through `MainActivity`, which reconciles the
+ * app's real data when it starts, as opening the app does; none changes it. The first launch is done for the run, so
+ * Home doesn't open the reminder check (P7).
  */
 @RunWith(AndroidJUnit4::class)
 class OpenTakeTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val firstLaunchDone = FirstLaunchDone()
+
+    @get:Rule(order = 1)
     val compose = createEmptyComposeRule()
 
     private val context: Context = ApplicationProvider.getApplicationContext()
@@ -92,7 +98,7 @@ class OpenTakeTest {
     fun `a reminder tapped while the app is open opens its take above Home`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             assertOn(R.string.home_title)
-            compose.onNodeWithText(text(R.string.home_open_settings)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.home_settings)).performClick()
             assertOn(R.string.settings_title)
 
             scenario.onActivity { InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(it, reminderIntent()) }
@@ -117,7 +123,7 @@ class OpenTakeTest {
     @Test
     fun `another intent while the app is open leaves it where it was`() {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
-            compose.onNodeWithText(text(R.string.home_open_settings)).performClick()
+            compose.onNodeWithContentDescription(text(R.string.home_settings)).performClick()
             assertOn(R.string.settings_title)
 
             val summaryTap = Intent(context, MainActivity::class.java)

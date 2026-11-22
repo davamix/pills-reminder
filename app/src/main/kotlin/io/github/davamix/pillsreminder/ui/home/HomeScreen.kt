@@ -1,29 +1,47 @@
 package io.github.davamix.pillsreminder.ui.home
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import io.github.davamix.pillsreminder.R
-import io.github.davamix.pillsreminder.ui.common.PlaceholderAction
-import io.github.davamix.pillsreminder.ui.common.PlaceholderScreen
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.davamix.pillsreminder.core.model.TreatmentId
+import io.github.davamix.pillsreminder.ui.common.LeaveWhen
+import io.github.davamix.pillsreminder.ui.common.ScreenDependencies
 
-/** The home screen with the next takes. A placeholder, replaced in P7. */
+/**
+ * Home: the next takes, the upcoming treatments and the reminder check's warning (HM-1–HM-5, RM-9). [onSettings] opens
+ * Settings, from the settings button and the warning's Check; [onOpenCheck] opens it at the first launch (P7 SPEC
+ * §4.3.10), once, as navigation driven by the state.
+ */
 @Composable
 fun HomeScreen(
+    deps: ScreenDependencies,
+    onOpenTreatment: (TreatmentId) -> Unit,
     onAllTreatments: () -> Unit,
     onNewTreatment: () -> Unit,
     onSettings: () -> Unit,
-    onSampleTake: () -> Unit,
+    onOpenCheck: () -> Unit,
+    viewModel: HomeViewModel = viewModel(factory = HomeViewModel.factory(deps)),
 ) {
-    PlaceholderScreen(
-        title = stringResource(R.string.home_title),
-        replacedIn = "P7",
-        onBack = null,
-        actions =
-            listOf(
-                PlaceholderAction(stringResource(R.string.home_all_treatments), onAllTreatments),
-                PlaceholderAction(stringResource(R.string.home_new_treatment), onNewTreatment),
-                PlaceholderAction(stringResource(R.string.home_open_settings), onSettings),
-                PlaceholderAction(stringResource(R.string.home_sample_take), onSampleTake),
-            ),
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    // The check follows a change made in Android's settings as soon as Home is back (§4.3.9).
+    LifecycleResumeEffect(viewModel) {
+        viewModel.refreshCheck()
+        onPauseOrDispose {}
+    }
+    LeaveWhen(state.openCheck) {
+        viewModel.checkOpened()
+        onOpenCheck()
+    }
+    HomeContent(
+        state = state,
+        onOpenTreatment = onOpenTreatment,
+        onTaken = viewModel::markTaken,
+        onAllTreatments = onAllTreatments,
+        onNewTreatment = onNewTreatment,
+        onSettings = onSettings,
+        onCheck = onSettings,
+        onProblemShown = viewModel::problemShown,
     )
 }

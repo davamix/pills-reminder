@@ -1,4 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Settings, with the reminder check (RM-9, P7 SPEC §4.3.7). The wording is a suggestion; this file holds the final one. -->
 <resources>
     <string name="settings_title">Settings</string>
+    <string name="settings_check_heading">Reminder check</string>
+    <string name="settings_check_intro">Reminders depend on these settings.</string>
+    <string name="settings_check_all_set">Everything reminders need is set.</string>
+    <plurals name="settings_check_to_check">
+        <item quantity="one">%d setting to check.</item>
+        <item quantity="other">%d settings to check.</item>
+    </plurals>
+
+    <!-- A line's status, as its icon's description. -->
+    <string name="settings_status_ok">Set</string>
+    <string name="settings_status_missing">Missing</string>
+    <string name="settings_status_to_confirm">To confirm</string>
+    <string name="settings_status_confirmed">Confirmed</string>
+
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notifications_ok">Allowed.</string>
+    <string name="settings_notifications_not_allowed">Not allowed: no reminder can appear.</string>
+    <string name="settings_notifications_channel_off">The Reminders category is off: no reminder can appear.</string>
+    <string name="settings_notifications_no_pop_up">Reminders don\'t pop up or sound: set the Reminders category to pop up.</string>
+
+    <string name="settings_exact_alarms">Exact alarms</string>
+    <string name="settings_exact_alarms_ok">Allowed.</string>
+    <string name="settings_exact_alarms_missing">Not allowed: reminders may come late.</string>
+
+    <string name="settings_battery">Battery optimisation</string>
+    <string name="settings_battery_ok">Off for this app.</string>
+    <string name="settings_battery_missing">On: Android may delay reminders. Turning it off costs no battery: the app runs only to alert.</string>
+    <string name="settings_battery_hyperos">This also sets HyperOS\'s Battery saver to No restrictions.</string>
+
+    <string name="settings_hyperos_heading">HyperOS</string>
+    <string name="settings_hyperos_intro">The app can\'t read these. Check each one, then mark it done.</string>
+    <string name="settings_autostart">Autostart</string>
+    <!-- %1$s is the app's name, as the Autostart list shows it. -->
+    <string name="settings_autostart_text">Turn Autostart on, so reminders come back right after an app update. Find %1$s in the list.</string>
+    <string name="settings_floating">Floating notifications</string>
+    <string name="settings_floating_text">Keep Floating notifications on, so reminders pop up.</string>
+    <string name="settings_lock_screen">Lock screen notifications</string>
+    <string name="settings_lock_screen_text">Keep Lock screen notifications on, so reminders show on the lock screen.</string>
+
+    <string name="settings_open">Open settings</string>
+    <string name="settings_turn_off">Turn off</string>
+    <string name="settings_done">Done</string>
 </resources>

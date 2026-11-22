@@ -24,9 +24,6 @@ import io.github.davamix.pillsreminder.ui.treatment.TreatmentScreen
 import io.github.davamix.pillsreminder.ui.treatments.TreatmentsScreen
 import kotlinx.coroutines.flow.first
 
-// Placeholder targets, until the real screens exist (P7).
-private val sampleTake = TakeRoute(medicineId = "sample", plannedAt = "2026-11-23T16:00")
-
 /**
  * The app's navigation graph. Each phase that builds a screen fills in its own destination. A click that navigates goes
  * through [dropUnlessResumed], so a double tap can't open a screen twice, or go back twice.
@@ -45,10 +42,13 @@ fun AppNavHost(
     NavHost(navController = navController, startDestination = HomeRoute) {
         composable<HomeRoute> {
             HomeScreen(
+                deps = dependencies,
+                onOpenTreatment = dropUnlessResumedWith { id: TreatmentId -> navController.navigate(TreatmentRoute(id.value)) },
                 onAllTreatments = dropUnlessResumed { navController.navigate(TreatmentsRoute) },
                 onNewTreatment = dropUnlessResumed { navController.navigate(TreatmentEditorRoute()) },
-                onSettings = dropUnlessResumed { navController.navigate(SettingsRoute) },
-                onSampleTake = dropUnlessResumed { navController.navigate(sampleTake) },
+                onSettings = dropUnlessResumed { navController.navigate(SettingsRoute()) },
+                // Driven by Home's state, once resumed: a plain lambda (CLAUDE.md, "Navigation driven by a ViewModel state").
+                onOpenCheck = { navController.navigate(SettingsRoute(firstLaunch = true)) },
             )
         }
         composable<TreatmentsRoute> {
@@ -83,8 +83,12 @@ fun AppNavHost(
                 onBack = dropUnlessResumed { navController.popBackStack() },
             )
         }
-        composable<SettingsRoute> {
-            SettingsScreen(onBack = dropUnlessResumed { navController.popBackStack() })
+        composable<SettingsRoute> { entry ->
+            SettingsScreen(
+                deps = dependencies,
+                firstLaunch = entry.toRoute<SettingsRoute>().firstLaunch,
+                onBack = dropUnlessResumed { navController.popBackStack() },
+            )
         }
     }
 }
