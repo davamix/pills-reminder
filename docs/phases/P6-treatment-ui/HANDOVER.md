@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#6](https://github.com/davamix/pills-reminder/pull/6) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#6](https://github.com/davamix/pills-reminder/pull/6) on 2026-11-22. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.3 |
 | **Branch** | `phase/p6-treatment-ui` |
 | **Last session** | 2026-11-22 |
@@ -11,27 +11,15 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P6 (Treatment management UI) of the pills reminder.
-
-1. Use the phase-start skill for P6. Read only docs/phases/P6-treatment-ui/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p6-treatment-ui. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. All tasks are done and pull request #6 is open. If it has been merged, use the phase-close skill instead. If it has review comments, deal with them on the branch. The full instrumented run on the phone, on the final code, still waits for the phone to be unlocked (gradle installDebug installDebugAndroidTest && instrument, phone skill); every test passes on the emulator. Every test uses fakes (SPEC P6-D2), never the real data.
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-All tasks done; pull request [#6](https://github.com/davamix/pills-reminder/pull/6) is open; CI passed on `74f0aaa` (run 45036844021). The Treatments, Treatment, Take and editor screens replace P1's placeholders, on the real store, with SPEC v0.3. `./gradlew build` passes: unit tests `:app` 196, `:core` 177, none failing; 93 deliberate bugs against P6's new tests, all caught. Every instrumented test passes on the emulator (37); on the phone, the 36 of T7 and the new no-takes test passed, and the full run on the final code waits for the phone to be unlocked. Every state was drawn on both devices; M1–M7 pass on the phone and E1 on the emulator. The merged manifests and release dependencies are the same as `main`'s.
+Merged into `main` in pull request [#6](https://github.com/davamix/pills-reminder/pull/6) on 2026-11-22. The Treatments, Treatment, Take and editor screens replace P1's placeholders, on the real store, with SPEC v0.3. `./gradlew build` passes: unit tests `:app` 196, `:core` 177, none failing; 93 deliberate bugs against P6's new tests, all caught. Every instrumented test passes on the emulator and the phone (37, the phone's run on `main` at the merge, `68e6f35`). Every state was drawn on both devices; M1–M7 pass on the phone and E1 on the emulator. The merged manifests and release dependencies are the same as before P6.
 
 ## Next steps
 
-1. Run every instrumented test on the phone, unlocked, on the branch's final code, and note the result here and in the pull request.
-2. Deal with any review comments on pull request #6.
-3. After the user merges it, the `phase-close` skill: mark P6 `Done` on `main`, tick SPEC §8, and review the skills (see "Known issues" for the items gathered for it).
+None for P6. P7 (Home screen and reminder check) can start now: its dependency, P2, is `Done`. Its SPEC.md and HANDOVER.md don't exist yet (`phase-docs`). P8 waits for P7.
 
 ## Tasks
 
@@ -47,7 +35,7 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | `EditorViewModel` (the draft, the medicine editor's working copy keyed by its back-stack entry, validation, preview, notes, save), `SavedEditor.kt` (the drafts as JSON in the `SavedStateHandle`, P6-D6), both editors' screens, and `EditorGraph.kt`: the nested graph on `TreatmentEditorRoute`, starting at the new `TreatmentFormRoute`. 21 unit tests; 28 deliberate bugs, all caught (one after a test fix). Lint caught `LocalDate.EPOCH`, which needs API 34. |
 | T7 | Done | Q3 in `OpenTake` (`AppNavHost`): while the editors are on the back stack, a tapped reminder's take opens on top, replacing a take already there; otherwise right above Home, as P5 did. UI tests with fakes in `androidTest/…/ui/`: `CreateTreatmentTest`, `EditorValidationTest`, `EditStartedTreatmentTest`, `EndAndDeleteTest`, `DiscardChangesTest`, `TakeScreenTest`, `ScreensNavigationTest` (with Q3's two tests), and their helpers `UiTesting.kt` (`FakeApp`, `showApp`, `dateTimeText()`, `pickDay`). `NavigationSmokeTest` keeps only what needs `MainActivity`. 11 deliberate bugs, all caught. Every instrumented test passes on the emulator and the phone (36). |
 | T8 | Done | Every state drawn again on both devices. M1–M7 pass on the phone, and E1 on the emulator (results below). M1 found a medicine with no takes shown as "Last take: No end", fixed with a test. |
-| T9 | In review | SPEC v0.3 on `main` (decisions folded in, Q8 and Q9), merged into the branch; CLAUDE.md; build and checks; pull request [#6](https://github.com/davamix/pills-reminder/pull/6). |
+| T9 | Done | SPEC v0.3 on `main` (decisions folded in, Q8 and Q9), merged into the branch; CLAUDE.md; build and checks; pull request [#6](https://github.com/davamix/pills-reminder/pull/6). |
 
 ## Decisions and deviations
 
@@ -109,6 +97,10 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (close)
+
+- The user merged pull request #6. Every instrumented test passed on the phone on `main` at the merge (`68e6f35`, 37 tests), the one check left open in the pull request. P6 is closed: `Done` in plan §5.1, SPEC §8 ticked.
 
 ### 2026-11-22 (later)
 

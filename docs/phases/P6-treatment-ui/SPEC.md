@@ -586,14 +586,14 @@ On **the phone** unless marked. Ask the user before each that creates treatments
 
 ## 8. Done criteria
 
-- [ ] All tasks done
-- [ ] `./gradlew build` passes locally and in CI, with the unit test totals recorded in the handover
-- [ ] Unit tests cover every row of §6, and every new test was shown able to fail (CLAUDE.md)
-- [ ] Compose UI tests cover creating the §4.4 example, validation, editing a started treatment, ending one early and deleting one (plan §5.2), and every instrumented test passes on the emulator and the phone
-- [ ] Every state of every screen has been drawn and checked, in light and dark theme and at font scale 2, on the phone's content area
-- [ ] M1–M7 pass on the phone, and E1 on the emulator
-- [ ] No new permission, library or exported component; the merged manifests change only as §4.1 allows
-- [ ] HANDOVER.md is up to date, with the pending wiring for P7 and P8, and the plan's status table is updated
+- [x] All tasks done
+- [x] `./gradlew build` passes locally and in CI, with the unit test totals recorded in the handover
+- [x] Unit tests cover every row of §6, and every new test was shown able to fail (CLAUDE.md)
+- [x] Compose UI tests cover creating the §4.4 example, validation, editing a started treatment, ending one early and deleting one (plan §5.2), and every instrumented test passes on the emulator and the phone
+- [x] Every state of every screen has been drawn and checked, in light and dark theme and at font scale 2, on the phone's content area
+- [x] M1–M7 pass on the phone, and E1 on the emulator
+- [x] No new permission, library or exported component; the merged manifests change only as §4.1 allows
+- [x] HANDOVER.md is up to date, with the pending wiring for P7 and P8, and the plan's status table is updated
 
 ## 9. Open questions
 
