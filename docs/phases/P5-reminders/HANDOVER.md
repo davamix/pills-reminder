@@ -208,7 +208,16 @@ The phone, as in "Measurements": POCO F3, Android 13, HyperOS `OS1.0.6.0.TKHEUXM
 
 All on time, except where the app couldn't run (Force stop, the restart before the unlock), as the SPEC expects.
 
-**The night, stock settings (M7):** a test treatment every 180 minutes, no end, from 01:00 on 2026-11-22 (01:00, 04:00, 07:00, each with repeats at +10, +20, +30 minutes), created at 21:58:30. The 5-minute treatment deleted first. The phone unplugged and still, Do Not Disturb or Silent mode for the night (the user's choice). To read in the morning: each alert's lateness, and the idling history (`dumpsys deviceidle`) for `deep-idle`.
+**The night, stock settings (M7):** a test treatment every 180 minutes, no end, from 01:00 on 2026-11-22 (01:00, 04:00, 07:00, each with repeats at +10, +20, +30 minutes), created at 21:58:30. The 5-minute treatment deleted first. The phone unplugged and still, screen off, Do Not Disturb on (`zen_mode=1`), battery 57 % at 22:00 and 47 % at 09:25. **Passed: all 12 alerts on time, in a night of natural deep Doze.** The app's process (one `pid`) lived all night. The idling history, in local time:
+
+| Deep Doze | Left for | Alerts (lateness) |
+|---|---|---|
+| 22:47:42 → 00:57:16 (a maintenance window at 23:47) | the 01:00 alarm clock, 2 min 44 s before it | 01:00, 01:10, 01:20, 01:30: 116, 37, 109, 43 ms |
+| 01:52:15 → 03:52:46 (windows at 02:52 and 03:46–03:49) | the 04:00 one, 7 min 14 s before | 04:00, 04:10, 04:20, 04:30: 1264, 1257, 1233, 773 ms |
+| 04:52:20 → 06:57:04 (a window at 05:52) | the 07:00 one, 2 min 56 s before | 07:00, 07:10, 07:20, 07:30: 54, 1187, 1123, 71 ms |
+| 07:52:19 → 09:22:40 | the user's unlock | — |
+
+Between the repeats, light Doze (12 `light-idle` periods), and `normal (alarm)` at 01:16, 04:15 and 07:16. Each repeat comes 10 minutes after the alert before it, in whole seconds, so the 04:00 round drifted by a second per repeat, as `RM-5` says. In the morning, **wireless debugging was off**, and the user had to turn it off and on again before adb found the phone (for the skills review).
 
 ## Known issues
 
