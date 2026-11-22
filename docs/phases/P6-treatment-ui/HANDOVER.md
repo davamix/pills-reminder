@@ -29,7 +29,7 @@ Started. SPEC v0.2 is `Ready`, with Q1–Q7 answered as drafted. The screens are
 
 ## Next steps
 
-1. `T8`: draw every state again from the finished code (the gallery is in the session's scratchpad, `ScreensGallery.kt`), then the manual checks M1–M7 on the phone and E1 on the emulator, with the user. M1, M2 and M6 create treatments on the phone: ask first.
+1. `T8`: the manual checks M1–M7 on the phone and E1 on the emulator (SPEC §6), with the user. M1, M2 and M6 create test treatments in the debug app on the phone, whose reminders alert: ask first, and delete them at the end.
 
 ## Tasks
 
@@ -44,7 +44,7 @@ The task IDs come from SPEC.md §7.
 | T5 | Done | `TakeViewModel` (the actions offered by running P2's pure actions, P6-D5; `keyOf` reads the route), `TakeScreen`, and its destination. 18 unit tests; 15 deliberate bugs, all caught. `OpenTakeTest` passes with the real Take screen (its take doesn't exist, so it shows "This take no longer exists." under the title "Take"). |
 | T6 | Done | `EditorViewModel` (the draft, the medicine editor's working copy keyed by its back-stack entry, validation, preview, notes, save), `SavedEditor.kt` (the drafts as JSON in the `SavedStateHandle`, P6-D6), both editors' screens, and `EditorGraph.kt`: the nested graph on `TreatmentEditorRoute`, starting at the new `TreatmentFormRoute`. 21 unit tests; 28 deliberate bugs, all caught (one after a test fix). Lint caught `LocalDate.EPOCH`, which needs API 34. |
 | T7 | Done | Q3 in `OpenTake` (`AppNavHost`): while the editors are on the back stack, a tapped reminder's take opens on top, replacing a take already there; otherwise right above Home, as P5 did. UI tests with fakes in `androidTest/…/ui/`: `CreateTreatmentTest`, `EditorValidationTest`, `EditStartedTreatmentTest`, `EndAndDeleteTest`, `DiscardChangesTest`, `TakeScreenTest`, `ScreensNavigationTest` (with Q3's two tests), and their helpers `UiTesting.kt` (`FakeApp`, `showApp`, `dateTimeText()`, `pickDay`). `NavigationSmokeTest` keeps only what needs `MainActivity`. 11 deliberate bugs, all caught. Every instrumented test passes on the emulator and the phone (36). |
-| T8 | To do | Drawings again, manual checks on the phone and the emulator |
+| T8 | Doing | Every state drawn again from the finished code: on the emulator in light and dark at font scale 1 and at the system's 2, and on the phone in light and dark; all fit. Left: M1–M7 on the phone and E1 on the emulator, with the user. |
 | T9 | To do | Wrap-up, CLAUDE.md, pull request |
 
 ## Decisions and deviations
