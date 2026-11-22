@@ -17,6 +17,12 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.navigation.compose.rememberNavController
 import androidx.test.core.app.ApplicationProvider
 import io.github.davamix.pillsreminder.R
+import io.github.davamix.pillsreminder.check.ChannelState
+import io.github.davamix.pillsreminder.check.CheckItem
+import io.github.davamix.pillsreminder.check.CheckRecord
+import io.github.davamix.pillsreminder.check.DeviceChecks
+import io.github.davamix.pillsreminder.check.InMemoryCheckStore
+import io.github.davamix.pillsreminder.check.ReminderCheckDevice
 import io.github.davamix.pillsreminder.core.model.InMemoryTreatmentRepository
 import io.github.davamix.pillsreminder.core.model.PillsData
 import io.github.davamix.pillsreminder.core.model.StoredData
@@ -31,6 +37,8 @@ import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.Locale
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 
 // Helpers for P6's UI flow tests. They run the app's real navigation graph with an in-memory repository and a fixed
 // clock (P6-D2), so they never touch the app's data or its reminders, on the phone too. The repo is public: the data is
@@ -46,16 +54,57 @@ fun nov(
 
 fun clockAt(local: LocalDateTime): Clock = Clock.fixed(local.atZone(madrid).toInstant(), madrid)
 
-/** The app's navigation graph on [data] at [now], with no ticks: the clock doesn't move. */
+/**
+ * The app's navigation graph on [data] at [now], with no ticks: the clock doesn't move. The reminder check reads
+ * [checkDevice] and keeps [checkStore]: by default everything is set, on a phone that isn't HyperOS, and the first
+ * launch is done, so Home shows no warning and opens no check (P7).
+ */
 class FakeApp(
     data: PillsData = PillsData(),
     now: LocalDateTime,
+    record: CheckRecord = CheckRecord(firstLaunchDone = true),
 ) {
     val repository = InMemoryTreatmentRepository(StoredData.Readable(data))
-    val dependencies = ScreenDependencies(repository, clockAt(now), allowMinutes = true, minuteTicks = flowOf(Unit))
+    val checkDevice = FakeCheckDevice()
+    val checkStore = InMemoryCheckStore(record)
+    private val reconciled = AtomicInteger()
+
+    /** How many times the screens asked the reminders to reconcile (P7-D6). */
+    val reconciles: Int get() = reconciled.get()
+
+    val dependencies =
+        ScreenDependencies(
+            repository,
+            clockAt(now),
+            allowMinutes = true,
+            minuteTicks = flowOf(Unit),
+            checkDevice = checkDevice,
+            checkStore = checkStore,
+            reconcile = { reconciled.incrementAndGet() },
+        )
 
     /** The data as it is now. */
     val data: PillsData get() = (repository.data.value as StoredData.Readable).data
+}
+
+/** Everything reminders need is set, on a phone that isn't HyperOS: the check has nothing to warn about. */
+val allSet =
+    DeviceChecks(notificationsAllowed = true, channel = ChannelState.ON, exactAlarms = true, batteryOptimised = false, hyperOs = false)
+
+/** The reminder check's device, as the test sets it (P7-D2): it records what it opened, and opens nothing. */
+class FakeCheckDevice(
+    @Volatile var checks: DeviceChecks = allSet,
+) : ReminderCheckDevice {
+    val opened: MutableList<CheckItem> = CopyOnWriteArrayList()
+
+    override fun read(): DeviceChecks = checks
+
+    override fun open(
+        activity: Context,
+        item: CheckItem,
+    ) {
+        opened += item
+    }
 }
 
 /** Shows the app's navigation graph with [app]'s fakes, opening [openTake] when it is set, as a tapped reminder does. */

@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.dataStoreFile
 import io.github.davamix.pillsreminder.BuildConfig
+import io.github.davamix.pillsreminder.check.CheckStore
+import io.github.davamix.pillsreminder.check.DataStoreCheckStore
 import io.github.davamix.pillsreminder.core.model.TreatmentRepository
 import io.github.davamix.pillsreminder.core.time.CurrentZoneClock
 import io.github.davamix.pillsreminder.data.DataStoreTreatmentRepository
@@ -61,6 +63,15 @@ class AppContainer(
             val alarm = AlarmClockWakeUp(appContext, log = reminderLog)
             Reminders(repository, clock, Reconciler(repository, clock, shade, alarm, reminderLog), shade, remindersScope, reminderLog)
         }
+
+    /** The reminder check's scope: its store's. It lasts as long as the process (P7). */
+    private val checkScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    /**
+     * The reminder check's own record, `files/datastore/reminder-check.json`, apart from the treatments (P7-D1): whether
+     * the first launch is done, and which HyperOS steps the user has confirmed.
+     */
+    val checkStore: CheckStore = DataStoreCheckStore.create(appContext.dataStoreFile(DataStoreCheckStore.FILE_NAME), checkScope)
 
     private companion object {
         const val STORE_FILE = "pills.json"

@@ -25,12 +25,11 @@ Start or continue phase P7 (Home screen and reminder check) of the pills reminde
 
 ## Current state
 
-In progress. T1 is done ("Measurements (T1)"), and its results are in SPEC v0.3 (Q7). T2's layouts are built: `HomeContent` and `SettingsContent` with their state types, `TimeLeft`, the check's types (`check/ReminderCheck.kt`) and both strings files, drawn in every state on the emulator and the phone. They wait for the user's agreement. The app still shows P1's placeholders: no ViewModel or destination yet.
+In progress. T1–T3 are done: the measurements (SPEC v0.3), the layouts of Home and Settings (agreed by the user), and the check's logic, device and record, wired into `ScreenDependencies` and `AppContainer`. The app still shows P1's placeholders: no ViewModel or destination yet.
 
 ## Next steps
 
-1. The user looks at T2's drawings (in the session's scratchpad, not kept: draw them again with the gallery below if needed) and agrees, or asks for changes.
-2. T3: the check's logic (`reminderCheck()`), `DeviceChecks` and `AndroidReminderCheckDevice` with SPEC v0.3's intents, `CheckRecord` and its stores, `ScreenDependencies`' entries and `AppContainer.checkStore`, the fakes; unit tests (`ReminderCheckTest`, `DataStoreCheckStoreTest`, `TimeLeftTest`), shown able to fail.
+1. T4: `HomeViewModel`, its factory and destination in `AppNavHost`: the rows (Due, Next, Upcoming, in SPEC §4.3.2's order), Taken, Taken early through the content's confirmation, the warning's count from `reminderCheck(checkDevice.read(), record)` read again on resume, and the first launch's `openCheck` (`SettingsRoute(firstLaunch = true)`, which T4 adds to `Routes.kt`). Unit tests, shown able to fail.
 
 To draw again: a gallery like T2's (`screen-gallery` skill) with one `@Test` for `HomeContent` and one for `SettingsContent`, and these shots. Home: loading; empty; empty with the warning; upcoming only (Sun 22 Nov 10:30); Mon 10:30 (two Next rows with Taken early); Mon 16:00 (both Due, "now"); Mon 16:05 (the spec's sketch); Mon 16:10 after Taken early; the warning with Due and Next; a long list (2 Due, 5 Next, 2 Upcoming, one with no end, one 6 days ahead), and its end (`performScrollToIndex`); unreadable with the warning; the Taken early dialog; a problem's snackbar; a take due 2 days ago. Settings: loading; stock Android all OK; battery missing; the phone's first launch (battery missing, steps to confirm), and its end; all set with the steps confirmed, and its end; notifications not allowed; the channel off; no pop-up; everything missing, and its end; a problem's snackbar.
 
@@ -41,8 +40,8 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | C1–C6 on the phone and the emulator, with a throwaway probe (a debug-only activity, deleted, never committed); results in "Measurements (T1)". The clean debug build is installed again on both devices. |
-| T2 | Doing | `ui/home/HomeContent.kt` (`HomeRow`, `UpcomingRow`, `HomeData`, `HomeState`, `HomeContent`), `ui/home/TimeLeft.kt` (`TimeLeft.between`, `timeLeftText`), `ui/settings/SettingsContent.kt` (`SettingsState`, `SettingsContent`), `check/ReminderCheck.kt` (the check's types), `strings_home.xml`, `strings_settings.xml`. Drawn on the emulator (light, dark, font scale 2) and the phone (light, dark): everything fits, no word broken. Waiting for the user's agreement. |
-| T3 | To do | The check: device, logic, store |
+| T2 | Doing | `ui/home/HomeContent.kt` (`HomeRow`, `UpcomingRow`, `HomeData`, `HomeState`, `HomeContent`), `ui/home/TimeLeft.kt` (`TimeLeft.between`, `timeLeftText`), `ui/settings/SettingsContent.kt` (`SettingsState`, `SettingsContent`), `check/ReminderCheck.kt` (the check's types), `strings_home.xml`, `strings_settings.xml`. Drawn on the emulator (light, dark, font scale 2) and the phone (light, dark): everything fits, no word broken. Agreed by the user. |
+| T3 | Done | `check/ReminderCheck.kt` (`reminderCheck()`, `channelStateOf`, `isHyperOs`, `SettingsScreen`, `settingsScreens()`), `check/ReminderCheckDevice.kt` (`DeviceChecks`, `ReminderCheckDevice`, `AndroidReminderCheckDevice`), `check/CheckStore.kt` (`CheckRecord`, `CheckStore`, `InMemoryCheckStore`), `check/DataStoreCheckStore.kt`; `ScreenDependencies`' `checkDevice`, `checkStore`, `reconcile`; `AppContainer.checkStore`; `FakeCheckDevice` in `ViewModelTesting.kt` and `UiTesting.kt`, `FakeApp`'s record and `reconciles`. Tests: `ReminderCheckTest` (14), `DataStoreCheckStoreTest` (8), `TimeLeftTest` (8). 30 deliberate bugs, all caught (session log). |
 | T4 | To do | Home's ViewModel and destination |
 | T5 | To do | Settings' ViewModel and destination |
 | T6 | To do | UI flow tests, shared test helpers |
@@ -58,6 +57,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 | 2026-11-22 | **SPEC v0.3** (Q7), agreed by the user: the battery button names `com.android.settings`; the exact-alarm line's button opens the app's details; Autostart's opens HyperOS's Autostart list. Specification v0.11 and plan v0.9: HyperOS's battery saver at "No restrictions" also turns battery optimisation off, rather than being the same setting. | T1, C1 and C2 ("Measurements (T1)"). |
 | 2026-11-22 | T2's types, where SPEC §4.2 differs: `CheckLine(item, status, problem: NotificationsProblem?)`, the reason the Notifications line is missing (`NOT_ALLOWED`, `CHANNEL_OFF`, `NO_POP_UP`), rather than `channel: ChannelState?`; `ReminderCheck` also has `hyperOs`, which the battery line's HyperOS sentence needs; `CheckItem` carries its `step`. To fold into the SPEC in T8. | A permission refused and a channel off show different texts and open different screens; one field says which. |
 | 2026-11-22 | T2's layout, where SPEC §4.3 leaves it open: a row's button goes under its texts, full width, from font scale 1.5 (`STACKED_FONT_SCALE`); the time left and "No end" are kept on one line by non-breaking spaces in `strings_home.xml`; Due rows are cards in `primaryContainer`, Next and Upcoming rows plain cards, the warning a card in `errorContainer`; the check's lines are cards with a status icon (check, warning, info for a step to confirm), their text in the error colour when missing, their buttons under them. To fold into the SPEC in T8. | The drawings: at font scale 1 on the emulator (12-hour), "in 7 h 55 min" broke after "55"; side by side at font scale 2, a row's button would leave its text too narrow. |
+| 2026-11-22 | T3's shapes, where SPEC §4.1 and §4.2 are silent: the screens each line opens are a pure function, `settingsScreens(item, device)`, returning `SettingsScreen`s in the order to try, which `AndroidReminderCheckDevice` turns into intents; the Notifications line opens the channel's screen only when the permission is granted and the channel is wrong. `channelStateOf(importance)` and `isHyperOs(manufacturer)` are pure functions too. The record's file holds `schemaVersion` 1; another version, a damaged file or one that can't be opened reads as empty, and step names it doesn't know are left out. `FakeCheckDevice` is written twice, in the unit tests' and the instrumented tests' helpers, which share no source set. To fold into the SPEC in T8. | The rules then have JVM tests: an `Intent` can't be built in a JVM unit test. |
 | 2026-11-22 | The Taken early confirmation has a title, "Mark as taken now?", and the text "Atrovent · 3 puffs, planned for Today 16:00. Its reminder won't alert." UI text, so no SPEC change; SPEC §4.3.4 quotes the draft's wording, to update in T8. | "Mark Atrovent's take at Today 4:00 PM as taken now?" read awkwardly ("at Today"). |
 
 ## Measurements (T1)
@@ -106,6 +106,13 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-22 (T2, T3)
+
+- Done: T2, the layouts, drawn on both devices and agreed by the user; T3, the check.
+- T2's drawings found: the time left broke mid-unit on the emulator's 12-hour clock ("in 7 h 55 / min"), fixed with non-breaking spaces; the Taken early dialog's text read awkwardly, now a title and a short line.
+- T3's deliberate bugs, 30 of 30 caught: in `reminderCheck`, the permission ignored, the channel off or without pop-ups taken as OK, the channel off reported as no pop-up, exact alarms always OK, battery inverted, HyperOS's steps on every phone, never confirmed, the `hyperOs` flag lost, steps to confirm not counted, each by its own test; `channelStateOf` with no channel as off, or default importance as on, by the importance test; `isHyperOs` case-sensitive, by its test; `settingsScreens` opening the channel's screen with the permission refused, exact alarms to the wrong screen, the battery chooser first, Autostart without its fallback, by the two screens tests; the store writing no defaults, ignoring the version, failing on an unknown step, throwing on a damaged file or on one it can't open, writing no steps or no first launch, and updating from a stale record, each by its own test; `TimeLeft` rounding ahead down or past up, on time counted as ahead, hours not within the day, no days, by the rounding, on time and days tests.
+- Unit totals: `:app` 226, `:core` 177, none failing.
 
 ### 2026-11-22 (later)
 
