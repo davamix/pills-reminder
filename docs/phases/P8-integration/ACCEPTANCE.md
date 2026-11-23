@@ -153,6 +153,18 @@ The release app, on the phone, driven over adb while in front, with the user. Th
 
 **Note for device checks:** a heads-up stays on screen for 6 to 26 seconds on this phone (`notification_visibility`), over the app bar: two taps on the Take screen's Back icon at those moments landed on it instead, and did nothing. Not an app issue; the icon worked otherwise.
 
+### A10. Layout, language and theme, on the phone (2026-11-23)
+
+The phone's settings before: light theme, font scale 1.0, 24-hour clock, auto-rotate on. With the user's agreement, dark mode and then font scale 1.4 were set over adb for one walk each through Home, Treatments, Treatment, Take, both editors, the time picker and Settings, with a screenshot of each while the app was in front (kept off the repository), and then put back: light, 1.0.
+
+**Theme** (NF-10): in dark mode every screen followed, with Due rows highlighted in the dark scheme's container colour, and readable text.
+
+**Large font** (NF-7): at font scale 1.4, every text readable and nothing cut off in the content area (392.7 × 796.4 dp); Home's Taken button moves under the row's texts, as P7 designed from 1.3; the 24-hour time picker's dial fits. The medicine editor's date button wraps "Mon 23 / Nov" onto two lines: cosmetic, still readable.
+
+**Portrait** (NF-7): with auto-rotate on, the user turned the phone sideways with the app open: it stayed upright; the display's rotation stayed 0, the app asking for portrait.
+
+**Language and formats** (NF-8): every text in English on a phone in Spanish, the pickers included: the date picker writes "November 2026" and its days in English, with the app's own headline ("Mon 23 Nov"), and its weeks start on Monday, as in Spain. Times in 24-hour form ("08:00", "20:00"), following the phone's setting; the emulator, on a 12-hour clock, writes "7:00 PM" (A9). Days as "Mon 23 Nov", "Today", "Tomorrow". Android's own permission dialog is in the phone's language, as it should be.
+
 ### A9. The emulator (2026-11-23)
 
 The release build, signed, installed fresh on the emulator with `gradle installRelease`, beside the debug app.
