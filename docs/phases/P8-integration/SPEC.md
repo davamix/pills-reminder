@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v0.1 |
+| **Status** | Ready, v0.2 |
 | **Phase** | P8, see [Implementation plan §5](../../IMPLEMENTATION_PLAN.md#5-phases) |
 | **Depends on** | P5, P6, P7 (all Done), and through them P1–P4 |
 | **Branch** | `phase/p8-integration` |
@@ -404,19 +404,25 @@ After the merge (T10):
 
 ## 9. Open questions
 
-| # | Question | Draft assumption |
+None. New questions are numbered from Q8.
+
+**Assumption until T4:** the release build's alert times after a night are read from the events buffer, which the design assumes keeps a night of the app's alerts. T4 measures it; if it doesn't, the fallback of §4.3.4 applies.
+
+### Answered
+
+| # | Question | Decision |
 |---|---|---|
-| Q1 | `EndToEndTest` goes through the real app, so it writes to the debug app's real data and its real shade, and it alerts once with sound, on the phone too. | Accepted: it's the one test of the real path, and it deletes its treatment whatever happens. The alternative is to skip it on the phone (`assumeFalse` on HyperOS) and run it only on the emulator. |
-| Q2 | Who creates the keystore, where it lives, and what its certificate says. | The session creates it in T3 with a script that writes a random password straight into `~/.gradle/gradle.properties`, never shown: `%USERPROFILE%\.android\keystores\pills-reminder-release.jks`, RSA 4096, 30 years, `CN=Pills Reminder`. The user backs up both. If the user would rather choose and type the password, they run `keytool` themselves, and the session writes only the path and the alias. |
-| Q3 | The treatment for the day and night of real use (A11). | The user's choice: one of their own, or the §4.4 example at times that suit them. Either way, `ACCEPTANCE.md` records only times, lateness and conditions, never names, doses or notes. The debug app's test treatments are deleted first, so two apps don't alert. |
-| Q4 | When and how v1.0.0 is tagged and released. | After the merge, on `main`'s merge commit, from an APK built there and checked again; `versionCode` 1, `versionName` 1.0.0; the asset `pills-reminder-1.0.0.apk`; the notes shown to the user before publishing (§4.3.3). |
-| Q5 | Minify (R8) the release build? | No, as now (`isMinifyEnabled = false`). The APK's size doesn't matter for one phone; R8 would need rules for kotlinx.serialization and the type-safe routes, and the release would no longer run the same code the tests ran. |
+| Q1 | `EndToEndTest` goes through the real app, so it writes to the debug app's real data and its real shade, and it alerts once with sound, on the phone too. | Accepted (the draft's assumption): it's the one test of the real path, and it deletes its treatment whatever happens. It runs on the emulator and the phone. |
+| Q2 | Who creates the keystore, where it lives, and what its certificate says. | The draft's assumption: the session creates it in T3 with a script that writes a random password straight into `~/.gradle/gradle.properties`, never shown: `%USERPROFILE%\.android\keystores\pills-reminder-release.jks`, RSA 4096, 30 years, `CN=Pills Reminder`. The user backs up the keystore and the properties. |
+| Q3 | The treatment for the day and night of real use (A11). | The draft's assumption: the user's choice, one of their own or the §4.4 example at times that suit them. `ACCEPTANCE.md` records only times, lateness and conditions, never names, doses or notes. The debug app's test treatments are deleted first, so two apps don't alert. |
+| Q4 | When and how v1.0.0 is tagged and released. | The draft's assumption: after the merge, on `main`'s merge commit, from an APK built there and checked again; `versionCode` 1, `versionName` 1.0.0; the asset `pills-reminder-1.0.0.apk`; the notes shown to the user before publishing (§4.3.3). |
+| Q5 | Minify (R8) the release build? | No, as now (`isMinifyEnabled = false`): the APK's size doesn't matter for one phone, and the release runs the same code the tests ran. |
 | Q6 | Where `ACCEPTANCE.md` lives. | In this phase's folder, `docs/phases/P8-integration/ACCEPTANCE.md`, linked from the README and the release notes. |
 | Q7 | Fix P6's `EndAndDeleteTest`, which P7 left as it was. | Yes, in T1: P8 needs every instrumented test to pass, and the user's phone runs at a large font. |
-| A | (Assumption, not a question.) T4 measures how to read alert times after a night on the release build. | Until then, the design assumes the events buffer keeps a night of the app's alerts. If not, the fallback of §4.3.4. |
 
 ## 10. Change log
 
 | Version | Date | Changes |
 |---|---|---|
 | 0.1 | 2026-11-23 | First draft, from plan v0.9 (§5.2) and specification v0.11, with what P1–P7's handovers left for P8. |
+| 0.2 | 2026-11-23 | Review: the user agreed with every draft assumption (Q1–Q7), now answered in §9. No change to the specification or the plan. Ready. |
