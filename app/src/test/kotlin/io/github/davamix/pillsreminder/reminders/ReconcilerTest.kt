@@ -306,4 +306,96 @@ class ReconcilerTest {
             assertEquals(TakeReminder.Alerted(1, Instant.parse("2026-11-23T07:00:00Z")), records[amoxicillin0800])
             assertEquals(emptyList<TakeKey>(), at(nov(23, 8, 0)))
         }
+
+    // Android lists a post only some time after `notify` returns. An alert stores its record, which starts another
+    // reconcile at once (P5-D2): on the phone, it found the reminder missing and posted it again silently, and the
+    // silent post replaced the alerting one before its sound played (P7 SPEC Q10).
+
+    /** Reconciles [seconds] after [local], as a data change does, after clearing the posts. */
+    private suspend fun reconcileAfter(
+        local: LocalDateTime,
+        seconds: Long,
+    ) {
+        clock.now = nowAt(local).plusSeconds(seconds)
+        shade.clearPosts()
+        assertTrue(reconciler.reconcile(ReconcileTrigger.DATA_CHANGED) is ReconcileResult.Applied, "the reconcile at +$seconds s")
+    }
+
+    @Test
+    fun `the reconcile right after an alert doesn't post its reminder again while the shade doesn't list it yet`() =
+        runTest {
+            shade.lag = true
+            assertEquals(listOf(amoxicillin0800, atrovent0800), at(nov(23, 8)))
+
+            reconcileAfter(nov(23, 8), 0)
+
+            assertEquals(emptyList<Pair<TakeKey, Boolean>>(), shade.posts)
+            assertEquals(emptyList<TakeKey>(), shade.removed)
+        }
+
+    @Test
+    fun `a reminder swiped away before the shade listed it comes back once 10 seconds have passed`() =
+        runTest {
+            shade.lag = true
+            at(nov(23, 8))
+            shade.swipe(amoxicillin0800)
+            shade.settle()
+
+            reconcileAfter(nov(23, 8), 10)
+            assertEquals(emptyList<Pair<TakeKey, Boolean>>(), shade.posts)
+
+            reconcileAfter(nov(23, 8), 11)
+            assertEquals(listOf(amoxicillin0800 to false), shade.posts)
+        }
+
+    @Test
+    fun `once the shade has listed a reminder, a swipe brings it back at the next reconcile, however soon`() =
+        runTest {
+            shade.lag = true
+            at(nov(23, 8))
+            shade.settle()
+            reconcileAfter(nov(23, 8), 1)
+            shade.swipe(amoxicillin0800)
+
+            reconcileAfter(nov(23, 8), 2)
+
+            assertEquals(listOf(amoxicillin0800 to false), shade.posts)
+        }
+
+    @Test
+    fun `a reminder answered before the shade listed it is removed`() =
+        runTest {
+            shade.lag = true
+            at(nov(23, 8))
+            clock.now = nowAt(nov(23, 8)).plusSeconds(2)
+            repository.markTaken(amoxicillin0800, clock)
+
+            reconcileAfter(nov(23, 8), 2)
+
+            assertEquals(listOf(amoxicillin0800), shade.removed)
+            assertFalse(amoxicillin0800 in shade.shade)
+            assertEquals(emptyList<Pair<TakeKey, Boolean>>(), shade.posts)
+        }
+
+    @Test
+    fun `an edited reminder is posted again with its new text, once, while the shade still lists the old one`() =
+        runTest {
+            shade.lag = true
+            at(nov(23, 8))
+            shade.settle()
+            clock.now = nowAt(nov(23, 8)).plusSeconds(1)
+            val draft = StoreExample.treatment.toDraft()
+            val amoxicillin = StoreExample.amoxicillinId
+            val renamed = draft.copy(medicines = draft.medicines.map { if (it.id == amoxicillin) it.copy(name = "Amoxil") else it })
+            repository.update { it.saveTreatment(renamed, clock.now) }
+
+            reconcileAfter(nov(23, 8), 1)
+
+            assertEquals(listOf(amoxicillin0800 to false), shade.posts)
+            assertEquals("Amoxil", shade.shade[amoxicillin0800]?.medicine)
+
+            // The shade still lists the old text: the new post counts, so the next reconcile posts nothing.
+            reconcileAfter(nov(23, 8), 2)
+            assertEquals(emptyList<Pair<TakeKey, Boolean>>(), shade.posts)
+        }
 }

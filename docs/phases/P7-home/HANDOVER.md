@@ -23,7 +23,7 @@ A reminder that can lose its sound, found in M3, is P5's and gets its own fix af
 
 None for P7.
 
-- **Next, before P8:** the lost-sound fix in P5's reconciler, in its own branch from `main` (Known issues, SPEC Q10), as the user decided.
+- **The lost-sound fix** (SPEC Q10) is on branch `fix/reminder-sound`, with its pull request (session log, 2026-11-23).
 - **P8 (Integration and v1.0)** can start now: its dependencies, P5, P6 and P7, are all Done. Its SPEC.md and HANDOVER.md don't exist yet (`phase-docs` skill).
 
 To draw again: a gallery like T2's (`screen-gallery` skill) with one `@Test` for `HomeContent` and one for `SettingsContent`, and these shots. Home: loading; empty; empty with the warning; upcoming only (Sun 22 Nov 10:30); Mon 10:30 (two Next rows with Taken early); Mon 16:00 (both Due, "now"); Mon 16:05 (the spec's sketch); Mon 16:10 after Taken early; the warning with Due and Next; a long list (2 Due, 5 Next, 2 Upcoming, one with no end, one 6 days ahead), and its end (`performScrollToIndex`); unreadable with the warning; the Taken early dialog; a problem's snackbar; a take due 2 days ago. Settings: loading; stock Android all OK; battery missing; the phone's first launch (battery missing, steps to confirm), and its end; all set with the steps confirmed, and its end; notifications not allowed; the channel off; no pop-up; everything missing, and its end; a problem's snackbar.
@@ -89,7 +89,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 ## Known issues
 
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
-- **A reminder can lose its sound (P5's reconciler, found in M3).** After an alert, the reconciler stores the take's record; that data change starts a second reconcile within a millisecond (P5-D2). It reads the shade (`activeNotifications`) before Android has registered the alerting post, finds the reminder missing, and posts it again silently (`Reconciler.apply`, "post … silently"); the silent update replaces the alerting post before its sound plays. On the phone at 22:05 the log shows `alert … late=64ms` at 21:05:00.098Z, then `post … silently` at .111Z, and the system logged no `notification_alert`; at 22:00 and 22:10 no silent repost followed, and the system beeped. Not caused by P7, and outside its packages. **The user's decision: fix it in its own small branch from `main` right after P7's pull request, before P8**, with a unit test that reproduces the race (a fake shade whose `shown()` lags behind its posts) and a check on the phone. A likely fix: the reconciler counts what it has just posted as in the shade.
+- **Fixed after P7, on branch `fix/reminder-sound` (session log, 2026-11-23): a reminder could lose its sound (P5's reconciler, found in M3).** After an alert, the reconciler stores the take's record; that data change starts a second reconcile within a millisecond (P5-D2). It reads the shade (`activeNotifications`) before Android has registered the alerting post, finds the reminder missing, and posts it again silently (`Reconciler.apply`, "post … silently"); the silent update replaces the alerting post before its sound plays. On the phone at 22:05 the log shows `alert … late=64ms` at 21:05:00.098Z, then `post … silently` at .111Z, and the system logged no `notification_alert`; at 22:00 and 22:10 no silent repost followed, and the system beeped. Not caused by P7, and outside its packages. **The user's decision: fix it in its own small branch from `main` right after P7's pull request, before P8**, with a unit test that reproduces the race (a fake shade whose `shown()` lags behind its posts) and a check on the phone. A likely fix: the reconciler counts what it has just posted as in the shade.
 - **P6's `EndAndDeleteTest` fails at a large font** (found in T8): at font scale 1.4, on the phone and on the emulator, it scrolls down to End early and then asserts "Active" is displayed, which has scrolled out of view. It passes at the normal font on both devices. Not P7's code; not changed, since the user didn't choose to. The fix is one line: scroll to "Active" before asserting it.
 - The emulator's debug app keeps two notification categories from earlier probes, "Probe reminders" (`probe_reminders`) and `reminders-mutant`, and a `files/probe.log` dated 21 Nov (P5). They show in its notification settings; the check reads only the Reminders category, so they change nothing. Uninstalling the debug app on the emulator would remove them (its data holds no treatment). On the phone those categories are deleted.
 
@@ -99,7 +99,7 @@ Connections to other phases left for later.
 
 - **P8 (end to end):** the end-to-end test (create a treatment, get its reminder, answer it, see Home change) and the acceptance record, with the settings the reminder check asks for.
 - **P8 (release build):** the first launch's check on a fresh install of the release build, and `NF-1` and `NF-2` again with the check passing.
-- **Before P8 (P5's reconciler):** the lost-sound fix (Known issues, SPEC Q10), in its own branch from `main`, with a unit test that reproduces the race and a check on the phone.
+- **Before P8 (P5's reconciler):** the lost-sound fix (Known issues, SPEC Q10), on branch `fix/reminder-sound`: done, waiting for its merge.
 
 ## How to verify
 
@@ -113,6 +113,14 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-23 (the lost-sound fix, after P7)
+
+- On branch `fix/reminder-sound`, from `main` (SPEC Q10, the user's decision): the `Reconciler` keeps the reminders it posted that the shade doesn't list yet (`unlisted`), and counts them as in the shade, for removals too, until the shade lists them as posted or for `POSTED_GRACE`, 10 s, at most; a reminder swiped away right after its post comes back at the first reconcile after that. `FakeShade.lag` and `settle()` reproduce Android's delay.
+- Five new `ReconcilerTest` tests: the reconcile right after an alert posts nothing while the shade doesn't list it (the race: it failed before the fix, with both reminders posted again silently); a swipe before the shade listed the reminder brings it back after 10 s, not at 10 s; once listed, a swipe brings it back at once; a reminder answered before the shade listed it is removed; an edit posts the new text once while the shade still lists the old. 8 deliberate bugs, all caught: the alert or the silent post not kept, a listed post not forgotten, no grace, the grace inclusive, removals from the listed reminders only, the listed text winning over the posted one, the unlisted posts ignored.
+- `./gradlew build`: passes, `:app` 257, `:core` 177, no failures. The whole instrumented suite: `OK (48 tests)` on the phone and the emulator.
+- **On the phone, with the user's agreement:** a debug test treatment, two medicines every 2 minutes, left unanswered: five alarms, 16:46 to 16:54, each removing the earlier reminders and alerting the new ones, then a data-change reconcile 3 to 60 ms later, as at 22:05 in M3. None posted again silently, and Android logged the sound (`notification_alert`, `beep=1`) at each of the five. On the emulator, the same at three alarms. Both test treatments deleted: no alarm, no notification, the phone's data hash as before.
+- `CLAUDE.md`'s known issue became a line on the fix, under Reminders.
 
 ### 2026-11-23 (close)
 
