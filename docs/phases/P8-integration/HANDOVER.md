@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Not started |
-| **Spec** | [SPEC.md](SPEC.md), version v0.1 |
+| **Status** | In progress |
+| **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p8-integration` |
 | **Last session** | 2026-11-23 |
 
@@ -25,11 +25,11 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-Not started. SPEC.md v0.1 is a draft, waiting for its review (§9, Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). The app's wiring is believed complete (SPEC §4.3.1); T1 confirms it.
+In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). The app's wiring is believed complete (SPEC §4.3.1); T1 confirms it.
 
 ## Next steps
 
-1. Once SPEC.md is `Ready`: T1. Confirm each item of SPEC §4.3.1 in the code and note it here, then fix `EndAndDeleteTest` (§4.3.6) and run it at font scale 1.0 and 1.4 on the emulator.
+1. T1. Confirm each item of SPEC §4.3.1 in the code and note it here, then fix `EndAndDeleteTest` (§4.3.6) and run it at font scale 1.0 and 1.4 on the emulator.
 
 ## Tasks
 
