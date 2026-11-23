@@ -47,6 +47,8 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 | One module's tests, filtered | `./gradlew :core:test --tests '*reminders*'`, with a package or class pattern; in `:app`, `:app:testDebugUnitTest --tests '…'`. Quicker than `build` while working on one package. |
 | Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
 | Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first; `instrument` grants the HyperOS permission the tests need (`allow_test_start`), which every install, update and restart resets. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data. |
+| Release build, signed | `gradle assembleRelease` gives `app/build/outputs/apk/release/app-release.apk`, signed when the four `pillsReminder.release.*` properties (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) are in the user-level `~/.gradle/gradle.properties` (P8); without them, as in CI, it is unsigned. Check it with `D:\Android\Sdk\build-tools\37.0.0\apksigner.bat verify --verbose --print-certs <apk>`. |
+| Install the release build | `gradle installRelease` (`phone` skill), or `$adb install -r <apk>`. Each update must be signed with the same key, or Android refuses it, and the only way round, uninstalling, deletes every treatment. |
 
 - Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
 - Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.
@@ -159,6 +161,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 ## Git
 
 - **The repo is public.** Never commit personal data or secrets: device serial numbers, names, e-mail or postal addresses, phone numbers, real treatments or screenshots that show them, keystores, passwords, `local.properties`. Examples and test data use the example in specification §4.4.
+- **The release keystore** is outside the repo, `%USERPROFILE%\.android\keystores\pills-reminder-release.jks`, and its password only in the user-level `~/.gradle/gradle.properties` (P8). Never print the password, or put it in a command line, a file in the repo or a commit.
 - `main` always builds. Each phase is built on its own branch, `phase/pN-<name>`, and merged through a pull request with green CI. The user merges.
 - **CI runs only on pull requests and on pushes to `main`.** Pushes to a phase branch before its pull request exists start no run, so don't wait for one (skill `handover`).
 - Draft documents (specification, plan, a phase's SPEC.md) are committed and pushed to `main` at every version. That includes a SPEC version made during implementation. Afterwards, merge `main` into the phase branch (skill `handover`).

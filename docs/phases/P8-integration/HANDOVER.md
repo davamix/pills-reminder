@@ -25,11 +25,12 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. T2 is done: `EndToEndTest` passes on the emulator and the phone, and catches the five deliberate bugs of SPEC §4.3.2. Next is the release build (T3).
+In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. T2 is done: `EndToEndTest` passes on the emulator and the phone, and catches the five deliberate bugs of SPEC §4.3.2. T3 is done but for one step: the signed release APK builds, and its signature, manifest and dependencies are as SPEC §4.3.3 says; the user still has to back up the keystore and its properties. Next: A9 on the emulator (T5), and T4's measurement.
 
 ## Next steps
 
-1. T3: run the keystore script (it is drafted in the session's scratchpad, `make_keystore.py`; if the scratchpad was cleared, write it again from SPEC §4.3.3: random password through `-storepass:env`, written only to `~/.gradle/gradle.properties`, never printed), then the signing configuration and `versionName` 1.0.0 in `app/build.gradle.kts`, `gradle assembleRelease`, and the APK's checks.
+1. The user backs up `%USERPROFILE%\.android\keystores\pills-reminder-release.jks` and the four `pillsReminder.release.*` lines of `%USERPROFILE%\.gradle\gradle.properties`, and says so: then T3 is Done.
+2. T5: A9 on the emulator, with the release build installed fresh (`gradle installRelease`); then A1 and A12 on the phone, with the user; start `ACCEPTANCE.md`.
 
 ## Tasks
 
@@ -39,7 +40,7 @@ The task IDs come from SPEC.md §7.
 |---|---|---|
 | T1 | Done | Every item of SPEC §4.3.1 in place (see "Wiring status" below); no gap to wire. `EndAndDeleteTest` scrolls back to "Active" before asserting it: passes at font scale 1.0 and 1.4 on the emulator. `build` passes (`:app` 257, `:core` 177 unit tests); the instrumented suite passes on the emulator (48 tests). |
 | T2 | Done | `EndToEndTest`, as SPEC §4.3.2: first takes yesterday at the suggested time, every 8 hours, so the latest take is Due at once. Passed on its first run on the emulator (25 s) and the phone (10 s), leaving no reminder, alarm or treatment behind. On the phone, one `notification_alert` played for the two reminders due together (`RM-4`'s single sound). The reminder's `contentIntent.send()` from the test opened the Take screen on Android 16 too, with no background-start option. Each wait has a name, so a failure says which step stopped. Deliberate bugs, on the emulator, all caught (see session log). The whole suite passes on the emulator and the phone (49 tests). |
-| T3 | To do | Release build, keystore, signing |
+| T3 | Doing | Keystore created (below), signing in `app/build.gradle.kts`, `versionName` 1.0.0; CLAUDE.md's release commands. The APK checked (below). **Waiting for the user's backup of the keystore and the properties.** |
 | T4 | To do | Measure: reading alert times on the release build |
 | T5 | To do | A9 (emulator), A1, A12 (phone); `ACCEPTANCE.md` started |
 | T6 | To do | A2, A3, A4, A10 (phone) |
@@ -54,6 +55,8 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 
 | Date | Decision | Reason |
 |---|---|---|
+| 2026-11-23 | AndroidX's `androidx.profileinstaller.ProfileInstallReceiver` is removed from the merged manifest (`tools:node="remove"` in `app/src/main/AndroidManifest.xml`, with `tools:ignore="MissingClass"`, since lint reads the compile classpath, where that runtime-only class isn't). Decided by the user. | T3 found it in the release APK, exported and guarded by `android.permission.DUMP`, in every build since P1; plan §3 and SPEC §4.3.3 allow only the launcher activity to be exported. It only serves adb and benchmark tools: AndroidX still installs its profiles when the app starts. |
+| 2026-11-23 | The release APK is signed with the v2 scheme only (AGP's default for `minSdk` 33). | SPEC §4.3.3 asks for v2 or v3. Android 13 and later verify v2. |
 
 ## Known issues
 
@@ -64,6 +67,13 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 ## Pending wiring
 
 None left for later phases: P8 is the last. What earlier phases left for P8 is in SPEC §4.3.1.
+
+### Release build (T3, 2026-11-23)
+
+- **Keystore:** `%USERPROFILE%\.android\keystores\pills-reminder-release.jks`, PKCS12, alias `pills-reminder`, RSA 4096, SHA384withRSA, `CN=Pills Reminder`, valid from 23 Nov 2026 to 23 Nov 2056. Created by a scratchpad script that passed a random password to `keytool` through `-storepass:env` and wrote it only to the user-level `gradle.properties`, with the path and the alias; the password was never printed, and isn't in the build's log or outputs (checked).
+- **Certificate SHA-256 digest:** `d28df13a9531debbba7c7d73eb2305121cea03bce885157ae533b4c4a263a5e7` (public: it is in every signed APK).
+- **APK** (`gradle assembleRelease`, 25 MB, not minified): `apksigner` verifies it, v2 scheme, one signer. Its manifest: `io.github.davamix.pillsreminder`, `versionName` 1.0.0, `versionCode` 1, `minSdk` 33, `targetSdk` 37; no `debuggable`, no `testOnly`; `allowBackup="false"` with the data extraction rules; permissions `POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` and AndroidX's `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (signature level); components `MainActivity` (the only one exported), the three receivers (not exported) and AndroidX Startup's `InitializationProvider` (not exported); no `DebugActivity`, no `android:process`. Exported before the fix: AndroidX's `ProfileInstallReceiver` (see "Decisions and deviations").
+- **Release runtime dependencies:** groups `androidx.*`, `org.jetbrains.*`, `com.google.guava`, and the libraries AndroidX pulls in, `com.squareup.okio` and `org.jspecify`. Nothing for accounts, analytics or ads (NF-3).
 
 ### Wiring status (T1, 2026-11-23)
 

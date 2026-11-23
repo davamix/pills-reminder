@@ -55,6 +55,14 @@
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- AndroidX's profile installer adds an exported receiver, guarded by DUMP, for adb and benchmark tools. Plan §3:
+             only the launcher activity is exported (P8 T3). The profiles are still installed when the app starts. Lint
+             reads the compile classpath, where the class isn't: the library is a runtime dependency of Compose. -->
+        <receiver
+            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+            tools:ignore="MissingClass"
+            tools:node="remove" />
     </application>
 
 </manifest>
