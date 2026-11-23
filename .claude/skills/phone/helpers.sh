@@ -102,6 +102,13 @@ instrument() {
         echo "  the run hangs until the deadline (P2)."
         return 1
     fi
+    # Some tests assume the normal font size: at 1.4, P6's EndAndDeleteTest scrolled its status out of view (P7 T8).
+    # A warning only; gallery.sh sets INSTRUMENT_ANY_FONT, since it changes the font scale on purpose.
+    local scale
+    scale=$($adb shell settings get system font_scale 2> /dev/null | tr -d '\r')
+    if [ -z "$INSTRUMENT_ANY_FONT" ] && [ -n "$scale" ] && [ "$scale" != null ] && [ "$scale" != 1.0 ]; then
+        echo "instrument: warning: the font scale is $scale, not 1.0; a test that fails may only assume the normal size."
+    fi
     if [ $# -gt 0 ] && [ "$1" != "-e" ]; then
         spec=$(echo "$1" | tr ',' '\n' | sed "s/^\($app_id\.\)\{0,1\}/$app_id./" | paste -sd, -)
         shift
@@ -376,6 +383,12 @@ wait_alert() {
 alert_events() {
     $adb logcat -d -b events -v time | tr -d '\r' | grep 'notification_alert' | grep "|$pkg|" | tail -n "${1:-5}" |
         sed -E "s/^([0-9-]+ [0-9:.]+) .*\|$pkg\|-?[0-9]+\|(.*)\|[0-9]+,([01]),([01]),([01])(,[0-9]+)*\]$/\1 \2 buzz=\3 beep=\4 blink=\5/"
+}
+
+# The activity in front, by name only (package/class): which screen a tap opened, without reading the screen itself,
+# which may show the user's apps, as HyperOS's Autostart list does (P7 M1).
+top_activity() {
+    $adb shell dumpsys activity activities | tr -d '\r' | grep -m1 -o 'topResumedActivity=[^ ]* [^ ]* [^ }]*' | awk '{ print $3 }'
 }
 
 # One line about the app's reminders now: the device's time, the screen (Awake, or Dozing when it is off), the process,

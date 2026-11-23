@@ -117,6 +117,7 @@ Newest first.
 ### 2026-11-23 (close)
 
 - The user merged pull request [#7](https://github.com/davamix/pills-reminder/pull/7) on 2026-11-22 (`44dc6c7`). P7 is closed: Done in plan §5.1, SPEC §8's done criteria ticked.
+- Skills review, all four proposals agreed by the user and made on `main`: `screen-gallery` deletes earlier runs' sheets on the device before drawing, and takes an optional extra font scale for the emulator (sheets `light-1.4`, `dark-1.4`); `phone`: `instrument` warns when the font scale isn't 1.0, a `top_activity` helper, and notes on checking that an alert was heard (`alert_events`) and on `debug_create … 0`; `CLAUDE.md`: Python scripts write with `newline="\n"`, since `Path.write_text` writes CRLF on Windows. Each checked on the emulator.
 
 ### 2026-11-22 (T8)
 

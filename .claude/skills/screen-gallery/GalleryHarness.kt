@@ -31,6 +31,7 @@ import io.github.davamix.pillsreminder.ui.theme.PillsReminderTheme
 import org.junit.Rule
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 // THROWAWAY, from the screen-gallery skill: gallery.sh copies it into androidTest/…/probe/ for a run and removes it
 // afterwards. Never committed. A session's own gallery extends GalleryHarness with one @Test per screen.
@@ -59,9 +60,11 @@ abstract class GalleryHarness {
      * Draws every shot and saves them as sheets, four shots side by side at half size, in the app's cache:
      * `gallery-<screen>-<variant>-<n>.png`, with `gallery-<screen>-names.txt` listing the shots in order.
      *
-     * The variants follow the device's own font scale: at 1, `light-1` and `dark-1`; from 1.5 on, `large`, in light
-     * only. A font scale set around the content wouldn't reach dialogs, which open in their own window, so gallery.sh
-     * sets the system's instead. The frame is the phone's content area (P1), with the system bars outside it.
+     * The variants follow the device's own font scale: at 1, `light-1` and `dark-1`; at 2, `large`, in light only; in
+     * between, such as the phone's "big" font, `light-1.4` and `dark-1.4` (P7: a layout switch at 1.5 looked right at
+     * 1 and 2, and not at 1.4). A font scale set around the content wouldn't reach dialogs, which open in their own
+     * window, so gallery.sh sets the system's instead. The frame is the phone's content area (P1), with the system bars
+     * outside it.
      */
     fun draw(
         screen: String,
@@ -74,8 +77,10 @@ abstract class GalleryHarness {
                 }
             }
         }
-        val large = context.resources.configuration.fontScale >= 1.5f
-        val variants = if (large) listOf("large" to false) else listOf("light-1" to false, "dark-1" to true)
+        // The font scale in tenths: 10 at 1, 14 at the phone's "big", 20 at 2.
+        val tenths = (context.resources.configuration.fontScale * 10).roundToInt()
+        val scale = if (tenths % 10 == 0) "${tenths / 10}" else "${tenths / 10}.${tenths % 10}"
+        val variants = if (tenths >= 20) listOf("large" to false) else listOf("light-$scale" to false, "dark-$scale" to true)
         for ((variant, isDark) in variants) {
             dark = isDark
             val images =

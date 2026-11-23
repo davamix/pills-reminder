@@ -41,11 +41,12 @@ The gallery is throwaway: never committed. [gallery.sh](gallery.sh) copies it in
    ```
 
    - **On the emulator** it runs twice: at font scale 1, as `light-1` and `dark-1` sheets; then with the system's font scale at 2.0, as `large` sheets. It puts the font scale back afterwards.
-   - **On the phone** (`phone` instead of `emulator`) it runs once, at the phone's own settings: light and dark. The phone must be unlocked. It never changes the phone's font scale: ask the user first, and do it by hand (`phone` skill, "HyperOS and Android pitfalls").
-   - It removes `probe/` when it ends, also after a failure. If a run is interrupted hard, check that `git status` doesn't list it.
+   - **An extra font scale,** as a fourth argument, adds a run in between on the emulator, as `light-<scale>` and `dark-<scale>` sheets: `… <scratchpad>/gallery-emu 1.4`. Use 1.4, the phone's "big" font, whenever a layout changes at some font scale (a button that moves under its text, a row that wraps): in P7, rows that stacked their button from 1.5 looked right at 1 and 2, and at 1.4 broke "1 capsule" between its number and its unit.
+   - **On the phone** (`phone` instead of `emulator`) it runs once, at the phone's own settings: light and dark, named after its font scale (`light-1`, or `light-1.4` at its "big" font). The phone must be unlocked. It never changes the phone's font scale: ask the user to set it by hand (`phone` skill, "HyperOS and Android pitfalls"), then run it.
+   - It deletes the sheets an earlier run left in the app's cache before drawing, so the output folder holds only this run's (in P7 it held P6's too). It removes `probe/` when it ends, also after a failure. If a run is interrupted hard, check that `git status` doesn't list it.
 3. **Read the sheets** with Read: `gallery-<screen>-<variant>-<n>.png`, four shots side by side at half size, in the order `gallery-<screen>-names.txt` lists. Magenta is the background around dialogs and popups. Check:
    - nothing cut off or overflowing the frame (the phone's content area, 392.7 × 796.4 dp);
-   - no word broken mid-word at font scale 2, especially in narrow fields and side-by-side buttons;
+   - no word broken mid-word at font scale 2, especially in narrow fields and side-by-side buttons, nor a value split from its unit at an in-between scale;
    - colours readable in dark theme;
    - dates and times as the device writes them (12-hour on the emulator, 24-hour on the phone).
 4. **Draw on the phone too,** at least once per phase: library texts and pickers follow the phone's language and region (P6 found the date picker in Spanish). Light and dark there are enough.
