@@ -111,6 +111,48 @@ To be filled in T9, at the commit above: the unit tests of `:core` and `:app`, a
 
 **On the phone:** `run-as io.github.davamix.pillsreminder` is refused ("package not debuggable"), so not even adb can read its data; no `INTERNET` permission. After the first launch and the check, logcat held 161 lines from the app's process, every one from Android, HyperOS or the graphics driver (window, input, rendering, the back callback, and HyperOS's `PerfDebugMonitorImpl` at process start); none from the app's own tags (`PillsReminders`, `PillsStore`).
 
+### A2. Treatments and the editors, on the phone (2026-11-23)
+
+The release app, on the phone, driven over adb while in front, with the user. The debug app was uninstalled first, so only the release app could alert.
+
+**The specification's §4.4 example** (TR-1–TR-6, SC-1, SC-2, TR-4): "Example", notes "Spec example, for the acceptance checks"; Amoxicillin, 1 capsule, "with food", and Atrovent, 3 puffs for 5 days, both every 8 hours from today, Monday 23 November, at 08:00, which is §4.4's own start. The editor suggested every 8 hours for 7 days, first take 20:00, the next full hour, in 24-hour form; the time picker moved it to 08:00. It said "The first take is in the past. Its takes before now will be missed, apart from the latest while it is due.", then "21 takes. The last one is on Mon 30 Nov at 00:00." and "15 takes. The last one is on Sat 28 Nov at 00:00.", as in §4.4. Saved at 19:11:26: the 16:00 takes Due, the 08:00 ones Missed; both reminders alerted together with one sound (A5).
+
+**Validation** (TR-8): saving an empty treatment: "Enter a name for the treatment." and "Add at least one medicine."; a medicine with no name and an interval of 0: "Enter a name for the medicine.", "Enter a whole number, 1 or more." and "Fill in the interval and the duration to see the takes."
+
+**Unsaved changes** (TR-13): Back from the medicine editor with changes asked "Discard your changes?", with Keep editing (which kept them) and Discard; the treatment editor asked the same.
+
+**A second active treatment, with no end** (TR-1, TR-7, SC-5): "Weekly", Vitamin D, "1/3 tablet", every 1 week, No end, first take today 09:00. The editor: "No end: takes carry on until the treatment is ended or this medicine is removed."; the Treatment screen: "Every week, no end", "0 taken or skipped · No end", "Last take: No end"; Home: "Weekly · 0 answered · No end". Its take, Due, said "Missed if not answered by Mon 30 Nov 09:00", a week later (TK-3).
+
+**Upcoming** (HM-4): "Later", Atrovent, 2 puffs, every 12 hours for 2 days, from tomorrow 08:00: "Upcoming · Starts: Tomorrow 08:00", "4 takes", and on Home, under Upcoming, "Starts: Tomorrow 08:00 · in 12 h 45 min".
+
+**Editing a started treatment** (TR-10): from the treatment editor, Amoxicillin changed to every 12 hours. The medicine editor said "Changes apply to takes from now on. Takes already due or answered keep their state." and "15 takes. The last one is on Sun 29 Nov at 20:00." After Save, its 16:00 take was still Due, Atrovent's two answers unchanged. To be completed at 20:00.
+
+**Ending early** (TR-11, TR-12): "End Weekly now? Its takes still to come are removed, and a take that is due now becomes missed.", End. "Finished · Ended: Today 19:28", "0 of 1 taken or skipped", "Last take: Today 09:00", no Edit, no End early; its reminder left the shade. In Treatments, under Finished: "Weekly", "Ended: Today 19:28".
+
+**Deleting** (TR-9): "Delete Later? Its medicines and every take recorded for it are deleted. This can't be undone."; Cancel kept it, Delete removed it.
+
+### A3. Home, on the phone (2026-11-23)
+
+**Order and contents** (HM-1–HM-4, TK-1): under Due, highlighted, each with Taken, Vitamin D (09:00, "10 h 14 min ago"), then Amoxicillin and Atrovent (16:00, "3 h 14 min ago"), each with its dose, its treatment and its progress ("Example · 0 of 21", "Weekly · 0 answered · No end"); then Upcoming, "Later", "Starts: Tomorrow 08:00 · in 12 h 45 min". With nothing active or upcoming (A1): "No treatments active or upcoming." and "Create one with New treatment."
+
+**Taken** (TK-2, RM-7, HM-3): Taken on Atrovent's row: its reminder left the shade; it moved under Next, "Tomorrow 00:00 · in 4 h 44 min", "Example · 1 of 15", with Taken early.
+
+**Taken early** (TK-4, SC-3): "Mark as taken now?", "Atrovent · 3 puffs, planned for Tomorrow 00:00. Its reminder won't alert.", Taken early. Its row then showed the take after, "Tomorrow 08:00 · in 12 h 44 min", "Example · 2 of 15", with no Taken early: one take ahead at most; the planned times stayed as they were. To be completed tomorrow: no alert for Atrovent's 00:00 take.
+
+**Current while open** (HM-5): Home left open, untouched: at 19:16:47 "10 h 16 min ago" and "3 h 16 min ago"; at 19:17:54 "10 h 17 min ago" and "3 h 17 min ago".
+
+### A4. A take, opened and corrected, on the phone (2026-11-23)
+
+**From the shade** (RM-6, TK-1): the user tapped Amoxicillin's reminder at 19:21:53 (`notification_clicked`): the app opened on its take: "Planned: Today 16:00", "Due", "Missed if not answered by Tomorrow 00:00", Taken and Skip.
+
+**Taken, then corrected** (TK-2): Taken: "Taken at 19:22", and the reminder left the shade; Change time taken, the time picker set to 19:05, Save: "Taken at 19:05".
+
+**The last answered take** (TK-5): on the Treatment screen, "Last answered: Today 16:00 · Taken at 19:05", which opens that take. Skip: "Skipped". Undo: "Due" again, and its reminder came back and alerted at once, 19:23:51.176.
+
+**With an editor open** (RM-6): with Example's treatment editor open, the user tapped Vitamin D's reminder: its take opened above the editor (19:26:08); Back returned to the editor, as it was (19:27:18).
+
+**Note for device checks:** a heads-up stays on screen for 6 to 26 seconds on this phone (`notification_visibility`), over the app bar: two taps on the Take screen's Back icon at those moments landed on it instead, and did nothing. Not an app issue; the icon worked otherwise.
+
 ### A9. The emulator (2026-11-23)
 
 The release build, signed, installed fresh on the emulator with `gradle installRelease`, beside the debug app.
