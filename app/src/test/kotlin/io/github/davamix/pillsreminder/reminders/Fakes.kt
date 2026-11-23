@@ -33,26 +33,48 @@ class FakeShade(
     /** When set, every post throws it. */
     var failure: Exception? = null
 
+    /**
+     * When set, a post reaches [shown] only at [settle]: Android lists a post some time after `notify` returns, and a
+     * reconcile in between saw the shade without it (P7 SPEC Q10).
+     */
+    var lag = false
+
+    /** The reminders posted while [lag] was set, with the fingerprint [shown] keeps listing until [settle]: none if new. */
+    private val unsettled = linkedMapOf<TakeKey, String?>()
+
     override fun prepare() {
         prepared++
     }
 
-    override fun shown(): Map<TakeKey, String> = shade.mapValues { it.value.fingerprint }
+    override fun shown(): Map<TakeKey, String> {
+        val listed = shade.mapValues { it.value.fingerprint }.toMutableMap()
+        for ((key, before) in unsettled) if (before == null) listed.remove(key) else listed[key] = before
+        return listed
+    }
 
     override fun post(
         content: ReminderContent,
         alert: Boolean,
     ) {
         failure?.let { throw it }
+        if (lag && content.key !in unsettled) unsettled[content.key] = shade[content.key]?.fingerprint
         shade[content.key] = content
         posts += content.key to alert
         steps += if (alert) "alert" else "post"
     }
 
+    /** Android has listed every post. */
+    fun settle() = unsettled.clear()
+
     override fun remove(key: TakeKey) {
         shade.remove(key)
+        unsettled.remove(key)
+        removed += key
         steps += "remove"
     }
+
+    /** Every reminder removed since the last [clearPosts]. */
+    val removed = mutableListOf<TakeKey>()
 
     override fun summary(count: Int) {
         summaryCount = count
@@ -62,16 +84,23 @@ class FakeShade(
     /** The user swipes the reminder away (Q2). */
     fun swipe(key: TakeKey) {
         shade.remove(key)
+        unsettled.remove(key)
     }
 
     /** A restart or an update empties the shade (T2). */
-    fun clear() = shade.clear()
+    fun clear() {
+        shade.clear()
+        unsettled.clear()
+    }
 
     fun alerted(): List<TakeKey> = posts.filter { it.second }.map { it.first }
 
     fun silent(): List<TakeKey> = posts.filterNot { it.second }.map { it.first }
 
-    fun clearPosts() = posts.clear()
+    fun clearPosts() {
+        posts.clear()
+        removed.clear()
+    }
 }
 
 /** The single alarm: where it is set, and whether as a retry. */

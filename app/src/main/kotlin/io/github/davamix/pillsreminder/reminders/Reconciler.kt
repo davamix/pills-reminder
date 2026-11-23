@@ -60,6 +60,21 @@ class Reconciler(
 ) {
     private val lock = Mutex()
 
+    /**
+     * The reminders this reconciler posted that the shade doesn't list yet, with their fingerprint and when they were
+     * posted. Android lists a post only some time after `notify` returns, and an alert stores its record, which starts
+     * another reconcile at once (P5-D2): that one found the reminder missing and posted it again silently, and the silent
+     * post replaced the alerting one before its sound played (P7 SPEC Q10). So each counts as in the shade until the
+     * shade lists it, or for [POSTED_GRACE] at most: a reminder swiped away right after its post comes back after that.
+     * Only touched under [lock].
+     */
+    private val unlisted = mutableMapOf<TakeKey, Posted>()
+
+    private data class Posted(
+        val fingerprint: String,
+        val at: Instant,
+    )
+
     /** Runs the reconcile for [trigger], after any other that is running, and says what it did. */
     suspend fun reconcile(trigger: ReconcileTrigger): ReconcileResult =
         lock.withLock {
@@ -120,9 +135,10 @@ class Reconciler(
         val next = plan.nextWakeUp
         if (next != null) alarm.set(next) else alarm.cancel()
 
-        val shown = shade.shown()
+        val shown = shown(now.toInstant())
         for (key in plan.removals(shown.keys)) {
             shade.remove(key)
+            unlisted.remove(key)
             log.event("remove ${TakeKeyCodec.encode(key)}")
         }
         for (reminder in plan.reminders) {
@@ -130,6 +146,7 @@ class Reconciler(
             when {
                 reminder.alert -> {
                     shade.post(content, alert = true)
+                    unlisted[reminder.key] = Posted(content.fingerprint, now.toInstant())
                     val due = dueAt(reminder.key, before.takes[reminder.key], now)
                     val late = Duration.between(due, now.toInstant()).toMillis()
                     log.event("alert ${TakeKeyCodec.encode(reminder.key)} due=$due at=${now.toInstant()} late=${late}ms")
@@ -138,12 +155,25 @@ class Reconciler(
                 // Silent: only when missing from the shade, or its text changed (P5-D5).
                 shown[reminder.key] != content.fingerprint -> {
                     shade.post(content, alert = false)
+                    unlisted[reminder.key] = Posted(content.fingerprint, now.toInstant())
                     log.event("post ${TakeKeyCodec.encode(reminder.key)} silently")
                 }
             }
         }
         shade.summary(plan.reminders.size)
         log.event("alarm ${next ?: "none"}")
+    }
+
+    /**
+     * The reminders in the shade at [now]: those it lists, and those posted here that it doesn't list yet (P7 SPEC Q10).
+     * A post is forgotten once the shade lists it as posted, or after [POSTED_GRACE].
+     */
+    private fun shown(now: Instant): Map<TakeKey, String> {
+        val listed = shade.shown()
+        unlisted.entries.removeIf { (key, posted) ->
+            listed[key] == posted.fingerprint || Duration.between(posted.at, now) > POSTED_GRACE
+        }
+        return listed + unlisted.mapValues { it.value.fingerprint }
     }
 
     /** When an alert was due (P5 SPEC §4.3.10): the take fell due, its snooze ended, or its repeat came round. */
@@ -161,5 +191,12 @@ class Reconciler(
     companion object {
         /** How long after a failed reconcile the alarm tries again (Q1). */
         val RETRY_AFTER: Duration = Duration.ofMinutes(5)
+
+        /**
+         * How long a post the shade doesn't list yet still counts as in it (P7 SPEC Q10). Android lists a post within
+         * a fraction of a second; this leaves room for a slow phone, and a reminder swiped away right after its post
+         * comes back at the first reconcile after it.
+         */
+        val POSTED_GRACE: Duration = Duration.ofSeconds(10)
     }
 }
