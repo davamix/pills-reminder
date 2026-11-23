@@ -42,7 +42,7 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | `EndToEndTest`, as SPEC §4.3.2: first takes yesterday at the suggested time, every 8 hours, so the latest take is Due at once. Passed on its first run on the emulator (25 s) and the phone (10 s), leaving no reminder, alarm or treatment behind. On the phone, one `notification_alert` played for the two reminders due together (`RM-4`'s single sound). The reminder's `contentIntent.send()` from the test opened the Take screen on Android 16 too, with no background-start option. Each wait has a name, so a failure says which step stopped. Deliberate bugs, on the emulator, all caught (see session log). The whole suite passes on the emulator and the phone (49 tests). |
 | T3 | Doing | Keystore created (below), signing in `app/build.gradle.kts`, `versionName` 1.0.0; CLAUDE.md's release commands. The APK checked (below). **Waiting for the user's backup of the keystore and the properties.** |
 | T4 | To do | Measure: reading alert times on the release build |
-| T5 | To do | A9 (emulator), A1, A12 (phone); `ACCEPTANCE.md` started |
+| T5 | Doing | `ACCEPTANCE.md` started: devices, settings, the 48 rows, and A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late). A9's 19:00 take still to record. A1 and A12 on the phone: waiting for the user. |
 | T6 | To do | A2, A3, A4, A10 (phone) |
 | T7 | To do | A5–A8 (phone) |
 | T8 | To do | A11: a day and a night of real use |
