@@ -25,12 +25,18 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-T1–T4 are done, and T5 nearly: A1, A9 and A12 pass, recorded in `ACCEPTANCE.md`; A9's take at 19:00 on the emulator is still to record. The release build is installed on the phone and on the emulator, each with the reminder check passing. Next: the screens on the phone (T6), then its reminder runs (T7), both with the user.
+Paused on 2026-11-23 at 19:40, at the user's request (usage limit), to resume after the limit resets. T1–T6 are done: the wiring, `EndToEndTest`, the signed release build, the measurement of T4, and A1, A2, A3, A4, A9, A10 and A12 pass, recorded in `ACCEPTANCE.md`. Two results of T6 are waiting to be read from the phone's records (next steps 1 and 2). T7 (A5–A8, reminder runs with the user) is next; its timetable is proposed below, waiting for the user's choice of start time.
+
+**The phone now:** the release app only (the debug app and its tests were uninstalled with the user's agreement; T9's instrumented run reinstalls them, with an empty store). The release app holds "Example" (Amoxicillin every 12 hours since the edit, its 16:00 take Due until 20:00; Atrovent every 8 hours, its 00:00 take Taken early) and "Weekly" (Finished). Its next alerts: Amoxicillin 20:00 tonight, both at 08:00 tomorrow. The reminder check passes; Autostart on, battery saver No restrictions. Dark mode and font scale put back (light, 1.0).
+
+**The emulator:** the debug app and the release app; the release app's A9 treatment deleted.
 
 ## Next steps
 
-1. Record A9's 19:00 take (the emulator: `pkg=$release_pkg alert_events`), then delete the A9 treatment from the emulator's release app (it alerts every hour for 7 days).
-2. T6 with the user: A2, A3, A4 and A10 on the phone, with the release build. Before T7, ask the user to charge the phone (23% at 18:30), and to delete the debug app's test treatments (one still alerts: `NOTIFICATION_INTERRUPTION` at 18:00:13).
+1. **A2's `TR-10` and `TK-3`, at 20:00 on 23 Nov:** read whether Amoxicillin's 16:00 take (key `2026-11-23T16:00|b81aa316…`) became Missed and left the shade at 20:00, and the 20:00 take alerted: `pkg=$release_pkg alert_events 10`, and `$adb logcat -d -b events -v time | grep "|$pkg|" | grep notification_cancel` around 20:00 (the events buffer reaches back about a day; `dumpsys usagestats` keeps the alerts longer). Record it in `ACCEPTANCE.md`, A2.
+2. **A3's `TK-4`:** confirm no alert for Atrovent's take at 2026-11-24T00:00, Taken early. Atrovent's medicine ID isn't `b81aa316…` (Amoxicillin) nor `2b17ed83…` (Vitamin D): any alert or `NOTIFICATION_INTERRUPTION` near 00:00 on 24 Nov fails it. Record it in A3.
+3. **T7 with the user**, A5–A8, at a start hour H the user picks. The proposal shown to the user: a test treatment with two medicines every hour from H:00 (§4.4's names); H:00 both alert, phone in hand (content, heads-up, sound, one sound for two); Snooze one (back at H:10); repeats at H:10, H:20, H:30 in Do Not Disturb, vibrate mode and Silent (put back afterwards); swipe one away at H:12 (back at H:20); H+1:00 screen off and locked (lock-screen content, the unanswered take Missed and removed); H+1:05 swipe the app from Recents; H+1:15 the user restarts the phone and unlocks after H+1:20; H+1:25 `end_process`; H+1:3x Skip and Taken from the notification, Taken in the app; H+2:05 `adb install -r` of the same APK with a reminder in the shade (checks Autostart: `MY_PACKAGE_REPLACED`); H+2:15 the user Force stops the app, H+2:25 opens it (`alarms` at once). End the test treatment early at the end. Lateness from `alert_events` with `pkg=$release_pkg`.
+4. **Ask the user about T8** (Q3): their own treatment, or the §4.4 example kept running, for the day and the night of real use.
 
 ## Tasks
 
@@ -42,8 +48,8 @@ The task IDs come from SPEC.md §7.
 | T2 | Done | `EndToEndTest`, as SPEC §4.3.2: first takes yesterday at the suggested time, every 8 hours, so the latest take is Due at once. Passed on its first run on the emulator (25 s) and the phone (10 s), leaving no reminder, alarm or treatment behind. On the phone, one `notification_alert` played for the two reminders due together (`RM-4`'s single sound). The reminder's `contentIntent.send()` from the test opened the Take screen on Android 16 too, with no background-start option. Each wait has a name, so a failure says which step stopped. Deliberate bugs, on the emulator, all caught (see session log). The whole suite passes on the emulator and the phone (49 tests). |
 | T3 | Done | Keystore created (below), signing in `app/build.gradle.kts`, `versionName` 1.0.0; CLAUDE.md's release commands. The APK checked (below). The user backed up the keystore and the properties (2026-11-23). |
 | T4 | Done | On the phone, two records of each alert, both filtered to the app's package. `logcat -b events` (`alert_events`, with `pkg=$release_pkg`): 2 MiB, reaching back about 27.5 hours in the user's ordinary use (oldest line 22 Nov 14:20, read 23 Nov 17:46), with milliseconds, sound and vibration. `dumpsys usagestats`: a `NOTIFICATION_INTERRUPTION` event per alert, with the package and the channel, to the second, kept for days (each appears twice). A11 reads its alert times from `usagestats`, and their sound and vibration from the events buffer while it reaches back. |
-| T5 | Doing | `ACCEPTANCE.md` started: devices, settings, the 48 rows. A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late); its 19:00 take still to record. A1 and A12 on the phone pass: the user followed the check; HyperOS's battery saver at No restrictions, Autostart on (Android then reports no 10008 entry, "No operations.", rather than `allow`), the notification steps confirmed. |
-| T6 | To do | A2, A3, A4, A10 (phone) |
+| T5 | Done | `ACCEPTANCE.md` started: devices, settings, the 48 rows. A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late); its 19:00 take on time, 0.39 s. A1 and A12 on the phone pass: the user followed the check; HyperOS's battery saver at No restrictions, Autostart on (Android then reports no 10008 entry, "No operations.", rather than `allow`), the notification steps confirmed. |
+| T6 | Done | A2, A3, A4 and A10 on the phone, recorded. Two results to read from the phone's records: `TR-10`/`TK-3` at 20:00 on 23 Nov, and `TK-4` at 00:00 on 24 Nov (next steps 1 and 2). |
 | T7 | To do | A5–A8 (phone) |
 | T8 | To do | A11: a day and a night of real use |
 | T9 | To do | `ACCEPTANCE.md`, README, CLAUDE.md; pull request |
@@ -100,6 +106,12 @@ Each item of SPEC §4.3.1, read in the code on `main` at `80adaa0`:
 ## Session log
 
 Newest first.
+
+### 2026-11-23 (3)
+
+- Done: T3 finished (the user backed up the keystore); T4; T5 (A9 on the emulator; A1 and A12 on the phone); T6 (A2, A3, A4, A10 on the phone). The debug app and its tests uninstalled from the phone, with the user's agreement.
+- Notes: on the phone a heads-up stays 6 to 26 s over the app bar (`notification_visibility` in `logcat -b events`), and taps there land on it: two taps on the Take screen's Back icon did nothing for that reason. For the `phone` skill at the skills review, with: `uiautomator dump` works on the phone (it prints a HyperOS stack trace first, harmlessly) and lists the time picker's minutes as `content-desc="5 minutes"`; the medicine editor's text fields include the two read-only unit menus (fields 5 and 7), so "For" is field 6; `dumpsys usagestats` keeps each alert as `NOTIFICATION_INTERRUPTION`, to the second, for days.
+- Paused at 19:40 for the usage limit.
 
 ### 2026-11-23 (2)
 
