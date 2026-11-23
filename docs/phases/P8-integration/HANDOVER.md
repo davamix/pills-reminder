@@ -25,11 +25,11 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). The app's wiring is believed complete (SPEC §4.3.1); T1 confirms it.
+In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. Next is the end-to-end test (T2).
 
 ## Next steps
 
-1. T1. Confirm each item of SPEC §4.3.1 in the code and note it here, then fix `EndAndDeleteTest` (§4.3.6) and run it at font scale 1.0 and 1.4 on the emulator.
+1. T2: write `EndToEndTest` (SPEC §4.3.2), run it on the emulator and the phone, then its deliberate bugs on the emulator.
 
 ## Tasks
 
@@ -37,7 +37,7 @@ The task IDs come from SPEC.md §7.
 
 | Task | Status | Notes |
 |---|---|---|
-| T1 | To do | Wiring check, `EndAndDeleteTest` fix |
+| T1 | Done | Every item of SPEC §4.3.1 in place (see "Wiring status" below); no gap to wire. `EndAndDeleteTest` scrolls back to "Active" before asserting it: passes at font scale 1.0 and 1.4 on the emulator. `build` passes (`:app` 257, `:core` 177 unit tests); the instrumented suite passes on the emulator (48 tests). |
 | T2 | To do | `EndToEndTest` |
 | T3 | To do | Release build, keystore, signing |
 | T4 | To do | Measure: reading alert times on the release build |
@@ -58,13 +58,27 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 ## Known issues
 
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
-- P6's `EndAndDeleteTest` fails at font scale 1.4 (P7's known issue); T1 fixes it.
 - The emulator's debug app keeps two notification categories from P5's probes ("Probe reminders" and `reminders-mutant`) and a `files/probe.log`. The release build, installed fresh, has none of them.
 - Android 16 may time a notification out after 72 hours (P5); not checked, out of scope (SPEC §3).
 
 ## Pending wiring
 
 None left for later phases: P8 is the last. What earlier phases left for P8 is in SPEC §4.3.1.
+
+### Wiring status (T1, 2026-11-23)
+
+Each item of SPEC §4.3.1, read in the code on `main` at `80adaa0`:
+
+| Item | Found |
+|---|---|
+| The real repository everywhere | `ScreenDependencies.of(container)` passes `container.repository` (`DataStoreTreatmentRepository`) and `container.checkStore` to every screen; `rememberAppDependencies()` is `AppNavHost`'s default. In `app/src/main`, `InMemoryTreatmentRepository` appears only in comments, and `InMemoryCheckStore` only where it is defined (`CheckStore.kt`, for tests). |
+| A tapped reminder opens the Take screen | `ReminderIntents.openTake` → `MainActivity.takeOf` → `AppNavHost(openTake)` → `OpenTake`, which navigates to the real `TakeRoute` destination, above the editors when they are open. |
+| Answers in the app remove their notification | `Reminders.start()` collects `repository.data` and reconciles after every value (P5-D2). |
+| Home shows answers from a notification | `HomeViewModel`'s rows are `combine(deps.repository.data, deps.minuteTicks, marks)`. |
+| Minutes in debug builds only | `allowMinutes = BuildConfig.DEBUG` in `ScreenDependencies.of`. (`core.actions.saveTreatment` validates with `allowMinutes = true`, as a safety net: the editor's own validation is the one that refuses minutes.) |
+| No placeholder screen | Every route of `Routes.kt` has its real screen in `AppNavHost.kt` and `EditorGraph.kt`. |
+| The lost-sound fix | `Reconciler` counts its own posts as in the shade until the shade lists them, or for `POSTED_GRACE`. |
+| `CurrentZoneClock` in a running app | Left for A9, on the release build. |
 
 ## How to verify
 
@@ -76,6 +90,11 @@ None left for later phases: P8 is the last. What earlier phases left for P8 is i
 ## Session log
 
 Newest first.
+
+### 2026-11-23 (2)
+
+- Done: SPEC v0.2 agreed (every draft assumption), the phase marked `In progress`, the branch created. T1: the wiring confirmed, `EndAndDeleteTest` fixed.
+- Notes: the phone was on wireless debugging only, and the emulator running.
 
 ### 2026-11-23
 
