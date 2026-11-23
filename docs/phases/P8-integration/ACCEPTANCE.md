@@ -129,4 +129,8 @@ The release build, signed, installed fresh on the emulator with `gradle installR
 
 **No logging** (NF-3, plan §3): with the release app running and reconciling through all of the above, logcat had no line from its process. The ten lines under the app's tags (`PillsReminders`) all came from the debug app's process, which got the same time broadcasts.
 
-**On time** (NF-6 on API 36): to be filled in with the 18:22:29 repeat and the 19:00 take.
+**Repeats and Missed, on time** (RM-5, TK-3, RM-7, NF-6 on API 36): the 18:00 take, alerted at 18:12:29.8 after the time changes, repeated at 18:22:29.238, 18:32:29.362 and 18:42:29.244, each 10 minutes after the alert before it, then stayed silent. At 19:00 it became Missed and left the shade, and the 19:00 take alerted at **19:00:00.391**, 0.39 s after its time; the alarm moved to its first repeat, 19:10:00. Each alert had sound (`beep=1`) and no vibration (`buzz=0`).
+
+**Delete** (TR-9): Delete treatment asked first, "Delete Example? Its medicines and every take recorded for it are deleted. This can't be undone."; after Delete, the shade was empty, no alarm was set, and Home showed its empty state.
+
+**Result:** pass.
