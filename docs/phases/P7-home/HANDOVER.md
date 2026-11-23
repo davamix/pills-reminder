@@ -2,37 +2,29 @@
 
 | | |
 |---|---|
-| **Status** | In progress: all tasks done; pull request [#7](https://github.com/davamix/pills-reminder/pull/7) is waiting for the user to merge it |
+| **Status** | Done. Merged in pull request [#7](https://github.com/davamix/pills-reminder/pull/7) on 2026-11-22. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.4 |
 | **Branch** | `phase/p7-home` |
-| **Last session** | 2026-11-22 |
+| **Last session** | 2026-11-23 |
 
 This document tracks the phase as it's built. Update it at the end of every session, so the next one can continue from here.
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P7 (Home screen and reminder check) of the pills reminder.
-
-1. Use the phase-start skill for P7. Read only docs/phases/P7-home/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p7-home. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. All tasks are done and pull request #7 is open: it may have been merged, or have review comments. If merged, use the phase-close skill. Then the lost-sound fix (Known issues) gets its own branch from main, before P8. Ask before creating test treatments on the phone (their reminders alert) and put back every setting changed.
-5. Before the session ends, or once all tasks are done, use the handover skill. When the done criteria pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-All tasks are done. Home and Settings, with the reminder check, replace P1's placeholders on the real store and the real reminders, as SPEC v0.4 describes. `./gradlew build` passes (unit tests `:app` 252, `:core` 177, none failing); 90 deliberate bugs against the new tests, 89 caught and the other not observable. The whole instrumented suite, 48 tests, passes on the emulator and the phone. Every state of both screens was drawn on both devices; E1–E2 pass on the emulator and M1–M5 on the phone. The merged manifests and release libraries are the same as `main`'s. Pull request [#7](https://github.com/davamix/pills-reminder/pull/7) is open; CI passed on `fbd6b84`.
+Merged into `main` in pull request [#7](https://github.com/davamix/pills-reminder/pull/7) on 2026-11-22 (`44dc6c7`). Home and Settings, with the reminder check, replace P1's placeholders on the real store and the real reminders, as SPEC v0.4 describes. `./gradlew build` passes (unit tests `:app` 252, `:core` 177, none failing); 90 deliberate bugs against the new tests, 89 caught and the other not observable. The whole instrumented suite, 48 tests, passes on the emulator and the phone. Every state of both screens was drawn on both devices; E1–E2 pass on the emulator and M1–M5 on the phone. The merged manifests and release libraries are the same as before P7. CI passed on the pull request.
 
 A reminder that can lose its sound, found in M3, is P5's and gets its own fix after P7 (Known issues).
 
 ## Next steps
 
-1. Deal with any review comments on [#7](https://github.com/davamix/pills-reminder/pull/7). Once the user merges it, use the `phase-close` skill on `main`.
-2. Then the lost-sound fix, in its own branch from `main`, before P8 (Known issues, SPEC Q10).
+None for P7.
+
+- **Next, before P8:** the lost-sound fix in P5's reconciler, in its own branch from `main` (Known issues, SPEC Q10), as the user decided.
+- **P8 (Integration and v1.0)** can start now: its dependencies, P5, P6 and P7, are all Done. Its SPEC.md and HANDOVER.md don't exist yet (`phase-docs` skill).
 
 To draw again: a gallery like T2's (`screen-gallery` skill) with one `@Test` for `HomeContent` and one for `SettingsContent`, and these shots. Home: loading; empty; empty with the warning; upcoming only (Sun 22 Nov 10:30); Mon 10:30 (two Next rows with Taken early); Mon 16:00 (both Due, "now"); Mon 16:05 (the spec's sketch); Mon 16:10 after Taken early; the warning with Due and Next; a long list (2 Due, 5 Next, 2 Upcoming, one with no end, one 6 days ahead), and its end (`performScrollToIndex`); unreadable with the warning; the Taken early dialog; a problem's snackbar; a take due 2 days ago. Settings: loading; stock Android all OK; battery missing; the phone's first launch (battery missing, steps to confirm), and its end; all set with the steps confirmed, and its end; notifications not allowed; the channel off; no pop-up; everything missing, and its end; a problem's snackbar.
 
@@ -49,7 +41,7 @@ The task IDs come from SPEC.md §7.
 | T5 | Done | `ui/settings/SettingsViewModel.kt` (`SettingsViewModel(deps, firstLaunch, saved)`, its factory with `createSavedStateHandle()`), `ui/settings/SettingsScreen.kt` (P1's placeholder replaced: `LifecycleResumeEffect` calls `refresh()`; at the first launch, `LeaveWhen(askNotifications)` calls `notificationsRequested()` and launches Android's dialog through `rememberLauncherForActivityResult(RequestPermission)`, whose answer goes to `notificationsAsked(granted)`; each button calls `checkDevice.open(activity, item)` through `dropUnlessResumedWith`); Settings' destination in `AppNavHost` with `SettingsRoute(firstLaunch)`. `SettingsViewModelTest` (9). 16 deliberate bugs, all caught (session log). The first launch checked on the emulator, with Android's real dialog. |
 | T6 | Done | `androidTest/…/ui/HomeScreenTest.kt` (7) and `ReminderCheckScreenTest.kt` (4), with `FakeApp`; `FakeApp(unreadable = …)`, `quantity()` and `assertTouchHeightIsAtLeast()` in `UiTesting.kt`; `androidTest/…/FirstLaunchDone.kt`, the rule for `NavigationSmokeTest` and `OpenTakeTest`; `ui/common/PlaceholderScreen.kt` and `placeholder_note` deleted. The whole instrumented suite, 48 tests, passes on the emulator and the phone. Deliberate bugs in the session log. |
 | T7 | Done | Drawn again from the finished code: the emulator (light, dark, font scale 2) and the phone (light, dark, and at its "big" font, 1.4), nothing cut off, no word broken. E1 and E2 passed on the emulator; M1–M5 passed on the phone, with the user (session log). Two findings: rows now stack their button from font scale 1.3 (was 1.5), agreed by the user; a reminder can lose its sound, in P5's reconciler, to fix in its own branch after P7 (Known issues). |
-| T8 | In review | Every row of SPEC §6 and rule of §4.3 checked against the tests (session log); SPEC v0.4 on `main` (`3da65de`), merged; `CLAUDE.md`; manifests and libraries the same as `main`'s; build; the whole instrumented suite on both devices; pull request [#7](https://github.com/davamix/pills-reminder/pull/7). |
+| T8 | Done | Every row of SPEC §6 and rule of §4.3 checked against the tests (session log); SPEC v0.4 on `main` (`3da65de`), merged; `CLAUDE.md`; manifests and libraries the same as `main`'s; build; the whole instrumented suite on both devices; pull request [#7](https://github.com/davamix/pills-reminder/pull/7). |
 
 ## Decisions and deviations
 
@@ -121,6 +113,10 @@ The commands and manual steps that check the current state.
 ## Session log
 
 Newest first.
+
+### 2026-11-23 (close)
+
+- The user merged pull request [#7](https://github.com/davamix/pills-reminder/pull/7) on 2026-11-22 (`44dc6c7`). P7 is closed: Done in plan §5.1, SPEC §8's done criteria ticked.
 
 ### 2026-11-22 (T8)
 
