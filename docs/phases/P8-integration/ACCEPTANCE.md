@@ -25,14 +25,14 @@ The reminder check (`RM-9`) asks for these. Each acceptance check says whether t
 
 | Setting | Phone, release app | Emulator, release app |
 |---|---|---|
-| Notifications (permission) | To fill in A1 | Allowed, at the first launch's dialog (A9) |
-| Reminders category: on, pop-up, sound | To fill in A1 | On (A9) |
-| Exact alarms | To fill in A1 | Allowed at install (`USE_EXACT_ALARM`) |
-| Battery optimisation | To fill in A1 | Off, through Android's dialog from the check (A9) |
-| HyperOS: battery saver | To fill in A1 | Not HyperOS |
-| HyperOS: Autostart | To fill in A1 | Not HyperOS |
-| HyperOS: Floating notifications | To fill in A1 | Not HyperOS |
-| HyperOS: Lock screen notifications | To fill in A1 | Not HyperOS |
+| Notifications (permission) | Allowed, at the first launch's dialog (A1) | Allowed, at the first launch's dialog (A9) |
+| Reminders category: on, pop-up, sound | On (A1: the check reads it) | On (A9) |
+| Exact alarms | Allowed at install (`USE_EXACT_ALARM`) | Allowed at install (`USE_EXACT_ALARM`) |
+| Battery optimisation | Off: exempt, standby bucket 5 (A1) | Off, through Android's dialog from the check (A9) |
+| HyperOS: battery saver | No restrictions, set by the user in A1 | Not HyperOS |
+| HyperOS: Autostart | On, set by the user in A1 (stock: off) | Not HyperOS |
+| HyperOS: Floating notifications | On (stock), confirmed in A1 | Not HyperOS |
+| HyperOS: Lock screen notifications | On (stock), confirmed in A1 | Not HyperOS |
 
 ## 3. Automated tests
 
@@ -94,6 +94,22 @@ To be filled in T9, at the commit above: the unit tests of `:core` and `:app`, a
 | NF-10 | Light and dark theme | P1, P6, P7 | A10 | | |
 
 ## 5. Checks
+
+### A1. Install and first launch on the phone (2026-11-23)
+
+**Install** (NF-9, NF-6, NF-3): the signed release APK installed from the PC over adb (`gradle installRelease`), beside the debug app, at 18:29. Version 1.0.0. Android's package flags have neither `DEBUGGABLE` nor `ALLOW_BACKUP`. Granted at install: `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`; not yet `POST_NOTIFICATIONS`. No `INTERNET`. HyperOS's stock settings for an app installed from the PC: battery optimised (standby bucket 50, never used yet), Autostart off (`MIUIOP(10008): ignore`).
+
+**First launch** (RM-9): the reminder check opened above Home, with Android's dialog, in the phone's language: "¿Permitir que Pills Reminder te envíe notificaciones?"; the user allowed it. The check: "4 settings to check." Notifications allowed; Exact alarms allowed; Battery optimisation "On: Android may delay reminders…", with "This also sets HyperOS's Battery saver to No restrictions." and Turn off; under HyperOS, "The app can't read these. Check each one, then mark it done.", with Autostart, Floating notifications and Lock screen notifications, each with Open settings and Done.
+
+**Following the check:** the user set HyperOS's battery saver to No restrictions; the check then read "Off for this app" (Android: exempt, standby bucket 5). Each HyperOS step's Open settings opened its screen: the notification steps the app's notification settings (`Settings$AppNotificationSettingsActivity`), Autostart HyperOS's Autostart list (`AutoStartManagementActivity`). The user turned Autostart on for Pills Reminder, kept the two notification settings on, and marked each step Done. The check: "Everything reminders need is set." Home: the empty state, with no warning (HM-4); Home's Settings button opens the same check.
+
+**Autostart, as Android reports it:** `ignore` right after the install; after the user turned it on, no entry at all ("No operations."), where the debug app, also on, reads `allow`. A8's update checks that it works: with Autostart off, HyperOS blocks `MY_PACKAGE_REPLACED` (P5).
+
+### A12. Closed and private (2026-11-23)
+
+**The APK** (P8 T3, on the PC): signed with the v2 scheme by `CN=Pills Reminder`. Its manifest: no `android:debuggable`, `allowBackup="false"` with data extraction rules that exclude everything; permissions `POST_NOTIFICATIONS`, `USE_EXACT_ALARM`, `RECEIVE_BOOT_COMPLETED`, `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`, and AndroidX's own `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, which gives access to nothing; only `MainActivity` exported; the three receivers not exported; no service and no job (NF-5); no debug screen. AndroidX's `ProfileInstallReceiver`, exported behind `DUMP`, was removed from the manifest in P8. Its runtime libraries: AndroidX, JetBrains, Google, and Okio and JSpecify, which AndroidX uses; nothing for accounts, analytics or ads (NF-3).
+
+**On the phone:** `run-as io.github.davamix.pillsreminder` is refused ("package not debuggable"), so not even adb can read its data; no `INTERNET` permission. After the first launch and the check, logcat held 161 lines from the app's process, every one from Android, HyperOS or the graphics driver (window, input, rendering, the back callback, and HyperOS's `PerfDebugMonitorImpl` at process start); none from the app's own tags (`PillsReminders`, `PillsStore`).
 
 ### A9. The emulator (2026-11-23)
 
