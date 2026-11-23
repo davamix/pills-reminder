@@ -25,11 +25,11 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. Next is the end-to-end test (T2).
+In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. T2 is done: `EndToEndTest` passes on the emulator and the phone, and catches the five deliberate bugs of SPEC §4.3.2. Next is the release build (T3).
 
 ## Next steps
 
-1. T2: write `EndToEndTest` (SPEC §4.3.2), run it on the emulator and the phone, then its deliberate bugs on the emulator.
+1. T3: run the keystore script (it is drafted in the session's scratchpad, `make_keystore.py`; if the scratchpad was cleared, write it again from SPEC §4.3.3: random password through `-storepass:env`, written only to `~/.gradle/gradle.properties`, never printed), then the signing configuration and `versionName` 1.0.0 in `app/build.gradle.kts`, `gradle assembleRelease`, and the APK's checks.
 
 ## Tasks
 
@@ -38,7 +38,7 @@ The task IDs come from SPEC.md §7.
 | Task | Status | Notes |
 |---|---|---|
 | T1 | Done | Every item of SPEC §4.3.1 in place (see "Wiring status" below); no gap to wire. `EndAndDeleteTest` scrolls back to "Active" before asserting it: passes at font scale 1.0 and 1.4 on the emulator. `build` passes (`:app` 257, `:core` 177 unit tests); the instrumented suite passes on the emulator (48 tests). |
-| T2 | To do | `EndToEndTest` |
+| T2 | Done | `EndToEndTest`, as SPEC §4.3.2: first takes yesterday at the suggested time, every 8 hours, so the latest take is Due at once. Passed on its first run on the emulator (25 s) and the phone (10 s), leaving no reminder, alarm or treatment behind. On the phone, one `notification_alert` played for the two reminders due together (`RM-4`'s single sound). The reminder's `contentIntent.send()` from the test opened the Take screen on Android 16 too, with no background-start option. Each wait has a name, so a failure says which step stopped. Deliberate bugs, on the emulator, all caught (see session log). The whole suite passes on the emulator and the phone (49 tests). |
 | T3 | To do | Release build, keystore, signing |
 | T4 | To do | Measure: reading alert times on the release build |
 | T5 | To do | A9 (emulator), A1, A12 (phone); `ACCEPTANCE.md` started |
@@ -93,7 +93,14 @@ Newest first.
 
 ### 2026-11-23 (2)
 
-- Done: SPEC v0.2 agreed (every draft assumption), the phase marked `In progress`, the branch created. T1: the wiring confirmed, `EndAndDeleteTest` fixed.
+- Done: SPEC v0.2 agreed (every draft assumption), the phase marked `In progress`, the branch created. T1: the wiring confirmed, `EndAndDeleteTest` fixed. T2: `EndToEndTest`.
+- T2's deliberate bugs (`deliberate-bugs`, on the emulator), each caught by `EndToEndTest`, at the step named:
+  - `no-reconcile-on-change` (`Reminders.start()` reconciles only the first value): "both reminders are in the shade" timed out.
+  - `receiver-ignores-taken` (`ReminderActionReceiver` only reconciles on Taken): "Amoxicillin's reminder leaves the shade" timed out.
+  - `no-take-from-intent` (`takeOf` reads an empty intent): "the Take screen opens" timed out.
+  - `home-first-data-only` (Home's rows `combine` the data's first value only): "Home shows Amoxicillin · 1 capsule with Example · 1 of 21" timed out.
+  - `every-post-silent` (every reminder posted with `GROUP_ALERT_SUMMARY`): "Amoxicillin: 1 capsule alerts expected 2 but was 1".
+- T4, a first look (read only, on the phone): the events buffer is 2 MiB, and at 17:46 its oldest line was from 14:20 the day before, about 27.5 hours, in the user's ordinary use. T4 checks it again after a night.
 - Notes: the phone was on wireless debugging only, and the emulator running.
 
 ### 2026-11-23
