@@ -25,12 +25,12 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-In progress. SPEC.md v0.2 is `Ready`: the user agreed with every draft assumption (Q1–Q7). Every phase P1–P7 is merged, and so is the lost-sound fix (pull request #8). T1 is done: every wiring item of SPEC §4.3.1 is in place, and `EndAndDeleteTest` passes at a large font. T2 is done: `EndToEndTest` passes on the emulator and the phone, and catches the five deliberate bugs of SPEC §4.3.2. T3 is done but for one step: the signed release APK builds, and its signature, manifest and dependencies are as SPEC §4.3.3 says; the user still has to back up the keystore and its properties. Next: A9 on the emulator (T5), and T4's measurement.
+T1–T4 are done, and T5 nearly: A1, A9 and A12 pass, recorded in `ACCEPTANCE.md`; A9's take at 19:00 on the emulator is still to record. The release build is installed on the phone and on the emulator, each with the reminder check passing. Next: the screens on the phone (T6), then its reminder runs (T7), both with the user.
 
 ## Next steps
 
-1. The user backs up `%USERPROFILE%\.android\keystores\pills-reminder-release.jks` and the four `pillsReminder.release.*` lines of `%USERPROFILE%\.gradle\gradle.properties`, and says so: then T3 is Done.
-2. T5: A9 on the emulator, with the release build installed fresh (`gradle installRelease`); then A1 and A12 on the phone, with the user; start `ACCEPTANCE.md`.
+1. Record A9's 19:00 take (the emulator: `pkg=$release_pkg alert_events`), then delete the A9 treatment from the emulator's release app (it alerts every hour for 7 days).
+2. T6 with the user: A2, A3, A4 and A10 on the phone, with the release build. Before T7, ask the user to charge the phone (23% at 18:30), and to delete the debug app's test treatments (one still alerts: `NOTIFICATION_INTERRUPTION` at 18:00:13).
 
 ## Tasks
 
@@ -40,9 +40,9 @@ The task IDs come from SPEC.md §7.
 |---|---|---|
 | T1 | Done | Every item of SPEC §4.3.1 in place (see "Wiring status" below); no gap to wire. `EndAndDeleteTest` scrolls back to "Active" before asserting it: passes at font scale 1.0 and 1.4 on the emulator. `build` passes (`:app` 257, `:core` 177 unit tests); the instrumented suite passes on the emulator (48 tests). |
 | T2 | Done | `EndToEndTest`, as SPEC §4.3.2: first takes yesterday at the suggested time, every 8 hours, so the latest take is Due at once. Passed on its first run on the emulator (25 s) and the phone (10 s), leaving no reminder, alarm or treatment behind. On the phone, one `notification_alert` played for the two reminders due together (`RM-4`'s single sound). The reminder's `contentIntent.send()` from the test opened the Take screen on Android 16 too, with no background-start option. Each wait has a name, so a failure says which step stopped. Deliberate bugs, on the emulator, all caught (see session log). The whole suite passes on the emulator and the phone (49 tests). |
-| T3 | Doing | Keystore created (below), signing in `app/build.gradle.kts`, `versionName` 1.0.0; CLAUDE.md's release commands. The APK checked (below). **Waiting for the user's backup of the keystore and the properties.** |
-| T4 | To do | Measure: reading alert times on the release build |
-| T5 | Doing | `ACCEPTANCE.md` started: devices, settings, the 48 rows, and A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late). A9's 19:00 take still to record. A1 and A12 on the phone: waiting for the user. |
+| T3 | Done | Keystore created (below), signing in `app/build.gradle.kts`, `versionName` 1.0.0; CLAUDE.md's release commands. The APK checked (below). The user backed up the keystore and the properties (2026-11-23). |
+| T4 | Done | On the phone, two records of each alert, both filtered to the app's package. `logcat -b events` (`alert_events`, with `pkg=$release_pkg`): 2 MiB, reaching back about 27.5 hours in the user's ordinary use (oldest line 22 Nov 14:20, read 23 Nov 17:46), with milliseconds, sound and vibration. `dumpsys usagestats`: a `NOTIFICATION_INTERRUPTION` event per alert, with the package and the channel, to the second, kept for days (each appears twice). A11 reads its alert times from `usagestats`, and their sound and vibration from the events buffer while it reaches back. |
+| T5 | Doing | `ACCEPTANCE.md` started: devices, settings, the 48 rows. A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late); its 19:00 take still to record. A1 and A12 on the phone pass: the user followed the check; HyperOS's battery saver at No restrictions, Autostart on (Android then reports no 10008 entry, "No operations.", rather than `allow`), the notification steps confirmed. |
 | T6 | To do | A2, A3, A4, A10 (phone) |
 | T7 | To do | A5–A8 (phone) |
 | T8 | To do | A11: a day and a night of real use |
