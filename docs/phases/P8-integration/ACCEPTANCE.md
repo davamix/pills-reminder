@@ -125,7 +125,7 @@ The release app, on the phone, driven over adb while in front, with the user. Th
 
 **Upcoming** (HM-4): "Later", Atrovent, 2 puffs, every 12 hours for 2 days, from tomorrow 08:00: "Upcoming · Starts: Tomorrow 08:00", "4 takes", and on Home, under Upcoming, "Starts: Tomorrow 08:00 · in 12 h 45 min".
 
-**Editing a started treatment** (TR-10): from the treatment editor, Amoxicillin changed to every 12 hours. The medicine editor said "Changes apply to takes from now on. Takes already due or answered keep their state." and "15 takes. The last one is on Sun 29 Nov at 20:00." After Save, its 16:00 take was still Due, Atrovent's two answers unchanged. To be completed at 20:00.
+**Editing a started treatment** (TR-10): from the treatment editor, Amoxicillin changed to every 12 hours. The medicine editor said "Changes apply to takes from now on. Takes already due or answered keep their state." and "15 takes. The last one is on Sun 29 Nov at 20:00." After Save, its 16:00 take was still Due, Atrovent's two answers unchanged. At 20:00:00.091 the 16:00 take's reminder was cancelled, Missed as soon as the new schedule's next take fell due (TK-3), and the 20:00 take alerted at 20:00:00.388, then repeated at 20:10:00.3, 20:20:00.5 and 20:30:00.4 (RM-5).
 
 **Ending early** (TR-11, TR-12): "End Weekly now? Its takes still to come are removed, and a take that is due now becomes missed.", End. "Finished · Ended: Today 19:28", "0 of 1 taken or skipped", "Last take: Today 09:00", no Edit, no End early; its reminder left the shade. In Treatments, under Finished: "Weekly", "Ended: Today 19:28".
 
@@ -137,7 +137,7 @@ The release app, on the phone, driven over adb while in front, with the user. Th
 
 **Taken** (TK-2, RM-7, HM-3): Taken on Atrovent's row: its reminder left the shade; it moved under Next, "Tomorrow 00:00 · in 4 h 44 min", "Example · 1 of 15", with Taken early.
 
-**Taken early** (TK-4, SC-3): "Mark as taken now?", "Atrovent · 3 puffs, planned for Tomorrow 00:00. Its reminder won't alert.", Taken early. Its row then showed the take after, "Tomorrow 08:00 · in 12 h 44 min", "Example · 2 of 15", with no Taken early: one take ahead at most; the planned times stayed as they were. To be completed tomorrow: no alert for Atrovent's 00:00 take.
+**Taken early** (TK-4, SC-3): "Mark as taken now?", "Atrovent · 3 puffs, planned for Tomorrow 00:00. Its reminder won't alert.", Taken early. Its row then showed the take after, "Tomorrow 08:00 · in 12 h 44 min", "Example · 2 of 15", with no Taken early: one take ahead at most; the planned times stayed as they were. No alert came for Atrovent's 00:00 take (medicine `eeb04431…`) on 24 November: none in `logcat -b events` between 20:30 and 08:00.
 
 **Current while open** (HM-5): Home left open, untouched: at 19:16:47 "10 h 16 min ago" and "3 h 16 min ago"; at 19:17:54 "10 h 17 min ago" and "3 h 17 min ago".
 
@@ -164,6 +164,24 @@ The phone's settings before: light theme, font scale 1.0, 24-hour clock, auto-ro
 **Portrait** (NF-7): with auto-rotate on, the user turned the phone sideways with the app open: it stayed upright; the display's rotation stayed 0, the app asking for portrait.
 
 **Language and formats** (NF-8): every text in English on a phone in Spanish, the pickers included: the date picker writes "November 2026" and its days in English, with the app's own headline ("Mon 23 Nov"), and its weeks start on Monday, as in Spain. Times in 24-hour form ("08:00", "20:00"), following the phone's setting; the emulator, on a 12-hour clock, writes "7:00 PM" (A9). Days as "Mon 23 Nov", "Today", "Tomorrow". Android's own permission dialog is in the phone's language, as it should be.
+
+### Finding: alerts late in deep Doze, fixed in P8 (2026-11-24)
+
+**Seen** on the phone on the morning of 24 November, the release build with the check's settings, the phone idle (deep Doze): the alarm woke the phone on time (`device_idle_wake_from_idle`), and the app posted its reminder within 0.1 to 0.2 s (`notification_enqueue`), but Android played the alert (`notification_alert`) only at the phone's next wake-up:
+
+| Repeat or take due | Posted | Alert played | Late |
+|---|---|---|---|
+| 08:00:00 | 08:00:02.107 | 08:00:21.232 | 21 s |
+| 08:10:02 | 08:10:02.991 | 08:11:43.417 | **101 s** |
+| 08:30:02 | 08:30:02.984 | 08:31:00.909 | 59 s, at a Doze maintenance step (`device_idle_step` 08:31:00.890) |
+| 16:10:01 | 16:10:01.844 | 16:10:20.057 | 18 s |
+| 16:20:02 | 16:20:02.840 | 16:20:13.310 | 11 s |
+
+The evening before, with the phone in use, every alert played within 0.5 s.
+
+**Cause:** the phone has a live notification assistant (Google's `com.google.android.ext.services`). With one, Android 13's notification service waits 200 ms of awake time before it posts and alerts, and holds no wake lock meanwhile (Android 14 added one). The app's alarm receiver finished its broadcast right after posting, which released the alarm's wake lock, so the phone slept again until something else woke it. P5 measured each alert's lateness from the app's own log, which records the post, not the sound, so it couldn't see this.
+
+**Fix** (P8, `Reminders.reconcileAndSettle`): the receivers of the system's broadcasts keep their broadcast open 2 s after a reconcile that posted an alert, so the alarm's wake lock lasts until the alert has played. Unit tests in `RemindersTest`, with four deliberate bugs caught. Checked on the phone in deep Doze: see A11.
 
 ### A9. The emulator (2026-11-23)
 
