@@ -22,15 +22,22 @@ activity=$app_id.MainActivity
 runner=$pkg.test/androidx.test.runner.AndroidJUnitRunner
 gradle_log=build/gradle.log
 
-# Picks the device to talk to and sets $serial, $device ("phone" or "emulator") and $adb ("adb -s <serial>").
+# Picks the device to talk to and sets $serial, $device ("phone" or "emulator") and $adb ("adb -t <transport id>").
 # The phone is usually listed twice, over USB and over wireless debugging; USB is preferred. With no argument, it
 # takes the only device connected, and refuses when both the phone and the emulator are.
+# A wireless serial can hold a space: after an mDNS name clash, adb lists it as "adb-<serial>-<id> (2)._adb-tls-connect
+# ._tcp" (P8). So each line is read as "<serial> device <properties>", and $adb names the connection by its transport
+# id, which never has a space, rather than by its serial.
 use_device() {
-    local want=${1:-auto} list phone_usb phone_wifi emu
-    list=$("$adb_bin" devices -l | tr -d '\r' | awk 'NR > 1 && $2 == "device"')
-    phone_usb=$(echo "$list" | grep "model:$phone_model" | grep -v '_adb-tls-connect' | awk '{ print $1 }' | head -1)
-    phone_wifi=$(echo "$list" | grep "model:$phone_model" | grep '_adb-tls-connect' | awk '{ print $1 }' | head -1)
-    emu=$(echo "$list" | awk '$1 ~ /^emulator-/ { print $1 }' | head -1)
+    local want=${1:-auto} list phone_usb phone_wifi emu line
+    # One line per device in the "device" state: "<transport id>|<serial>|<properties>".
+    list=$("$adb_bin" devices -l | tr -d '\r' | sed -n -E 's/^(.*[^ ]) +device( (.*))?$/\1|\3/p' |
+        while IFS= read -r line; do
+            printf '%s|%s\n' "$(echo "$line" | grep -o 'transport_id:[0-9]*' | cut -d: -f2)" "$line"
+        done)
+    phone_usb=$(echo "$list" | grep "model:$phone_model" | grep -v '_adb-tls-connect' | head -1)
+    phone_wifi=$(echo "$list" | grep "model:$phone_model" | grep '_adb-tls-connect' | head -1)
+    emu=$(echo "$list" | awk -F'|' '$2 ~ /^emulator-/' | head -1)
     if [ "$want" = auto ]; then
         if [ -n "$phone_usb$phone_wifi" ] && [ -n "$emu" ]; then
             echo "use_device: both the phone and the emulator are connected; say which: phone or emulator" >&2
@@ -44,12 +51,12 @@ use_device() {
     fi
     case $want in
         phone)
-            serial=${phone_usb:-$phone_wifi}
-            [ -z "$serial" ] && { echo "use_device: the phone isn't connected" >&2; return 1; }
+            line=${phone_usb:-$phone_wifi}
+            [ -z "$line" ] && { echo "use_device: the phone isn't connected" >&2; return 1; }
             [ -z "$phone_usb" ] && echo "use_device: the phone is connected over wireless debugging only" >&2 ;;
         emulator)
-            serial=$emu
-            [ -z "$serial" ] && { echo "use_device: no emulator is running; start it as SKILL.md says" >&2; return 1; } ;;
+            line=$emu
+            [ -z "$line" ] && { echo "use_device: no emulator is running; start it as SKILL.md says" >&2; return 1; } ;;
         none)
             # Loads the helpers without picking a device, for wait_emulator.
             return 0 ;;
@@ -58,7 +65,8 @@ use_device() {
             return 1 ;;
     esac
     device=$want
-    adb="$adb_bin -s $serial"
+    serial=$(echo "$line" | cut -d'|' -f2)
+    adb="$adb_bin -t $(echo "$line" | cut -d'|' -f1)"
 }
 
 # Runs ./gradlew with the given tasks, quietly. The output goes to build/gradle.log, and on failure the errors are
