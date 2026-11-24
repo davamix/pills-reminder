@@ -7,6 +7,7 @@ import io.github.davamix.pillsreminder.core.model.TakeKey
 import io.github.davamix.pillsreminder.core.model.TreatmentRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -50,6 +51,21 @@ class Reminders(
 
     /** Reconciles now: for the receivers, `MainActivity` and the debug screen. */
     suspend fun reconcile(trigger: ReconcileTrigger): ReconcileResult = reconciler.reconcile(trigger)
+
+    /**
+     * Reconciles for a receiver of the system's broadcasts: the alarm, a restart, an update, a change of time. When the
+     * reconcile posted an alerting reminder, it returns only [ALERT_SETTLE_MILLIS] later, so the receiver's broadcast,
+     * and the alarm's wake lock with it, last until Android has played the alert.
+     *
+     * On Android 13 with a notification assistant, the notification service waits 200 ms of awake time before it posts
+     * and alerts, and holds no wake lock meanwhile. With the broadcast finished at once, the phone went back to sleep in
+     * deep Doze, and the sound waited for its next wake-up: 19 to 100 s on the phone (P8 T7, NF-1).
+     */
+    suspend fun reconcileAndSettle(trigger: ReconcileTrigger): ReconcileResult {
+        val result = reconcile(trigger)
+        if (result is ReconcileResult.Applied && result.plan.alerts.isNotEmpty()) delay(ALERT_SETTLE_MILLIS)
+        return result
+    }
 
     /**
      * Records the answer, or the snooze, through P2's and P5's helpers, then reconciles, whatever the answer gave: the
@@ -103,4 +119,9 @@ class Reminders(
         }
 
     private suspend fun guarded(block: suspend () -> Unit) = guarded(Unit, block)
+
+    companion object {
+        /** How long a receiver's broadcast lasts after an alerting post: well over the notification service's 200 ms. */
+        const val ALERT_SETTLE_MILLIS = 2_000L
+    }
 }

@@ -165,4 +165,50 @@ class RemindersTest {
             assertFalse(log.lines.any { "Amoxicillin" in it })
             scope.cancel()
         }
+
+    // A receiver's broadcast lasts until an alert has played (P8): on Android 13 the notification service waits 200 ms
+    // of awake time before it alerts, and the phone could fall asleep in between.
+
+    @Test
+    fun `a receiver's reconcile that posts an alert returns only once the alert has had time to play`() =
+        runTest {
+            val (reminders, scope) = reminders()
+            val start = testScheduler.currentTime
+
+            val result = reminders.reconcileAndSettle(ReconcileTrigger.ALARM)
+
+            assertEquals(listOf(amoxicillin0800, atrovent0800), (result as ReconcileResult.Applied).plan.alerts)
+            val settled = testScheduler.currentTime - start
+            assertEquals(Reminders.ALERT_SETTLE_MILLIS, settled)
+            assertTrue(settled >= 1_000, "well over the notification service's 200 ms, not $settled ms")
+            scope.cancel()
+        }
+
+    @Test
+    fun `a receiver's reconcile with nothing to alert returns at once`() =
+        runTest {
+            val (reminders, scope) = reminders()
+            reminders.reconcile(ReconcileTrigger.ALARM)
+            clock.at(nov(23, 8, 2))
+            val start = testScheduler.currentTime
+
+            val result = reminders.reconcileAndSettle(ReconcileTrigger.ALARM)
+
+            assertTrue((result as ReconcileResult.Applied).plan.alerts.isEmpty(), "the alerts already played")
+            assertEquals(0, testScheduler.currentTime - start)
+            scope.cancel()
+        }
+
+    @Test
+    fun `a receiver's reconcile on unreadable data returns at once`() =
+        runTest {
+            val unreadable = FakeRepository(StoredData.Unreadable)
+            val scope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
+            val reminders = Reminders(unreadable, clock, Reconciler(unreadable, clock, shade, alarm, log), shade, scope, log)
+            val start = testScheduler.currentTime
+
+            assertEquals(ReconcileResult.Unreadable, reminders.reconcileAndSettle(ReconcileTrigger.BOOT))
+            assertEquals(0, testScheduler.currentTime - start)
+            scope.cancel()
+        }
 }
