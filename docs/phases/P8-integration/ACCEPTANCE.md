@@ -183,6 +183,54 @@ The evening before, with the phone in use, every alert played within 0.5 s.
 
 **Fix** (P8, `Reminders.reconcileAndSettle`): the receivers of the system's broadcasts keep their broadcast open 2 s after a reconcile that posted an alert, so the alarm's wake lock lasts until the alert has played. Unit tests in `RemindersTest`, with four deliberate bugs caught. Checked on the phone in deep Doze: see A11.
 
+### A5–A8. Reminders on the phone (2026-11-24, 17:00 to 19:12)
+
+The release build with the fix for late alerts (installed as an update at 16:45, A8), the check's settings, the user at the phone. A test treatment, "Hourly": Amoxicillin, 1 capsule, "with food", and Atrovent, 3 puffs, every hour for 1 day, from 17:00, beside "Example". Times from `logcat -b events`, filtered to the app: when its alarm woke the phone, when it posted, and when Android played the alert (`notification_alert`, with `beep` for sound and `buzz` for vibration).
+
+**Every alert, and its lateness** (NF-1). Each time, the alarm woke the phone from idle within 3 ms of its time, and the app posted within 0.05 to 0.45 s:
+
+| Due | Condition | Alert played | Late | Sound, vibration |
+|---|---|---|---|---|
+| 17:00:00 | Two takes; phone in hand, unlocked, app closed | 17:00:00.551 | 0.55 s | sound, no vibration |
+| 17:10:00 | Repeat; Do Not Disturb | posted 17:10:00.197, no alert | – | none |
+| 17:12:00 | Snooze ended; Do Not Disturb | posted 17:12:00.066, no alert | – | none |
+| 17:20:00 | Repeat, after a swipe; vibrate mode | 17:20:00.643 | 0.64 s | vibration only |
+| 17:22:00 | Repeat; vibrate mode | 17:22:00.313 | 0.31 s | vibration only |
+| 17:30:00 | Repeat; Silent mode | 17:30:00.472 | 0.47 s | vibration only (see A7) |
+| 17:32:00 | Repeat; Silent mode | 17:32:00.388 | 0.39 s | vibration only (see A7) |
+| 18:00:00 | Two takes; screen off, locked | 18:00:00.548 | 0.55 s | sound |
+| 18:10:00 | Repeat; the app swiped away from Recents | 18:10:00.698 | 0.70 s | sound |
+| 18:20:00 | Repeat; the phone restarted, locked | 18:24:38.297 | 10.5 s after the unlock | sound |
+| 18:34:37 | Repeat; the app's process ended | 18:34:37.325 | 0.33 s | sound |
+| 19:00:00 | Two takes | 19:00:00.522 | 0.52 s | sound |
+| 19:10:00 | Repeat; after a Force stop | none until the app was opened, 19:11:53.354 | – | sound |
+
+### A5. Reminders on time and their content (2026-11-24)
+
+**Content** (RM-1, TR-6): "Amoxicillin: 1 capsule", "Hourly · with food"; "Atrovent: 3 puffs", "Hourly". **One reminder per take** (RM-4): at 17:00, 18:00 and 19:00 the two takes' reminders came together, in one group, each with its own actions, and played one sound. **Heads-up, sound, no vibration** (RM-2): at 17:00 the user saw both pop up, heard one sound and felt no vibration. **Screen off and locked** (RM-2, RM-11): at 18:00, with the phone locked and its screen off, the alert played 0.55 s late, and the lock screen showed both reminders with their full content. **On time** (NF-1): every alert within 0.7 s of its time (table above), and the morning's late alerts (see "Finding") gone with the phone idle. A night in deep Doze: A11.
+
+### A6. Actions, snooze, repeats and removal (2026-11-24)
+
+**Snooze** (RM-3): the user's first tap on Snooze, on the pop-up, didn't reach the app (Android logged no `notification_action_clicked`); from the shade, at 17:02:00.467, it did: the reminder left the shade 0.1 s later and came back at 17:12:00, 10 minutes after the Snooze, then repeated at 17:22 and 17:32. **Repeats** (RM-5): Atrovent's 17:00 take alerted at 17:00, then 17:10, 17:20 and 17:30, each 10 minutes after the one before, then stayed in the shade silently. **Swipe** (RM-5): swiped away at 17:13:04, it came back with its next repeat, 17:20:00; swiped again at 17:20:27, it came back silently with the next reconcile, at 17:22:00. **Taken** (RM-3, TK-2): Taken on Amoxicillin's reminder at 17:33:49.18 recorded it, and the reminder left 0.2 s later. **Skip** (RM-3): Skip at 18:26:53, with the app's process ended, started the process for the action and removed the reminder 0.45 s later. **Missed** (TK-3, RM-7): Atrovent's 17:00 take, unanswered, became Missed at 18:00:00.171 and left the shade, as did its 18:00 take at 19:00:00.093. A deletion with a reminder in the shade (TR-9): A9.
+
+### A7. Ring modes (2026-11-24)
+
+**Do Not Disturb** (RM-8): at 17:10 and 17:12 the reminders appeared without sound; Android played no alert. **Vibrate mode** (RM-2): at 17:20 and 17:22 they vibrated, with no sound (`buzz=1 beep=0`), as the user felt. **Silent mode** (RM-8): at 17:30 and 17:32 they appeared without sound; they vibrated, because HyperOS has its own "vibrate in Silent mode" switch, on by default, which the phone followed. Afterwards the user put the ring mode back to normal and turned Do Not Disturb off.
+
+### A8. Events (2026-11-24)
+
+**An update** (NF-2, NF-4): `adb install -r` of the release build at 16:45, with reminders in the shade. Android stopped the app (16:45:29.6) and removed its reminders (16:45:33.5); `MY_PACKAGE_REPLACED` started its receiver at 16:45:34.7, and the reminders were back at 16:45:35.4; the alarm stayed set; the treatments and answers were all there. HyperOS let the update's broadcast through, so Autostart is on, though Android reports it as "No operations" (A1).
+
+**Swiped from Recents** (NF-1, NF-2): at 18:05:07 the user swiped the app away, and HyperOS ended its process (`SwipeUpClean`). At 18:10:00.001 the alarm started it again for its receiver, which posted at 18:10:00.45; the alert played at 18:10:00.698.
+
+**A restart** (NF-2, NF-4, RM-2, plan D-16): the user restarted the phone at about 18:11 (boot complete 18:12:07) and unlocked it after the 18:20 repeat's time, at 18:24:27.8. `BOOT_COMPLETED` reached the app 9.1 s after the unlock; it posted every reminder from the stored data, and the overdue repeat alerted at 18:24:38.297, 10.5 s after the unlock. The next repeat followed 10 minutes after it (RM-5).
+
+**The process ended as Android does** (NF-2): `end_process` (`am kill`) at 18:25:51; the alarm stayed set, and its repeat alerted at 18:34:37.325.
+
+**A Force stop** (NF-2): from Android's settings at 19:02:24.8: Android ended the process, removed every reminder of the app and cancelled its alarm; nothing came at 19:10. The user opened the app at 19:11:52.85: every reminder was back 0.2 s later, the 19:10 repeat alerted at 19:11:53.354, and the alarm was set again for 19:21:52.
+
+**Ending early** (TR-11): "Hourly" ended at 19:12, from its Treatment screen: "Finished · Ended: Today 19:12"; its reminders left the shade, Example's stayed, and the alarm moved to Example's next take, 20:00.
+
 ### A9. The emulator (2026-11-23)
 
 The release build, signed, installed fresh on the emulator with `gradle installRelease`, beside the debug app.
