@@ -25,18 +25,15 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 
 ## Current state
 
-Paused on 2026-11-23 at 19:40, at the user's request (usage limit), to resume after the limit resets. T1–T6 are done: the wiring, `EndToEndTest`, the signed release build, the measurement of T4, and A1, A2, A3, A4, A9, A10 and A12 pass, recorded in `ACCEPTANCE.md`. Two results of T6 are waiting to be read from the phone's records (next steps 1 and 2). T7 (A5–A8, reminder runs with the user) is next; its timetable is proposed below, waiting for the user's choice of start time.
+T1–T7 are done (24 Nov, 19:15). Every acceptance check so far passes (A1–A10, A12), recorded in `ACCEPTANCE.md`, and the late alerts in deep Doze found on 24 Nov are fixed (`Reminders.reconcileAndSettle`, on the phone since 16:45). T8, a day and a night of real use, runs from 24 Nov 19:15 to at least 25 Nov 19:15, on "Example" (the user's choice, Q3), with the user answering its reminders as they come.
 
-**The phone now:** the release app only (the debug app and its tests were uninstalled with the user's agreement; T9's instrumented run reinstalls them, with an empty store). The release app holds "Example" (Amoxicillin every 12 hours since the edit, its 16:00 take Due until 20:00; Atrovent every 8 hours, its 00:00 take Taken early) and "Weekly" (Finished). Its next alerts: Amoxicillin 20:00 tonight, both at 08:00 tomorrow. The reminder check passes; Autostart on, battery saver No restrictions. Dark mode and font scale put back (light, 1.0).
-
-**The emulator:** the debug app and the release app; the release app's A9 treatment deleted.
+**The phone now:** the release app only, with "Example" (Amoxicillin every 12 hours: 20:00, 08:00; Atrovent every 8 hours: 00:00, 08:00, 16:00), "Weekly" (Finished) and "Hourly" (Finished, ended at 19:12). The reminder check passes; Autostart on, battery saver No restrictions, ring mode normal, Do Not Disturb off.
 
 ## Next steps
 
-1. Done 24 Nov: **A2's `TR-10` and `TK-3`, at 20:00 on 23 Nov:** read whether Amoxicillin's 16:00 take (key `2026-11-23T16:00|b81aa316…`) became Missed and left the shade at 20:00, and the 20:00 take alerted: `pkg=$release_pkg alert_events 10`, and `$adb logcat -d -b events -v time | grep "|$pkg|" | grep notification_cancel` around 20:00 (the events buffer reaches back about a day; `dumpsys usagestats` keeps the alerts longer). Record it in `ACCEPTANCE.md`, A2.
-2. Done 24 Nov: **A3's `TK-4`:** confirm no alert for Atrovent's take at 2026-11-24T00:00, Taken early. Atrovent's medicine ID isn't `b81aa316…` (Amoxicillin) nor `2b17ed83…` (Vitamin D): any alert or `NOTIFICATION_INTERRUPTION` near 00:00 on 24 Nov fails it. Record it in A3.
-3. **T7 with the user**, A5–A8, at a start hour H the user picks. The proposal shown to the user: a test treatment with two medicines every hour from H:00 (§4.4's names); H:00 both alert, phone in hand (content, heads-up, sound, one sound for two); Snooze one (back at H:10); repeats at H:10, H:20, H:30 in Do Not Disturb, vibrate mode and Silent (put back afterwards); swipe one away at H:12 (back at H:20); H+1:00 screen off and locked (lock-screen content, the unanswered take Missed and removed); H+1:05 swipe the app from Recents; H+1:15 the user restarts the phone and unlocks after H+1:20; H+1:25 `end_process`; H+1:3x Skip and Taken from the notification, Taken in the app; H+2:05 `adb install -r` of the same APK with a reminder in the shade (checks Autostart: `MY_PACKAGE_REPLACED`); H+2:15 the user Force stops the app, H+2:25 opens it (`alarms` at once). End the test treatment early at the end. Lateness from `alert_events` with `pkg=$release_pkg`.
-4. **Ask the user about T8** (Q3): their own treatment, or the §4.4 example kept running, for the day and the night of real use.
+1. **T8, after 25 Nov 19:15** (A11): read the release app's events since 24 Nov 19:15 with the scratchpad's `t7_events.sh` (if the scratchpad was cleared: `logcat -b events` filtered to the release package, `notification_enqueue`, `notification_alert`, `device_idle_wake_from_idle`; the buffer reached back 36 hours). For each alert: due, posted, played, lateness, sound and vibration. **The night's alerts in deep Doze check the fix**: 00:00 (Atrovent) and 08:00 (both), the phone idle; each must play within a second of its post. Then `doze_history` for the night's deep-Doze periods, `alarms` (one alarm clock), and ask the user for HyperOS's battery usage of the app (NF-5). Record A11 in `ACCEPTANCE.md`, times only.
+2. **T9:** fill in `ACCEPTANCE.md`'s header (commit, APK SHA-256 of the APK on the phone, `sha256sum app/build/outputs/apk/release/app-release.apk` if unchanged since 16:45) and §3 (test totals), and each row of §4 with its date and result; the README (status, what v1.0 does, how to install, the reminder check, links); CLAUDE.md's status line. Run the whole instrumented suite on the emulator and the phone (it reinstalls the debug app on the phone, with an empty store; `EndToEndTest` alerts once). Then the `handover` skill, which opens the pull request.
+3. **T10**, after the user merges and says go: the release (SPEC §4.3.3).
 
 ## Tasks
 
@@ -51,7 +48,7 @@ The task IDs come from SPEC.md §7.
 | T5 | Done | `ACCEPTANCE.md` started: devices, settings, the 48 rows. A9 on the emulator (install, first launch and the check, a first take in the past, `TIME_SET`, `TIMEZONE_CHANGED`, no logging, a repeat 0.24 s late); its 19:00 take on time, 0.39 s. A1 and A12 on the phone pass: the user followed the check; HyperOS's battery saver at No restrictions, Autostart on (Android then reports no 10008 entry, "No operations.", rather than `allow`), the notification steps confirmed. |
 | T6 | Done | A2, A3, A4 and A10 on the phone, recorded. Two results to read from the phone's records: `TR-10`/`TK-3` at 20:00 on 23 Nov, and `TK-4` at 00:00 on 24 Nov (next steps 1 and 2). |
 | T7 | Done | A5–A8 on the phone, 24 Nov 17:00–19:12, with an hourly test treatment, "Hourly" (ended early at the end): every alert within 0.7 s; Do Not Disturb, vibrate and Silent modes; Snooze, swipe, Taken, Skip; swipe from Recents, restart, `end_process`, update (16:45), Force stop. Recorded in `ACCEPTANCE.md`. The 19:05 update of the timetable was dropped: the 16:45 install had already checked it. |
-| T8 | To do | A11: a day and a night of real use |
+| T8 | Doing | A11 on "Example", from 24 Nov 19:15 to at least 25 Nov 19:15; results to read after it (next step 1). |
 | T9 | To do | `ACCEPTANCE.md`, README, CLAUDE.md; pull request |
 | T10 | To do | After the merge, with the go-ahead: tag `v1.0.0` and the GitHub release |
 
@@ -109,6 +106,11 @@ Each item of SPEC §4.3.1, read in the code on `main` at `80adaa0`:
 ## Session log
 
 Newest first.
+
+### 2026-11-24
+
+- Done: the two results of T6 read from the phone's records (pass); the late alerts in deep Doze found, and fixed with the user's agreement; the `phone` skill's `use_device` fixed for a serial with a space; the fixed release build installed on the phone as an update (A8's update); T7 with the user (A5–A8). T8 started on "Example".
+- Notes: the morning's late alerts were found only because the sound's own record (`notification_alert`) was compared with the post's (`notification_enqueue`); the app's debug log records the post. For the skills review: the `phone` skill's "Reminder device runs" should time the sound, not the post. A tap on a heads-up's Snooze didn't reach the app once (no `notification_action_clicked`); from the shade it did. A restart clears `logcat`'s buffers, so read the events before one.
 
 ### 2026-11-23 (3)
 
