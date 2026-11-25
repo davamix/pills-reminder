@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification (v0.11) and the implementation plan (v0.9) are agreed. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
+**Status:** the specification (v0.12) and the implementation plan (v0.9) are agreed. P1–P7 are done; P8 (integration and the 1.0.0 release) is accepted on the phone, its record in `docs/phases/P8-integration/ACCEPTANCE.md`. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
 
 ## Documents
 
@@ -47,6 +47,8 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 | One module's tests, filtered | `./gradlew :core:test --tests '*reminders*'`, with a package or class pattern; in `:app`, `:app:testDebugUnitTest --tests '…'`. Quicker than `build` while working on one package. |
 | Install on one device | `gradle installDebug`, from the `phone` skill's helpers, which sets `ANDROID_SERIAL`. A bare `./gradlew installDebug` installs on every connected device. |
 | Instrumented tests | `gradle installDebug installDebugAndroidTest && instrument` (`phone` skill). It keeps the app's data. On the phone, unlock it first; `instrument` grants the HyperOS permission the tests need (`allow_test_start`), which every install, update and restart resets. Avoid `connectedDebugAndroidTest`: it uninstalls the app afterwards, which deletes its data. |
+| Release build, signed | `gradle assembleRelease` gives `app/build/outputs/apk/release/app-release.apk`, signed when the four `pillsReminder.release.*` properties (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) are in the user-level `~/.gradle/gradle.properties` (P8); without them, as in CI, it is unsigned. Check it with `D:\Android\Sdk\build-tools\37.0.0\apksigner.bat verify --verbose --print-certs <apk>`. |
+| Install the release build | `gradle installRelease` (`phone` skill), or `$adb install -r <apk>`. Each update must be signed with the same key, or Android refuses it, and the only way round, uninstalling, deletes every treatment. |
 
 - Gradle runs on Android Studio's JDK; `JAVA_HOME` already points to it.
 - Run `ktlintFormat` as its own command, before `build`. In a single call (`./gradlew ktlintFormat build`), the ktlint check can still report violations that the format step has just fixed, and the build fails.
@@ -95,6 +97,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
   - Its `Reconciler` applies P4's plan: one reconcile at a time, the plan worked out inside `repository.update` with its records stored, then the alarm clock (`setAlarmClock`, plan `D-8`), the removals, the posts and the group's summary. Running it twice changes nothing.
   - **It reconciles after every change of the data** (P5-D2): `Reminders.start()`, called by `PillsReminderApp`, observes `repository.data`. A phase that changes the data through `core.actions` gets the shade and the alarm updated with nothing to wire: an answer on the Take screen removes its reminder by itself.
   - **Android lists a post only some time after `notify` returns.** An alert stores its record, which starts another reconcile at once; it found the reminder missing and posted it again silently, which replaced the alerting post before its sound played (P7 SPEC Q10). So the `Reconciler` counts what it posted as in the shade until the shade lists it, or for `POSTED_GRACE` (10 s) at most. `FakeShade.lag` reproduces the delay in tests.
+  - **The receivers of the system's broadcasts** (the alarm, a restart, an update, a change of time) reconcile with `Reminders.reconcileAndSettle`, which returns 2 s after a reconcile that posted an alert, so the broadcast, and the alarm's wake lock, last until Android has played it. On Android 13, with a notification assistant, the notification service waits 200 ms of awake time before alerting, with no wake lock: with the broadcast finished at once, the phone slept again in deep Doze, and the sound came up to 101 s late (P8). **Time an alert by the system's `notification_alert`, not the app's log, which records the post** (`phone` skill, `alert_events`).
   - The receivers (`Receivers.kt`) and `MainActivity.onStart` reconcile through `Reminders.runAsync`, in the process's scope. A tapped reminder opens `TakeRoute` right above Home (`AppNavHost(openTake, onTakeOpened)`); while the editors are open, above them instead, replacing a take already on top, so Back returns to the editors with their changes (P6 Q3).
   - Notifications have no category, so Do Not Disturb silences them; each is public, for the lock screen; a silent post is a group child with `GROUP_ALERT_SUMMARY`, since the platform has no `setSilent()` (P5 SPEC §4.3.4).
   - On HyperOS (P5 T1, T2, T8): alarm clocks are on time in deep Doze and after a restart (`BOOT_COMPLETED` comes a few seconds after the first unlock, thanks to the receiver's priority 999); with Autostart off, HyperOS blocks `MY_PACKAGE_REPLACED`, so after an update the reminders come back only at the next alarm or when the app opens; it shows no alarm-clock icon; it hides a notification already seen in the shade from the lock screen until its next alert; it keeps at most 10 notifications per app.
@@ -159,6 +162,7 @@ Phase statuses: Planned → Spec draft → Ready → In progress → Done.
 ## Git
 
 - **The repo is public.** Never commit personal data or secrets: device serial numbers, names, e-mail or postal addresses, phone numbers, real treatments or screenshots that show them, keystores, passwords, `local.properties`. Examples and test data use the example in specification §4.4.
+- **The release keystore** is outside the repo, `%USERPROFILE%\.android\keystores\pills-reminder-release.jks`, and its password only in the user-level `~/.gradle/gradle.properties` (P8). Never print the password, or put it in a command line, a file in the repo or a commit.
 - `main` always builds. Each phase is built on its own branch, `phase/pN-<name>`, and merged through a pull request with green CI. The user merges.
 - **CI runs only on pull requests and on pushes to `main`.** Pushes to a phase branch before its pull request exists start no run, so don't wait for one (skill `handover`).
 - Draft documents (specification, plan, a phase's SPEC.md) are committed and pushed to `main` at every version. That includes a SPEC version made during implementation. Afterwards, merge `main` into the phase branch (skill `handover`).

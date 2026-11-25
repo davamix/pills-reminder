@@ -7,6 +7,12 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+// Release signing (P8, plan PQ-3). The keystore and its passwords are user-level Gradle properties
+// (~/.gradle/gradle.properties), never in the repo. Without all four, as in CI, the release build is left unsigned.
+val releaseSigning =
+    listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        .associateWith { providers.gradleProperty("pillsReminder.release.$it").orNull }
+
 android {
     namespace = "io.github.davamix.pillsreminder"
     compileSdk = 37
@@ -17,9 +23,20 @@ android {
         minSdk = 33
         targetSdk = 37
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (releaseSigning.values.all { it != null }) {
+            create("release") {
+                storeFile = file(releaseSigning.getValue("storeFile")!!)
+                storePassword = releaseSigning.getValue("storePassword")
+                keyAlias = releaseSigning.getValue("keyAlias")
+                keyPassword = releaseSigning.getValue("keyPassword")
+            }
+        }
     }
 
     buildTypes {
@@ -28,7 +45,9 @@ android {
             applicationIdSuffix = ".debug"
         }
         release {
+            // Not minified: the release runs the code the tests ran (P8 Q5).
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

@@ -50,6 +50,8 @@ class EndAndDeleteTest {
         scrollTo(text(R.string.treatment_end))
         compose.tap(R.string.treatment_end)
         compose.tap(R.string.action_cancel)
+        // At a large font, End early is far down the list, and the status has scrolled out of view (P7, P8 T1).
+        scrollTo(text(R.string.status_active))
         compose.onNodeWithText(text(R.string.status_active)).assertIsDisplayed()
 
         scrollTo(text(R.string.treatment_end))

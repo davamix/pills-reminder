@@ -20,7 +20,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val trigger = if (ReminderIntents.isRetry(intent)) ReconcileTrigger.RETRY else ReconcileTrigger.ALARM
         val reminders = context.reminders
         val pending = goAsync()
-        reminders.runAsync(done = pending::finish) { reminders.reconcile(trigger) }
+        // The broadcast, and the alarm's wake lock with it, lasts until an alert has played (P8).
+        reminders.runAsync(done = pending::finish) { reminders.reconcileAndSettle(trigger) }
     }
 }
 
@@ -56,6 +57,6 @@ class SystemEventReceiver : BroadcastReceiver() {
             }
         val reminders = context.reminders
         val pending = goAsync()
-        reminders.runAsync(done = pending::finish) { reminders.reconcile(trigger) }
+        reminders.runAsync(done = pending::finish) { reminders.reconcileAndSettle(trigger) }
     }
 }
