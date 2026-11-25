@@ -5,7 +5,7 @@
 | **Status** | Every requirement passes, as each row of §4 says (2026-11-25) |
 | **App** | Version 1.0.0 (`versionCode` 1), release build, signed |
 | **Commit** | The app's code as of `53a00dc` ("Keep the alarm's broadcast open until a reminder's alert has played"); later commits change documents only |
-| **APK SHA-256** | `f04893605f6665bd575208af08c0c00306fffbd11b8cb3af5fc0b4b6ba4281c9`: the APK installed on the phone on 24 November at 16:45, and used for A5–A8 and A11. A1–A4, A9, A10 and A12 used the build before the fix of 24 November, the same app but for that fix. The release's own APK is built again from the tagged commit (P8 T10). |
+| **APK SHA-256** | `f04893605f6665bd575208af08c0c00306fffbd11b8cb3af5fc0b4b6ba4281c9`: the APK installed on the phone on 24 November at 16:45, and used for A5–A8 and A11. A1–A4, A9, A10 and A12 used the build before the fix of 24 November, the same app but for that fix. The release's own APK, `pills-reminder-1.0.0.apk` on the [v1.0.0 release](https://github.com/davamix/pills-reminder/releases/tag/v1.0.0), was built again from the tagged commit `d1156a8`, the same app code, with the same key: SHA-256 `7bb95a277e3d5387c88261c42d2dfbde3caa20c7c53a1752df62983ff4992901`. It was installed on the phone over the accepted build on 25 November at 20:18, and the treatments were kept. |
 | **Certificate** | `CN=Pills Reminder`, RSA 4096; SHA-256 digest `d28df13a9531debbba7c7d73eb2305121cea03bce885157ae533b4c4a263a5e7` |
 | **Specification** | [SPECIFICATION.md](../../SPECIFICATION.md) v0.11; v0.12 adds only a future idea, from A11 |
 | **How** | [P8 SPEC](SPEC.md) §6.2: checks A1–A12 |

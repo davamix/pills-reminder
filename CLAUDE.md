@@ -2,7 +2,7 @@
 
 An Android app that manages medical treatments and reminds the user when each medicine's next take is due. It runs on one phone, a POCO F3 (Android 13, API 33, Xiaomi HyperOS, portrait, 1080 × 2400). The emulator `PillsReminder_API_36` has the same screen.
 
-**Status:** the specification (v0.12) and the implementation plan (v0.9) are agreed. P1–P7 are done; P8 (integration and the 1.0.0 release) is accepted on the phone, its record in `docs/phases/P8-integration/ACCEPTANCE.md`. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
+**Status:** the specification (v0.12) and the implementation plan (v0.9) are agreed. P1–P8 are done: version 1.0.0 is released (tag `v1.0.0`, a GitHub release with the signed APK), with its acceptance record in `docs/phases/P8-integration/ACCEPTANCE.md`. The phases' status is in plan §5.1. Built with Kotlin and Jetpack Compose.
 
 ## Documents
 

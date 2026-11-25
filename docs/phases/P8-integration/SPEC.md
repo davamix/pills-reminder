@@ -387,20 +387,20 @@ The release build's shortest interval is 1 hour. A test treatment every hour giv
 
 Before the pull request:
 
-- [ ] T1–T9 done
-- [ ] Unit tests and lint pass locally and in CI
-- [ ] Every instrumented test passes on the emulator and the phone, `EndToEndTest` included, and `EndAndDeleteTest` at font scale 1.4 too
-- [ ] The signed release APK: its signature verified, its manifest and dependencies as §4.3.3 says
-- [ ] Every row of `ACCEPTANCE.md` passes, on the release build, on the phone or on the emulator as §6.2 names
-- [ ] The day and night of real use recorded, every alert within 1 minute
-- [ ] The user has backed up the keystore and its properties
-- [ ] README and CLAUDE.md updated; HANDOVER.md up to date, and the plan's status table updated
+- [x] T1–T9 done
+- [x] Unit tests and lint pass locally and in CI
+- [x] Every instrumented test passes on the emulator and the phone, `EndToEndTest` included, and `EndAndDeleteTest` at font scale 1.4 too
+- [x] The signed release APK: its signature verified, its manifest and dependencies as §4.3.3 says
+- [x] Every row of `ACCEPTANCE.md` passes, on the release build, on the phone or on the emulator as §6.2 names
+- [x] The day and night of real use recorded, every alert within 1 minute
+- [x] The user has backed up the keystore and its properties
+- [x] README and CLAUDE.md updated; HANDOVER.md up to date, and the plan's status table updated
 
 After the merge (T10):
 
-- [ ] The user's go-ahead
-- [ ] `v1.0.0` tagged on `main`, and the GitHub release has the signed APK, its SHA-256 and the certificate's digest
-- [ ] That APK installed on the phone over the accepted one, with the treatments kept
+- [x] The user's go-ahead
+- [x] `v1.0.0` tagged on `main`, and the GitHub release has the signed APK, its SHA-256 and the certificate's digest
+- [x] That APK installed on the phone over the accepted one, with the treatments kept
 
 ## 9. Open questions
 

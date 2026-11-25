@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | In progress: T1–T9 done; pull request [#9](https://github.com/davamix/pills-reminder/pull/9) is waiting for the user to merge it, then T10 (the release) with the user's go-ahead |
+| **Status** | Done. Merged in pull request [#9](https://github.com/davamix/pills-reminder/pull/9) on 2026-11-25; version 1.0.0 released the same day. |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p8-integration` |
 | **Last session** | 2026-11-25 |
@@ -11,29 +11,17 @@ This document tracks the phase as it's built. Update it at the end of every sess
 
 ## Prompt to start or continue
 
-Paste this prompt into a new Claude Code session to start or continue the phase. When the phase is done, replace it with "Phase done: no prompt needed."
-
-```text
-Start or continue phase P8 (Integration and v1.0) of the pills reminder.
-
-1. Use the phase-start skill for P8. Read only docs/phases/P8-integration/HANDOVER.md and SPEC.md; they contain everything needed.
-2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p8-integration. Commit after each task, once the build passes.
-3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. T1–T9 are done and pull request #9 is open. First check whether I've merged it (`gh pr view 9`) or left review comments; deal with comments on this branch. Once it's merged, T10: ask me for the go-ahead, then build the release on `main` at the merge commit, check it, tag `v1.0.0` and create the GitHub release, as SPEC §4.3.3 says, showing me the release notes first; then the phase-close skill. The keystore and its passwords never go in the repo or in your output (SPEC §4.3.3, §5). Never change the phone's clock or time zone.
-5. Before the session ends, or once T1–T9 are done, use the handover skill. When the done criteria before the pull request pass, open the pull request and wait for me to merge it.
-```
+Phase done: no prompt needed.
 
 ## Current state
 
-T1–T9 are done. Every requirement passes on the phone with the signed release build, as `ACCEPTANCE.md` records, including a day and a night of real use; the late alerts found in deep Doze on 24 Nov are fixed. The build passes (`:core` 177, `:app` 260 unit tests), and the instrumented suite passes on the emulator and the phone (49 tests each) at the final code. Pull request [#9](https://github.com/davamix/pills-reminder/pull/9) is open, and CI passed on its first commit (`87e319e`, run 45682300060). Left: the user's merge, then T10, the `v1.0.0` tag and the GitHub release, with the user's go-ahead.
+Merged into `main` in pull request [#9](https://github.com/davamix/pills-reminder/pull/9) on 2026-11-25, and released: tag `v1.0.0` on the merge commit `d1156a8`, and the [GitHub release](https://github.com/davamix/pills-reminder/releases/tag/v1.0.0) "Pills Reminder 1.0.0", with `pills-reminder-1.0.0.apk` (SHA-256 `7bb95a27…2901`, certificate digest `d28df13a…a5e7`), installed on the phone over the accepted build with the treatments kept.
 
-**The phone:** the release app, with "Example" still running (the user's real-use treatment), "Weekly" and "Hourly" (Finished); the debug app and its tests reinstalled by T9's instrumented run, with an empty store. The phone's ring and notification volume was 2 of 15: the user raises it. **The emulator:** the debug app, and the release app (the current build) with an "Example" made for the README's screenshots.
+What P8 built: the wiring confirmed, `EndToEndTest` through the real app, the signed release build (keystore outside the repo, AndroidX's `ProfileInstallReceiver` removed), the fix for alerts late in deep Doze (`Reminders.reconcileAndSettle`), the acceptance record with every requirement passing on the phone, and the README for 1.0 with screenshots.
 
 ## Next steps
 
-1. If the pull request has review comments, deal with them on this branch, then run the checks and push.
-2. Once the user has merged it, **T10**, only with the user's go-ahead: on `main` at the merge commit, `gradle assembleRelease`; check it with `apksigner` (certificate digest `d28df13a…a5e7`) and its manifest (SPEC §4.3.3); copy it to the scratchpad as `pills-reminder-1.0.0.apk` and take its SHA-256; write the release notes in the scratchpad and show them to the user; `git tag -a v1.0.0 -m "Pills Reminder 1.0.0"` and push the tag; `gh release create v1.0.0 <apk> --title "Pills Reminder 1.0.0" --notes-file <notes>`; then install that APK on the phone over the accepted one (`adb install -r`, the same key, the data kept).
-3. Then the `phase-close` skill: P8 `Done` in plan §5.1, SPEC §8 ticked, this handover finished, and the skills review (candidates in the session logs: the `phone` skill should time alerts by `notification_alert`, the heads-up over the app bar, `uiautomator dump`'s minute labels, the editor's field numbers, the transport-id fix to confirm, the README screenshots' crop tool).
+None for P8. Every phase of plan §5.1 is `Done`: version 1.0.0 completes the plan. What comes next is the user's choice, for example the specification's future ideas (§10), which would start with a review of the specification (`doc-review`).
 
 ## Tasks
 
@@ -49,8 +37,8 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | A2, A3, A4 and A10 on the phone, recorded. Two results to read from the phone's records: `TR-10`/`TK-3` at 20:00 on 23 Nov, and `TK-4` at 00:00 on 24 Nov (next steps 1 and 2). |
 | T7 | Done | A5–A8 on the phone, 24 Nov 17:00–19:12, with an hourly test treatment, "Hourly" (ended early at the end): every alert within 0.7 s; Do Not Disturb, vibrate and Silent modes; Snooze, swipe, Taken, Skip; swipe from Recents, restart, `end_process`, update (16:45), Force stop. Recorded in `ACCEPTANCE.md`. The 19:05 update of the timetable was dropped: the 16:45 install had already checked it. |
 | T8 | Done | A11 on "Example", 24 Nov 19:15 to 25 Nov 19:50: every alert played within 0.45 s of its post, in deep Doze too (the fix holds); first alerts within 2.4 s of their time. The user heard none: the phone's ring and notification volume was 2 of 15. Decided by the user: they raise it; a low-volume warning becomes a future idea (specification v0.12). |
-| T9 | In review | `ACCEPTANCE.md` finished (header, test totals, every row: Pass); the README for 1.0, with screenshots from the emulator (`docs/images/`, cropped by a throwaway Java program, example data only); CLAUDE.md's status and the receivers' settle. Instrumented suite at the final code: 49 on the emulator, 49 on the phone. Pull request [#9](https://github.com/davamix/pills-reminder/pull/9). |
-| T10 | To do | After the merge, with the go-ahead: tag `v1.0.0` and the GitHub release |
+| T9 | Done | `ACCEPTANCE.md` finished (header, test totals, every row: Pass); the README for 1.0, with screenshots from the emulator (`docs/images/`, cropped by a throwaway Java program, example data only); CLAUDE.md's status and the receivers' settle. Instrumented suite at the final code: 49 on the emulator, 49 on the phone. Pull request [#9](https://github.com/davamix/pills-reminder/pull/9). |
+| T10 | Done | On `main` at the merge commit `d1156a8`: the release build checked (v2 signature, `CN=Pills Reminder`, same key; manifest as SPEC §4.3.3); the release notes agreed by the user; tag `v1.0.0` pushed; the GitHub release with `pills-reminder-1.0.0.apk` (its downloaded copy checked by SHA-256); that APK installed on the phone over the accepted one (`MY_PACKAGE_REPLACED` reposted the reminders within 0.5 s, the treatments kept). |
 
 ## Decisions and deviations
 
@@ -109,6 +97,10 @@ Each item of SPEC §4.3.1, read in the code on `main` at `80adaa0`:
 ## Session log
 
 Newest first.
+
+### 2026-11-25 (close)
+
+- The user merged pull request #9 and gave the go-ahead: T10 done, version 1.0.0 released (tag `v1.0.0`, GitHub release with the APK), and that APK installed on the phone. Phase closed: plan §5.1, SPEC §8 and this handover updated on `main`; `ACCEPTANCE.md` names the release's APK.
 
 ### 2026-11-25
 
