@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Status** | In progress (P8 T5–T9) |
+| **Status** | Every requirement passes, as each row of §4 says (2026-11-25) |
 | **App** | Version 1.0.0 (`versionCode` 1), release build, signed |
-| **Commit** | To be filled in T9 |
-| **APK SHA-256** | To be filled in T9, for the APK accepted on the phone |
+| **Commit** | The app's code as of `53a00dc` ("Keep the alarm's broadcast open until a reminder's alert has played"); later commits change documents only |
+| **APK SHA-256** | `f04893605f6665bd575208af08c0c00306fffbd11b8cb3af5fc0b4b6ba4281c9`: the APK installed on the phone on 24 November at 16:45, and used for A5–A8 and A11. A1–A4, A9, A10 and A12 used the build before the fix of 24 November, the same app but for that fix. The release's own APK is built again from the tagged commit (P8 T10). |
 | **Certificate** | `CN=Pills Reminder`, RSA 4096; SHA-256 digest `d28df13a9531debbba7c7d73eb2305121cea03bce885157ae533b4c4a263a5e7` |
-| **Specification** | [SPECIFICATION.md](../../SPECIFICATION.md) v0.11 |
+| **Specification** | [SPECIFICATION.md](../../SPECIFICATION.md) v0.11; v0.12 adds only a future idea, from A11 |
 | **How** | [P8 SPEC](SPEC.md) §6.2: checks A1–A12 |
 
 This record says how each requirement of the specification was checked before release 1.0.0: by the automated tests of the phase that built it, and by hand, on the phone, with the signed release build. The repository is public, so it holds times and conditions only: no treatment from real use, and no device serial number.
@@ -36,7 +36,16 @@ The reminder check (`RM-9`) asks for these. Each acceptance check says whether t
 
 ## 3. Automated tests
 
-To be filled in T9, at the commit above: the unit tests of `:core` and `:app`, and the instrumented suite on the emulator and on the phone.
+At the app's final code (`53a00dc`), on 25 November:
+
+| Suite | Where | Result |
+|---|---|---|
+| Unit tests, `:core` | PC and CI (`./gradlew build`) | 177 passed |
+| Unit tests, `:app` (debug) | PC and CI (`./gradlew build`) | 260 passed |
+| Instrumented tests, `EndToEndTest` included | The emulator (Android 16) | 49 passed |
+| Instrumented tests, `EndToEndTest` included | The phone (Android 13, HyperOS) | 49 passed |
+
+`./gradlew build` also runs Android Lint, ktlint and the permission allowlist check (plan §3).
 
 ## 4. Requirements
 
@@ -44,54 +53,54 @@ To be filled in T9, at the commit above: the unit tests of `:core` and `:app`, a
 
 | ID | Requirement, in short | Tests | Checked by | Date | Result |
 |---|---|---|---|---|---|
-| TR-1 | Several treatments, more than one active | P2, P6 | A2 | | |
-| TR-2 | One or more medicines per treatment | P2, P6 | A2 | | |
-| TR-3 | Name, free-text dose, interval in hours, days or weeks, duration in days or weeks or no end | P2, P6 | A2 | | |
-| TR-4 | Each medicine's own first take; the next full hour suggested; a first take in the past | P2, P6 | A2, A9 | | |
-| TR-5 | A treatment's name and optional notes | P2, P6 | A2 | | |
-| TR-6 | Optional instructions, shown by the reminder | P2, P6 | A2, A5, A9 | | |
-| TR-7 | The dose is free text | P2, P6 | A2 | | |
-| TR-8 | Validation | P2, P6 | A2 | | |
-| TR-9 | Create, edit, delete with confirmation; deleting deletes its takes | P3, P5, P6 | A2, A6 | | |
-| TR-10 | Editing a started treatment changes only what is to come | P2, P3, P6 | A2 | | |
-| TR-11 | Ending a treatment early | P2, P5, P6 | A2, A8 | | |
-| TR-12 | Finished treatments stay until deleted | P2, P3, P6 | A2 | | |
-| TR-13 | Leaving an editor with changes asks first | P6 | A2 | | |
-| SC-1 | One take every interval, from the first take, for the duration | P2 | A2, A5 | | |
-| SC-2 | Every planned take worked out; the editor shows the count and the last one | P2, P6 | A2 | | |
-| SC-3 | Planned times are fixed | P2 | A3, A4 | | |
-| SC-4 | Clock times across daylight saving and time zones | P2 | A9 (time zone); daylight saving in P2's unit tests | | |
-| SC-5 | A medicine with no end; "No end" | P2, P6, P7 | A2, A3 | | |
-| RM-1 | The reminder names the medicine, dose, treatment and instructions | P5, P8 (`EndToEndTest`) | A5, A9 | | |
-| RM-2 | Heads-up with sound, no vibration; vibrates in vibrate mode; app closed, screen off, locked, restarted | P5 | A5, A7, A8 | | |
-| RM-3 | Taken, Snooze and Skip | P4, P5, P8 (`EndToEndTest`) | A6 | | |
-| RM-4 | One reminder per take, grouped | P4, P5, P8 (`EndToEndTest`) | A5 | | |
-| RM-5 | Repeats every 10 minutes, 3 times; swiping away | P4, P5 | A6, A9 | | |
-| RM-6 | Tapping a reminder opens its take | P5, P6, P8 (`EndToEndTest`) | A4 | | |
-| RM-7 | Answered in the app, or Missed: the reminder goes | P4, P5, P8 (`EndToEndTest`) | A6, A9 | | |
-| RM-8 | Do Not Disturb and silent mode: no sound | P5 | A7 | | |
-| RM-9 | The reminder check | P5, P7 | A1, A9 | | |
-| RM-11 | Full content on the lock screen | P5 | A5 | | |
-| TK-1 | Each take's state | P2, P4 | A3, A4 | | |
-| TK-2 | Taken records the time, which can be corrected | P2, P5, P6, P7, P8 (`EndToEndTest`) | A4, A6 | | |
-| TK-3 | Missed one interval later | P2, P4 | A6, A9 | | |
-| TK-4 | The next take marked Taken early | P2, P7 | A3 | | |
-| TK-5 | The last answered take can be changed | P2, P6 | A4 | | |
-| HM-1 | The next take of each medicine, with the time left | P7 | A3 | | |
-| HM-2 | Due takes first, highlighted, with Taken | P7, P8 (`EndToEndTest`) | A3 | | |
-| HM-3 | Progress and treatment name | P7, P8 (`EndToEndTest`) | A3 | | |
-| HM-4 | Upcoming treatments; the empty state | P7 | A3, A9 | | |
-| HM-5 | Stays current while open | P7 | A3 | | |
-| NF-1 | On time, within 1 minute, in Doze, screen off, swiped away, restarted | P4, P5 | A5, A8, A11 | | |
-| NF-2 | Reminders survive restarts, updates, time and zone changes, the process ending; Force stop until opened | P5 | A8, A9 | | |
-| NF-3 | Offline and private | P1 | A12, A9 | | |
-| NF-4 | Data survives restarts and updates; interrupted saves | P3 | A8; interrupted saves in P3's tests | | |
-| NF-5 | Nothing runs between reminders | P5 | A11, A12 | | |
-| NF-6 | Android 13 on the phone, and later versions | P1, P5 | A1 (API 33), A9 (API 36) | | |
-| NF-7 | Portrait, 48 dp targets, large fonts | P1, P6, P7 | A10 | | |
-| NF-8 | English, text in resources, 24-hour setting, day and month names | P1, P6, P7 | A10 | | |
-| NF-9 | Installed from the PC, never on Google Play | P1 | A1, A9 | | |
-| NF-10 | Light and dark theme | P1, P6, P7 | A10 | | |
+| TR-1 | Several treatments, more than one active | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-2 | One or more medicines per treatment | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-3 | Name, free-text dose, interval in hours, days or weeks, duration in days or weeks or no end | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-4 | Each medicine's own first take; the next full hour suggested; a first take in the past | P2, P6 | A2, A9 | 2026-11-23 | Pass |
+| TR-5 | A treatment's name and optional notes | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-6 | Optional instructions, shown by the reminder | P2, P6 | A2, A5, A9 | 2026-11-24 | Pass |
+| TR-7 | The dose is free text | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-8 | Validation | P2, P6 | A2 | 2026-11-23 | Pass |
+| TR-9 | Create, edit, delete with confirmation; deleting deletes its takes | P3, P5, P6 | A2, A6 | 2026-11-24 | Pass |
+| TR-10 | Editing a started treatment changes only what is to come | P2, P3, P6 | A2 | 2026-11-23 | Pass |
+| TR-11 | Ending a treatment early | P2, P5, P6 | A2, A8 | 2026-11-24 | Pass |
+| TR-12 | Finished treatments stay until deleted | P2, P3, P6 | A2 | 2026-11-23 | Pass |
+| TR-13 | Leaving an editor with changes asks first | P6 | A2 | 2026-11-23 | Pass |
+| SC-1 | One take every interval, from the first take, for the duration | P2 | A2, A5 | 2026-11-24 | Pass |
+| SC-2 | Every planned take worked out; the editor shows the count and the last one | P2, P6 | A2 | 2026-11-23 | Pass |
+| SC-3 | Planned times are fixed | P2 | A3, A4 | 2026-11-24 | Pass |
+| SC-4 | Clock times across daylight saving and time zones | P2 | A9 (time zone); daylight saving in P2's unit tests | 2026-11-23 | Pass (time zone); daylight saving in unit tests |
+| SC-5 | A medicine with no end; "No end" | P2, P6, P7 | A2, A3 | 2026-11-24 | Pass |
+| RM-1 | The reminder names the medicine, dose, treatment and instructions | P5, P8 (`EndToEndTest`) | A5, A9 | 2026-11-24 | Pass |
+| RM-2 | Heads-up with sound, no vibration; vibrates in vibrate mode; app closed, screen off, locked, restarted | P5 | A5, A7, A8 | 2026-11-24 | Pass; heard at the phone's own volume (A11) |
+| RM-3 | Taken, Snooze and Skip | P4, P5, P8 (`EndToEndTest`) | A6 | 2026-11-24 | Pass |
+| RM-4 | One reminder per take, grouped | P4, P5, P8 (`EndToEndTest`) | A5 | 2026-11-24 | Pass |
+| RM-5 | Repeats every 10 minutes, 3 times; swiping away | P4, P5 | A6, A9 | 2026-11-24 | Pass |
+| RM-6 | Tapping a reminder opens its take | P5, P6, P8 (`EndToEndTest`) | A4 | 2026-11-23 | Pass |
+| RM-7 | Answered in the app, or Missed: the reminder goes | P4, P5, P8 (`EndToEndTest`) | A6, A9 | 2026-11-24 | Pass |
+| RM-8 | Do Not Disturb and silent mode: no sound | P5 | A7 | 2026-11-24 | Pass |
+| RM-9 | The reminder check | P5, P7 | A1, A9 | 2026-11-23 | Pass |
+| RM-11 | Full content on the lock screen | P5 | A5 | 2026-11-24 | Pass |
+| TK-1 | Each take's state | P2, P4 | A3, A4 | 2026-11-24 | Pass |
+| TK-2 | Taken records the time, which can be corrected | P2, P5, P6, P7, P8 (`EndToEndTest`) | A4, A6 | 2026-11-24 | Pass |
+| TK-3 | Missed one interval later | P2, P4 | A6, A9 | 2026-11-24 | Pass |
+| TK-4 | The next take marked Taken early | P2, P7 | A3 | 2026-11-24 | Pass |
+| TK-5 | The last answered take can be changed | P2, P6 | A4 | 2026-11-23 | Pass |
+| HM-1 | The next take of each medicine, with the time left | P7 | A3 | 2026-11-24 | Pass |
+| HM-2 | Due takes first, highlighted, with Taken | P7, P8 (`EndToEndTest`) | A3 | 2026-11-24 | Pass |
+| HM-3 | Progress and treatment name | P7, P8 (`EndToEndTest`) | A3 | 2026-11-24 | Pass |
+| HM-4 | Upcoming treatments; the empty state | P7 | A3, A9 | 2026-11-24 | Pass |
+| HM-5 | Stays current while open | P7 | A3 | 2026-11-24 | Pass |
+| NF-1 | On time, within 1 minute, in Doze, screen off, swiped away, restarted | P4, P5 | A5, A8, A11 | 2026-11-25 | Pass, with the fix of 24 Nov (see "Finding") |
+| NF-2 | Reminders survive restarts, updates, time and zone changes, the process ending; Force stop until opened | P5 | A8, A9 | 2026-11-24 | Pass |
+| NF-3 | Offline and private | P1 | A12, A9 | 2026-11-23 | Pass |
+| NF-4 | Data survives restarts and updates; interrupted saves | P3 | A8; interrupted saves in P3's tests | 2026-11-24 | Pass (restarts, updates); interrupted saves in unit tests |
+| NF-5 | Nothing runs between reminders | P5 | A11, A12 | 2026-11-25 | Pass |
+| NF-6 | Android 13 on the phone, and later versions | P1, P5 | A1 (API 33), A9 (API 36) | 2026-11-23 | Pass |
+| NF-7 | Portrait, 48 dp targets, large fonts | P1, P6, P7 | A10 | 2026-11-23 | Pass |
+| NF-8 | English, text in resources, 24-hour setting, day and month names | P1, P6, P7 | A10 | 2026-11-23 | Pass |
+| NF-9 | Installed from the PC, never on Google Play | P1 | A1, A9 | 2026-11-23 | Pass |
+| NF-10 | Light and dark theme | P1, P6, P7 | A10 | 2026-11-23 | Pass |
 
 ## 5. Checks
 
