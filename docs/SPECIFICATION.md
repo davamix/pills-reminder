@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | v0.11, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
-| **Last updated** | 2026-11-22 |
+| **Status** | v0.12, agreed: the base for the [implementation plan](IMPLEMENTATION_PLAN.md) |
+| **Last updated** | 2026-11-25 |
 | **Platform** | Android phone, single user, personal use |
 
 This document describes *what* the app does. Once it is agreed, it is the base for the implementation plan.
@@ -385,6 +385,7 @@ Not planned for v1; listed so they are not lost.
 - A home-screen widget with the next takes.
 - An optional early warning a few minutes before a take.
 - A photo of the medicine or its box, to recognise it.
+- The reminder check (`RM-9`) also warns when the phone's notification volume is muted or very low: reminders play at that volume, and at 2 of 15 none was heard during P8's acceptance.
 
 ## 11. Change log
 
@@ -401,3 +402,4 @@ Not planned for v1; listed so they are not lost.
 | 0.9 | 2026-11-22 | From the P6 spec review (P6 Q1 and Q4–Q7), confirming its draft assumptions. `TR-11`: a treatment ended early can't be edited any more, only deleted. `NF-8`: times follow the phone's 24-hour clock setting, and day and month names are in the UI's language. §6: the medicine editor's button is Done, and only the treatment editor's Save stores the treatment; both editors confirm before discarding changes; End early, and removing a medicine that has started, ask for confirmation; the Treatment screen opens each medicine's next take and its last answered take. |
 | 0.10 | 2026-11-22 | From the P7 spec review (P7 Q2–Q6), confirming its draft assumptions. `RM-9`: the check also reads the app's Reminders notification category; battery optimisation counts, through Android's own dialog, and on HyperOS it is the app's battery saver; HyperOS's steps to confirm are Autostart, Floating notifications and Lock screen notifications; Android's dialog asks for the notification permission at the first launch; the home screen warns while a step isn't confirmed. §6: Home marks a next take Taken early, with a confirmation; Settings confirms HyperOS's steps. |
 | 0.11 | 2026-11-22 | From P7's measurements on the phone (P7 T1), decided by the user. `RM-9`: HyperOS's battery saver at "No restrictions" also turns Android's battery optimisation off, rather than being the same setting: going back to HyperOS's default doesn't undo an exemption given in Android's dialog. |
+| 0.12 | 2026-11-25 | From P8's acceptance on the phone (A11), decided by the user: a future idea in §10, a warning in the reminder check when the notification volume is muted or very low. Not in v1.0; no requirement changes. |
