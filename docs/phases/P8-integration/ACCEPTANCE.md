@@ -231,6 +231,25 @@ The release build with the fix for late alerts (installed as an update at 16:45,
 
 **Ending early** (TR-11): "Hourly" ended at 19:12, from its Treatment screen: "Finished · Ended: Today 19:12"; its reminders left the shade, Example's stayed, and the alarm moved to Example's next take, 20:00.
 
+### A11. A day and a night of real use (24 Nov 19:15 to 25 Nov 19:50)
+
+"Example" (the specification's §4.4 example, started on 23 November), on the phone, with the reminder check passing and the fix for late alerts installed; the user carried the phone as usual. Every alert of the 24 hours, from `logcat -b events`:
+
+| Take due | Alarm woke the phone | Posted | Alert played | Late | Repeats played |
+|---|---|---|---|---|---|
+| 24 Nov 20:00 (Amoxicillin) | 20:00:00.000 | 20:00:00.155 | 20:00:00.461 | 0.46 s | 20:10:00.36, 20:20:00.46, 20:30:00.45 |
+| 25 Nov 00:00 (Atrovent) | 00:00:01.314 | 00:00:01.565 | 00:00:01.927 | 1.9 s | 00:10:02.66, 00:20:02.58, 00:30:02.64 |
+| 25 Nov 08:00 (both, one sound) | 08:00:01.044 | 08:00:01.350 | 08:00:01.721 | 1.7 s | 08:10:02.49, 08:20:03.41, 08:30:04.36 |
+| 25 Nov 16:00 (Atrovent) | 16:00:01.743 | 16:00:01.975 | 16:00:02.353 | 2.4 s | 16:10:01.48, 16:20:01.44, 16:30:01.40 |
+
+**On time in deep Doze** (NF-1): the phone was in deep Doze from 21:02 to 23:55, from 00:52 (with maintenance windows and short wakes) and from 06:57 to 07:57; Android left it a few minutes before each alarm clock, as it does, and then let the phone sleep between the repeats. Every alert played within 0.45 s of its post, the repeats included, where on the morning of 24 November, before the fix, they came up to 101 s late. Each first alert was within 2.4 s of its planned time; each repeat came 10 minutes after the alert before it (RM-5).
+
+**Missed and removed** (TK-3, RM-7): the user left these reminders unanswered; each stayed in the shade silently after its three repeats, and left it when the medicine's next take fell due: Amoxicillin's 20:00 and Atrovent's 00:00 at 08:00:01.3, Atrovent's 08:00 at 16:00:01.9.
+
+**Battery** (NF-5): one alarm clock at a time (one set at 19:52, for 20:00); the app woke the phone only at reminder times; HyperOS's battery screen listed Pills Reminder at 1.41%, a figure that also covers the hours the app was in front during A2–A8.
+
+**Not heard:** the user heard none of these alerts. Android played each with sound (`beep=1`), with the ring mode normal and Do Not Disturb off, but the phone's ring and notification volume on its speaker was at **2 of 15**, too quiet to hear from a pocket; at 17:00 on 24 November, with the phone in hand, the user had heard it. Reminders follow the phone's volume, as they follow its Do Not Disturb and silent mode (RM-8); the reminder check doesn't look at it (RM-9). Decided by the user: they raise the volume themselves, and a warning for a muted or very low notification volume goes into the specification's future ideas (§10, v0.12).
+
 ### A9. The emulator (2026-11-23)
 
 The release build, signed, installed fresh on the emulator with `gradle installRelease`, beside the debug app.
