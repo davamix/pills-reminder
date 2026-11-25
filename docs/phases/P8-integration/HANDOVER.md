@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Status** | In progress |
+| **Status** | In progress: T1–T9 done; pull request [#9](https://github.com/davamix/pills-reminder/pull/9) is waiting for the user to merge it, then T10 (the release) with the user's go-ahead |
 | **Spec** | [SPEC.md](SPEC.md), version v0.2 |
 | **Branch** | `phase/p8-integration` |
-| **Last session** | 2026-11-23 |
+| **Last session** | 2026-11-25 |
 
 This document tracks the phase as it's built. Update it at the end of every session, so the next one can continue from here.
 
@@ -19,21 +19,21 @@ Start or continue phase P8 (Integration and v1.0) of the pills reminder.
 1. Use the phase-start skill for P8. Read only docs/phases/P8-integration/HANDOVER.md and SPEC.md; they contain everything needed.
 2. Carry on from "Next steps" in the handover. Work through the tasks in SPEC.md §7 in order, on branch phase/p8-integration. Commit after each task, once the build passes.
 3. Follow SPEC.md. If something in it is wrong or unclear, stop and ask me before changing course. Record every decision or deviation in the handover.
-4. P8 is mostly checks on devices. T1 and T2 need the emulator, and T2 the phone too; T4–T8 need the phone, and me with it for the reminder runs, the restart, the ring modes and the day and night of real use. Ask before changing anything on the phone, and never change its clock or time zone. The keystore and its passwords never go in the repo or in your output (SPEC §4.3.3, §5). ACCEPTANCE.md is public: times and conditions only, no treatment content from real use. Tag and release only after I've merged the pull request and said go (T10).
+4. T1–T9 are done and pull request #9 is open. First check whether I've merged it (`gh pr view 9`) or left review comments; deal with comments on this branch. Once it's merged, T10: ask me for the go-ahead, then build the release on `main` at the merge commit, check it, tag `v1.0.0` and create the GitHub release, as SPEC §4.3.3 says, showing me the release notes first; then the phase-close skill. The keystore and its passwords never go in the repo or in your output (SPEC §4.3.3, §5). Never change the phone's clock or time zone.
 5. Before the session ends, or once T1–T9 are done, use the handover skill. When the done criteria before the pull request pass, open the pull request and wait for me to merge it.
 ```
 
 ## Current state
 
-T1–T7 are done (24 Nov, 19:15). Every acceptance check so far passes (A1–A10, A12), recorded in `ACCEPTANCE.md`, and the late alerts in deep Doze found on 24 Nov are fixed (`Reminders.reconcileAndSettle`, on the phone since 16:45). T8, a day and a night of real use, runs from 24 Nov 19:15 to at least 25 Nov 19:15, on "Example" (the user's choice, Q3), with the user answering its reminders as they come.
+T1–T9 are done. Every requirement passes on the phone with the signed release build, as `ACCEPTANCE.md` records, including a day and a night of real use; the late alerts found in deep Doze on 24 Nov are fixed. The build passes (`:core` 177, `:app` 260 unit tests), and the instrumented suite passes on the emulator and the phone (49 tests each) at the final code. Pull request [#9](https://github.com/davamix/pills-reminder/pull/9) is open, and CI passed on its first commit (`87e319e`, run 45682300060). Left: the user's merge, then T10, the `v1.0.0` tag and the GitHub release, with the user's go-ahead.
 
-**The phone now:** the release app only, with "Example" (Amoxicillin every 12 hours: 20:00, 08:00; Atrovent every 8 hours: 00:00, 08:00, 16:00), "Weekly" (Finished) and "Hourly" (Finished, ended at 19:12). The reminder check passes; Autostart on, battery saver No restrictions, ring mode normal, Do Not Disturb off.
+**The phone:** the release app, with "Example" still running (the user's real-use treatment), "Weekly" and "Hourly" (Finished); the debug app and its tests reinstalled by T9's instrumented run, with an empty store. The phone's ring and notification volume was 2 of 15: the user raises it. **The emulator:** the debug app, and the release app (the current build) with an "Example" made for the README's screenshots.
 
 ## Next steps
 
-1. **T8, after 25 Nov 19:15** (A11): read the release app's events since 24 Nov 19:15 with the scratchpad's `t7_events.sh` (if the scratchpad was cleared: `logcat -b events` filtered to the release package, `notification_enqueue`, `notification_alert`, `device_idle_wake_from_idle`; the buffer reached back 36 hours). For each alert: due, posted, played, lateness, sound and vibration. **The night's alerts in deep Doze check the fix**: 00:00 (Atrovent) and 08:00 (both), the phone idle; each must play within a second of its post. Then `doze_history` for the night's deep-Doze periods, `alarms` (one alarm clock), and ask the user for HyperOS's battery usage of the app (NF-5). Record A11 in `ACCEPTANCE.md`, times only.
-2. **T9:** fill in `ACCEPTANCE.md`'s header (commit, APK SHA-256 of the APK on the phone, `sha256sum app/build/outputs/apk/release/app-release.apk` if unchanged since 16:45) and §3 (test totals), and each row of §4 with its date and result; the README (status, what v1.0 does, how to install, the reminder check, links); CLAUDE.md's status line. Run the whole instrumented suite on the emulator and the phone (it reinstalls the debug app on the phone, with an empty store; `EndToEndTest` alerts once). Then the `handover` skill, which opens the pull request.
-3. **T10**, after the user merges and says go: the release (SPEC §4.3.3).
+1. If the pull request has review comments, deal with them on this branch, then run the checks and push.
+2. Once the user has merged it, **T10**, only with the user's go-ahead: on `main` at the merge commit, `gradle assembleRelease`; check it with `apksigner` (certificate digest `d28df13a…a5e7`) and its manifest (SPEC §4.3.3); copy it to the scratchpad as `pills-reminder-1.0.0.apk` and take its SHA-256; write the release notes in the scratchpad and show them to the user; `git tag -a v1.0.0 -m "Pills Reminder 1.0.0"` and push the tag; `gh release create v1.0.0 <apk> --title "Pills Reminder 1.0.0" --notes-file <notes>`; then install that APK on the phone over the accepted one (`adb install -r`, the same key, the data kept).
+3. Then the `phase-close` skill: P8 `Done` in plan §5.1, SPEC §8 ticked, this handover finished, and the skills review (candidates in the session logs: the `phone` skill should time alerts by `notification_alert`, the heads-up over the app bar, `uiautomator dump`'s minute labels, the editor's field numbers, the transport-id fix to confirm, the README screenshots' crop tool).
 
 ## Tasks
 
@@ -49,7 +49,7 @@ The task IDs come from SPEC.md §7.
 | T6 | Done | A2, A3, A4 and A10 on the phone, recorded. Two results to read from the phone's records: `TR-10`/`TK-3` at 20:00 on 23 Nov, and `TK-4` at 00:00 on 24 Nov (next steps 1 and 2). |
 | T7 | Done | A5–A8 on the phone, 24 Nov 17:00–19:12, with an hourly test treatment, "Hourly" (ended early at the end): every alert within 0.7 s; Do Not Disturb, vibrate and Silent modes; Snooze, swipe, Taken, Skip; swipe from Recents, restart, `end_process`, update (16:45), Force stop. Recorded in `ACCEPTANCE.md`. The 19:05 update of the timetable was dropped: the 16:45 install had already checked it. |
 | T8 | Done | A11 on "Example", 24 Nov 19:15 to 25 Nov 19:50: every alert played within 0.45 s of its post, in deep Doze too (the fix holds); first alerts within 2.4 s of their time. The user heard none: the phone's ring and notification volume was 2 of 15. Decided by the user: they raise it; a low-volume warning becomes a future idea (specification v0.12). |
-| T9 | To do | `ACCEPTANCE.md`, README, CLAUDE.md; pull request |
+| T9 | In review | `ACCEPTANCE.md` finished (header, test totals, every row: Pass); the README for 1.0, with screenshots from the emulator (`docs/images/`, cropped by a throwaway Java program, example data only); CLAUDE.md's status and the receivers' settle. Instrumented suite at the final code: 49 on the emulator, 49 on the phone. Pull request [#9](https://github.com/davamix/pills-reminder/pull/9). |
 | T10 | To do | After the merge, with the go-ahead: tag `v1.0.0` and the GitHub release |
 
 ## Decisions and deviations
@@ -70,6 +70,7 @@ Anything decided during implementation that isn't in SPEC.md, or that changes it
 - From earlier phases: AGP's Gradle 10 deprecation notice and ktlint's `sun.misc.Unsafe` warnings on JDK 25 are harmless (P1).
 - The emulator's debug app keeps two notification categories from P5's probes ("Probe reminders" and `reminders-mutant`) and a `files/probe.log`. The release build, installed fresh, has none of them.
 - Android 16 may time a notification out after 72 hours (P5); not checked, out of scope (SPEC §3).
+- A low notification volume isn't checked by the reminder check: a future idea (specification v0.12). The user raises the phone's volume.
 
 ## Pending wiring
 
@@ -103,10 +104,18 @@ Each item of SPEC §4.3.1, read in the code on `main` at `80adaa0`:
 - `source .claude/skills/phone/helpers.sh emulator && gradle installDebug installDebugAndroidTest && instrument`, then the same on the phone.
 - From T3: `gradle assembleRelease`, then `apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk`.
 - From T5: `ACCEPTANCE.md`, row by row.
+- The merged manifests and dependencies against `main`: `bash .claude/skills/handover/compare-manifests.sh <scratchpad>` (25 Nov: only `ProfileInstallReceiver` removed; release dependencies the same, 120 libraries).
 
 ## Session log
 
 Newest first.
+
+### 2026-11-25
+
+- Done: T8's results read (A11: every alert played within 0.45 s of its post through a deep-Doze night; the user heard none, the phone's volume at 2 of 15); specification v0.12 (a future idea, decided by the user), merged into this branch; T9: the acceptance record finished, the README with screenshots, CLAUDE.md; the instrumented suite on both devices; pull request #9 opened (`handover`); CI passed on `87e319e` (run 45682300060).
+- Checks: `./gradlew build` passes, `:core` 177, `:app` 260 unit tests, no failures. Instrumented: 49 pass on the emulator and 49 on the phone, at the app's final code (`53a00dc`; later commits change documents only). Merged manifests: only `ProfileInstallReceiver` removed, as decided; release dependencies the same as `main`.
+- Notes: the first instrumented run of the day failed on the phone because its wireless connection had come back under a new transport id during the run (`$adb -t 16` then pointed nowhere), and the emulator had stopped; both runs passed once repeated. The emulator's clock and theme were set back after the screenshots (no 24-hour override, light theme).
+- Device state left behind: the phone's settings as the user had them (ring mode normal, Do Not Disturb off); the debug app reinstalled on the phone by the instrumented run; the emulator running, without a window.
 
 ### 2026-11-24
 
