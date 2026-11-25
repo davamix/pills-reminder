@@ -393,6 +393,27 @@ alert_events() {
         sed -E "s/^([0-9-]+ [0-9:.]+) .*\|$pkg\|-?[0-9]+\|(.*)\|[0-9]+,([01]),([01]),([01])(,[0-9]+)*\]$/\1 \2 buzz=\3 beep=\4 blink=\5/"
 }
 
+# The app's own events since a time (default: the last 30 minutes), one per line, from `logcat -b events`: its alarm
+# waking the phone from idle, each post ("post"), each alert Android played ("ALERT", with buzz and beep), each
+# removal ("cancel"), and its process starting, dying or being killed. An alert's lateness is ALERT minus its time;
+# post-to-ALERT shows whether Android held the sound back (P8: up to 101 s in deep Doze, before the fix). Works for the
+# release build too (pkg=$release_pkg), which has no reminder log. Filtered to the app. Usage: app_events "11-24 17:00"
+app_events() {
+    local since=${1:-$($adb shell "date -d @\$((\$(date +%s) - 1800)) '+%m-%d %H:%M:%S'" | tr -d '\r')}
+    $adb logcat -d -b events -v time | tr -d '\r' | awk -v t="$since" '($1" "$2) >= t' |
+        grep -F "$pkg" |
+        grep -E 'notification_(enqueue|alert|canceled)|device_idle_wake_from_idle|am_proc_start|am_proc_died|am_kill' |
+        sed -E \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/notification_enqueue\([^)]*\): \[[0-9]+,[0-9]+,[^,]+,[0-9]+,([^,]+),.*/\1 post   \2/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/notification_alert\([^)]*\): \[[0-9]+\|[^|]+\|[0-9]+\|([^|]+\|?[0-9a-f]{0,8})[^,]*,([01]),([01]),([01]).*/\1 ALERT  \2 buzz=\3 beep=\4/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/notification_canceled\([^)]*\): \[[0-9]+\|[^|]+\|[0-9]+\|([^|]+\|?[0-9a-f]{0,8}).*/\1 cancel \2/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/device_idle_wake_from_idle.*/\1 alarm woke the phone from idle/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/am_proc_start\([^)]*\): \[[0-9]+,([0-9]+),[0-9]+,[^,]+,([^,]+),\{[^}]*\.([A-Za-z]+)\}.*/\1 process start pid=\2 for \3 \4/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/am_proc_died\([^)]*\): \[[0-9]+,([0-9]+),.*/\1 process died pid=\2/' \
+            -e 's/^([0-9-]+ [0-9:.]+) I\/am_kill *\([^)]*\): \[[0-9]+,([0-9]+),[^,]+,[0-9]+,(.*)\]/\1 process killed pid=\2: \3/' |
+        sed -E 's/\|([0-9a-f]{8})[0-9a-f-]*/|\1/' | cut -c1-120
+}
+
 # The activity in front, by name only (package/class): which screen a tap opened, without reading the screen itself,
 # which may show the user's apps, as HyperOS's Autostart list does (P7 M1).
 top_activity() {

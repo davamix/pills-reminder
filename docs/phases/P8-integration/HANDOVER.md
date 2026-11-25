@@ -101,6 +101,7 @@ Newest first.
 ### 2026-11-25 (close)
 
 - The user merged pull request #9 and gave the go-ahead: T10 done, version 1.0.0 released (tag `v1.0.0`, GitHub release with the APK), and that APK installed on the phone. Phase closed: plan §5.1, SPEC §8 and this handover updated on `main`; `ACCEPTANCE.md` names the release's APK.
+- Skills review (agreed by the user, all four proposals): the `phone` skill gets `app_events` (the app's posts, alerts, cancels, alarm wakes and process events, for the release build too), timing the sound rather than the post, the release build's notes, and P8's HyperOS pitfalls; a new skill, `release` (SK-10, plan §7), for later versions; CLAUDE.md: name each `waitUntil`, and the `release` skill; `screen-gallery`: screenshots to publish, with `Crop.java`.
 
 ### 2026-11-25
 

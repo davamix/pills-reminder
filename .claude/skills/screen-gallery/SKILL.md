@@ -52,6 +52,16 @@ The gallery is throwaway: never committed. [gallery.sh](gallery.sh) copies it in
 4. **Draw on the phone too,** at least once per phase: library texts and pickers follow the phone's language and region (P6 found the date picker in Spanish). Light and dark there are enough.
 5. **Show the user** the sheets when the SPEC asks for it: give the full path of the output folder, and name a few sheets to start with.
 
+## Screenshots to publish
+
+For the README or a release (P8 T9), the pictures are taken in the app itself, not drawn by the gallery, and they go into the public repo:
+
+1. **The emulator only, never the phone,** with only the specification's §4.4 example as data (`phone` skill, "Common tasks"). Created in the release app through its screens, with first takes this morning so a take is Due.
+2. **As the specification shows it:** the 24-hour clock (`$adb shell settings put system time_12_24 24`); read the setting first, and put it back afterwards (it was unset: `settings delete system time_12_24`). Dark theme for one picture at most, with `cmd uimode night yes`, put back with a `trap`.
+3. **Take them** with `shot`, while the app is in front. A reminder in the shade: `$adb shell cmd statusbar expand-notifications`, tap its expand arrow so its actions show, `shot`, then `cmd statusbar collapse`. A heads-up covers the app bar for a few seconds after an alert: wait, or use `KEYCODE_BACK`.
+4. **Crop and scale** with [Crop.java](Crop.java), from the JDK, which needs no image library: `"$JAVA_HOME/bin/java" Crop.java <in.png> <out.png> <top> <bottom> <width>`, with Windows paths (`cygpath -w`). On the emulator the status bar and the gesture bar are 66 px each (24 dp): screens at `66 66 360`. A reminder: its card's rows only, found in the screenshot, such as `970 980 540`.
+5. **Look at each one** before committing it: no status bar, nothing but example data. They live in `docs/images/`, about 15–50 KB each.
+
 ## Notes
 
 - **Why the system's font scale:** a `LocalDensity` with a larger font scale, set around the content, doesn't reach dialogs, which open in their own window. The system's `font_scale` scales everything, with Android 14's non-linear scaling, as a user would see it.
